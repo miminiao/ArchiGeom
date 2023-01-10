@@ -1,0 +1,108 @@
+import math
+from lib.utils import Constant
+import numpy as np
+
+class Vec3d:
+    const=Constant.default()
+    _const_stack=[const]
+    def __init__(self,x:float,y:float,z:float=0.0) -> None:
+        self.x,self.y,self.z=x,y,z
+    @classmethod
+    def push_const(cls,const:Constant)->None:
+        cls._const_stack.append(cls.const)
+        cls.const=const
+    @classmethod
+    def pop_const(cls)->Constant:
+        return cls._const_stack.pop()
+    def __getitem__(self,index:int)->float:
+        if index>=3 or index<-3: raise IndexError
+        match index%3:
+            case 0: return self.x
+            case 1: return self.y
+            case 2: return self.z
+    def __repr__(self) -> str:
+        return f"Vec3d({self.x},{self.y},{self.z})"
+    def __add__(self,other:"Vec3d")->"Vec3d":
+        return Vec3d(self.x+other.x,self.y+other.y,self.z+other.z)
+    def __sub__(self,other:"Vec3d")->"Vec3d":
+        return Vec3d(self.x-other.x,self.y-other.y,self.z-other.z)
+    def __neg__(self)->"Vec3d":
+        return Vec3d(-self.x,-self.y,-self.z)
+    def __mul__(self,scaler:float)->"Vec3d":
+        return Vec3d(self.x*scaler,self.y*scaler,self.z*scaler)
+    def __truediv__(self,divider:float)->"Vec3d":
+        return Vec3d(self.x/divider,self.y/divider,self.z/divider)
+    def equals(self,other:"Vec3d")->bool:
+        # return (abs(self.x-other.x)<self.const.TOL_VAL 
+        #         and abs(self.y-other.y)<self.const.TOL_VAL 
+        #         and abs(self.z-other.z)<self.const.TOL_VAL)
+        return (self-other).length<self.const.TOL_DIST
+    def dot(self,other:"Vec3d")->float:
+        return self.x*other.x+self.y*other.y+self.z*other.z
+    def cross(self,other:"Vec3d")->"Vec3d":
+        return Vec3d(self.y*other.z-self.z*other.y,self.z*other.x-self.x*other.z,self.x*other.y-self.y*other.x)
+    @property
+    def length(self)->float:
+        return (self.x**2+self.y**2+self.z**2)**0.5
+    @property
+    def angle(self)->float:
+        """角度范围[0,2pi)"""
+        if self.length<self.const.TOL_VAL: return 0
+        cosX=self.x/self.length
+        cosY=self.y/self.length 
+        angle=math.acos(cosX) if cosY>=0 else 2*math.pi-math.acos(cosX)
+        if math.pi*2-angle<=self.const.TOL_ANG: angle=0
+        return angle
+    def unit(self)->"Vec3d":
+        return self/self.length
+    def angle_between(self,other:"Vec3d")->float:
+        """不分正负"""
+        return math.acos(self.dot(other)/self.length/other.length)
+    def angle_to(self,other:"Vec3d")->float:
+        """求到other的旋转角[0,2pi)"""
+        res=other.angle-self.angle
+        if res<0: res+=2*math.pi
+        return res
+    def rotate2d(self,angle:float)->"Vec3d":
+        return Vec3d(math.cos(angle)*self.x-math.sin(angle)*self.y,math.sin(angle)*self.x+math.cos(angle)*self.y,self.z)
+    def to_array(self)->np.ndarray:
+        return np.array([self.x,self.y,self.z]).T
+
+class Mat3d:
+    dim=3
+    def __init__(self,mat:list[list[float]]) -> None:
+        """3x3矩阵"""
+        assert len(mat)==len(mat[0])==len(mat[1])==len(mat[2])==self.dim
+        self.mat=np.array(mat)
+    def __getitem__(self,index:tuple[int,int]|int)->float|list[float]:
+        if isinstance(index,int): 
+            if index>=self.dim or index<-self.dim: raise IndexError
+            return list(self.mat[index])
+        elif isinstance(index,tuple):
+            if index[0]>=self.dim or index[0]<-self.dim or index[1]>=self.dim or index[1]<-self.dim: raise IndexError
+            return self.mat[index]
+    @classmethod
+    def from_column_vecs(cls,columns:list[Vec3d])->"Mat3d":
+        return cls([[columns[j][i] for j in range(cls.dim)] for i in range(cls.dim)])
+    @classmethod
+    def from_row_vecs(cls,rows:list[Vec3d])->"Mat3d":
+        return cls([vec.to_list() for vec in rows])
+    def determinant(self)->float:
+        return np.linalg.det(self.mat)
+    def invert(self)->"Mat3d":
+        return Mat3d(list(np.linalg.inv(self.mat)))
+    def transpose(self)->"Mat3d":
+        return Mat3d(list(self.mat.T))
+    def __matmul__(self,other):
+        if isinstance(other,Vec3d):
+            return Vec3d(*(self.mat@other.to_array()))
+        elif isinstance(other,Mat3d):
+            return Mat3d(list(self.mat@other.mat))
+    def __mul__(self,other):
+        return Mat3d(list(self.mat*other))
+if __name__=="__main__":
+    a=[[0,1,2],[3,4,5],[6,7,8]]
+    m=Mat3d(a)
+    b=[1,2,3]
+    v=Vec3d(*b)
+    print(m@v,(m*2).mat)

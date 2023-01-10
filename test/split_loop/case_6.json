@@ -1,0 +1,96 @@
+[
+    {
+        "object_name": "polyline",
+        "segments": [
+            {
+                "start_point": [
+                    34524.5649415817,
+                    -691.0563228317114,
+                    0
+                ],
+                "bulge": 0.0,
+                "start_width": 0.0,
+                "end_width": 0.0
+            },
+            {
+                "start_point": [
+                    36375.957909846366,
+                    -691.0563228317114,
+                    0
+                ],
+                "bulge": 0.0,
+                "start_width": 0.0,
+                "end_width": 0.0
+            },
+            {
+                "start_point": [
+                    36375.957909846366,
+                    1109.978230345214,
+                    0
+                ],
+                "bulge": 0.0,
+                "start_width": 0.0,
+                "end_width": 0.0
+            },
+            {
+                "start_point": [
+                    34524.5649415817,
+                    1109.978230345214,
+                    0
+                ],
+                "bulge": 0.0,
+                "start_width": 0.0,
+                "end_width": 0.0
+            }
+        ],
+        "layer": "0",
+        "is_closed": true
+    },
+    {
+        "object_name": "polyline",
+        "segments": [
+            {
+                "start_point": [
+                    34524.5649415817,
+                    759.9782303452158,
+                    0
+                ],
+                "bulge": 0.0,
+                "start_width": 0.0,
+                "end_width": 0.0
+            },
+            {
+                "start_point": [
+                    36924.56494158175,
+                    759.9782303452158,
+                    0
+                ],
+                "bulge": 0.0,
+                "start_width": 0.0,
+                "end_width": 0.0
+            },
+            {
+                "start_point": [
+                    36924.56494158175,
+                    1459.978230345214,
+                    0
+                ],
+                "bulge": 0.0,
+                "start_width": 0.0,
+                "end_width": 0.0
+            },
+            {
+                "start_point": [
+                    34524.5649415817,
+                    1459.978230345214,
+                    0
+                ],
+                "bulge": 0.0,
+                "start_width": 0.0,
+                "end_width": 0.0
+            }
+        ],
+        "layer": "0",
+        "is_closed": true
+    }
+]

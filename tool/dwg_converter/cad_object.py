@@ -1,3 +1,4 @@
+from lib.linalg import Vec3d,Mat3d
 class CADEntity:
     def __init__(self,object_name:str,layer:str,color:int) -> None:
         self.object_name=object_name
@@ -78,10 +79,29 @@ class CADBlockRef(CADEntity):
             ent.ZScaleFactor,
         ]
         self.rotation=ent.Rotation
+        self.normal=ent.Normal[:]
         self.is_dynamic=ent.IsDynamicBlock
         self.block_name=ent.Name
         self.effective_name=ent.EffectiveName
         CADBlockDef.parse(self.block_name)
+    def get_basis_mat(self)->Mat3d:
+        vx=Vec3d(0,0,1).cross(self.normal)
+        if vx.is_zero(is_unit=True): vx=Vec3d(1,0,0)
+        vz=self.normal
+        vy=self.normal.cross(vx)
+        return Mat3d.from_column_vecs([vx,vy,vz])
+    def get_scale_mat(self)->Mat3d:
+        return Mat3d.from_column_vecs([
+            Vec3d(self.scale[0],0,0),
+            Vec3d(0,self.scale[1],0),
+            Vec3d(0,0,self.scale[2]),
+        ])
+    def get_rotation_mat(self)->Mat3d:
+        return Mat3d.from_column_vecs([
+            Vec3d(1,0,0).rotate2d(self.rotation),
+            Vec3d(0,1,0).rotate2d(self.rotation),
+            Vec3d(0,0,1),
+        ])
 class CADBlockDef:
     blocks={}
     _doc_blocks={}

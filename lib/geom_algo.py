@@ -23,7 +23,7 @@ class GeomAlgo(ABC):
         Geom.push_const(self.const)
     @abstractmethod
     def get_result(self):
-        pass
+        ...
     @abstractmethod
     def _postprocess(self)->None:
         Geom.pop_const()
@@ -739,18 +739,31 @@ class FindRoomAlgo(GeomAlgo): #TODO
         self.const=const or Constant.default()
         self.edges:list[Edge]=edges
         self.loops:list[Loop]=[]
+    def _preprocess(self) -> None:
+        super()._preprocess()
+    def _postprocess(self) -> None:
+        super()._postprocess()
     def make_cover_tree(loops:list[Loop])->list[TreeNode]:
+        loops.sort(key=lambda loop:abs(loop.area),reverse=True)  # 按面积排序，确保循环的时候每个TreeNode都有正确的parent
         t:list[TreeNode] =[TreeNode(loop) for loop in loops] #把loop都变成TreeNode
         for i in range(len(t)-1):
             for j in range(i+1,len(t)):
                 ni,nj=t[i],t[j]
-                ci=ni.obj.contains(nj.obj)
-                cj=nj.obj.contains(ni.obj)
-                if not ci and not cj: continue #没有覆盖关系时，跳过
-                if cj and not ci: #j覆盖i且i不覆盖j（ij不重合）时，ij互换 
+                ci=ni.obj.covers(nj.obj)
+                cj=nj.obj.covers(ni.obj)
+                if not ci and not cj: # 没有覆盖关系时，跳过
+                    continue
+                elif ci and cj:  # 互相覆盖(重合)的时候，取ci.parent的相反方向的环作为外环
+                    if ni.parent is None or ni.parent.obj.area>0:  # ni.parent是内环，就让负的覆盖正的，保证正-负-正的关系
+                        if ni.obj.area>0:
+                            ni,nj=nj,ni
+                    else:  # ni.parent是外环，就让正的覆盖负的，保证负-正-负的关系
+                        if ni.obj.area<0:
+                            ni,nj=nj,ni
+                elif cj and not ci:  # j覆盖i且i不覆盖j（ij不重合）时，ij互换 
                     ni,nj=nj,ni
-                if (nj.parent is None) or (abs(ni.obj.area)<abs(nj.parent.obj.area)): #此时可确保i覆盖j，通过比较面积更新j.parent
-                    nj.parent=ni
+                # 此时确保i覆盖j
+                nj.parent=ni
         for i in t:
             if i.parent is not None:
                 i.parent.child.append(i)
@@ -786,7 +799,7 @@ class SplitIntersectedLoopsAlgo(GeomAlgo):
                     res.add(loop.edges[j])
         return list(res)
     def _preprocess(self)->None:
-        Geom.push_const(self.const)
+        super()._preprocess()
         # 预先split自相交的单环：×行不通，因为接下来第二次（偶数次）的交换会回到自相交的状态
         # 预先offset有重叠边的单环
         prepared_loops=[]
@@ -835,7 +848,7 @@ class SplitIntersectedLoopsAlgo(GeomAlgo):
             else: res.append(loop)
         self.split_loops=res
         self.split_loops=list(filter(lambda loop:abs(loop.area*2/loop.length)>1,self.split_loops)) # 移除过细的环
-        Geom.pop_const()
+        super()._postprocess()
     def _split_intersection(self,positive:bool,ensure_valid:bool) -> list[Loop]:
         """在所有的交点处打断，并交换方向"""
         breakpoints={edge:[] for edge in self.all_edges}  # 记录每条边上的断点

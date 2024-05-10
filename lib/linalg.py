@@ -44,6 +44,9 @@ class Vec3d:
     @property
     def length(self)->float:
         return (self.x**2+self.y**2+self.z**2)**0.5
+    def is_zero(self,is_unit=False)->bool:
+        if is_unit: return self.length<self.const.TOL_VAL
+        else: return self.length<self.const.TOL_DIST
     @property
     def angle(self)->float:
         """角度范围[0,2pi)"""

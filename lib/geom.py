@@ -44,7 +44,9 @@ class Geom(ABC):
     def get_mbb(self)->tuple["Node","Node"]:
         """获取包围盒->(左下,右上)"""
         ...
-class Node(Geom):  # 点/几何点
+    
+class Node(Geom):
+    """点/几何点"""
     def __init__(self, x:float=0, y:float=0, z:float=0) -> None:
         super().__init__()
         self.x=float(x)
@@ -73,16 +75,22 @@ class Node(Geom):  # 点/几何点
     def to_vec3d(self) -> Vec3d:
         return Vec3d(self.x,self.y,0)
     def add_edge_in_order(self, edge:"Edge"): 
-        """按角度有序插入"""
+        """有序插入：第一关键字角度，第二关键字曲率（左正右负）"""
+        ang=edge.tangent_at(0).angle
+        cur=edge.curvature_at(0)*edge.binormal_at(0).z
         i=0
-        while (i<len(self.edge_out) 
-               and edge.tangent_at(0).angle>self.edge_out[i].tangent_at(0).angle):
+        while i<len(self.edge_out):
+            ang_i=self.edge_out[i].tangent_at(0).angle
+            cur_i=self.edge_out[i].curvature_at(0)*edge.binormal_at(0).z
+            if ang_i+self.const.TOL_ANG<ang: break  # 角度升序
+            if abs(ang_i-ang)<self.const.TOL_ANG and cur_i+self.const.TOL_VAL<cur: break  # 角度相同时按曲率升序
             i+=1
         self.edge_out.insert(i,edge)
     def is_on_edge(self, edge:"Edge", include_endpoints:bool=True) ->bool:
         """点在曲线上"""
         return edge.is_point_on_edge(self,include_endpoints)
-class Edge(Geom):  # 边/曲线段
+class Edge(Geom):  
+    """边/曲线段"""
     def __init__(self,s:Node,e:Node) -> None:
         super().__init__()
         self.s,self.e=s,e
@@ -109,6 +117,7 @@ class Edge(Geom):  # 边/曲线段
         Returns:
             tuple[Node,float]: (曲线上的点, 实际的参数t)
         """
+        ...
     @abstractmethod
     def tangent_at(self,t:float)->Vec3d:
         """参数t处的单位切向量"""
@@ -117,6 +126,9 @@ class Edge(Geom):  # 边/曲线段
     def principal_normal_at(self,t:float)->Vec3d:
         """参数t处的单位主法向量"""
         ...
+    def binormal_at(self,t:float)->Vec3d:
+        """参数t处的单位副法向量"""
+        return self.tangent_at(t).cross(self.principal_normal_at(t))
     @abstractmethod
     def curvature_at(self,t:float)->float: 
         """参数t处的曲率"""
@@ -231,7 +243,8 @@ class Edge(Geom):  # 边/曲线段
         v2=(l2.e.y-l2.s.y,l2.s.x-l2.e.x,l2.e.x*l2.s.y-l2.s.x*l2.e.y)
         prod=(v1[1]*v2[2]-v2[1]*v1[2],-(v1[0]*v2[2]-v2[0]*v1[2]),v1[0]*v2[1]-v2[0]*v1[1])
         return Node(prod[0]/prod[2],prod[1]/prod[2])
-class LineSeg(Edge):  # 直线段
+class LineSeg(Edge):
+    """直线段"""
     def __init__(self, s:Node, e:Node) -> None:
         super().__init__(s,e)
     def __repr__(self) -> str:
@@ -431,7 +444,8 @@ class LineSeg(Edge):  # 直线段
             if angle>math.pi: angle=angle-2*math.pi
             arc=Arc(p1,p2,math.tan(angle/4))
             return arc
-class Arc(Edge):  #圆弧
+class Arc(Edge):
+    """圆弧"""
     def __init__(self,s:Node,e:Node,bulge:float) -> None:
         """从起点、终点、凸度构造圆弧
 
@@ -651,7 +665,8 @@ class Arc(Edge):  #圆弧
         new_s=Node.from_vec3d(self.s.to_vec3d()+vs*dist)
         new_e=Node.from_vec3d(self.e.to_vec3d()+ve*dist)
         return Arc(new_s,new_e,self.bulge)
-class Loop(Geom):  # 环
+class Loop(Geom):
+    """环/几何环"""
     def __init__(self,edges:list[Edge],update_node:bool=False) -> None:
         super().__init__()
         self.edges=edges
@@ -902,11 +917,10 @@ class Poly(Geom):  # 多边形
             return self.polygon.covers(other.polygon)                
     def offset(self,side:str="left",dist:float=None)->"Poly":
         return Poly(self.exterior.offset(side,dist)[0],[hole.offset(side,dist)[0] for hole in self.interiors])
-
 def _draw_polygon(poly:Polygon|Poly,color:tuple[str]=None,**kwargs):
     x,y=poly.exterior.xy
     if color is not None: kwargs["color"]=color[0]
-    plt.plot(x,y,**kwargs)   
+    plt.plot(x,y,**kwargs)
     if color is not None: kwargs["color"]=color[1]
     for hole in poly.interiors:
         x,y=hole.xy

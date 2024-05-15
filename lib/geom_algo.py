@@ -801,7 +801,18 @@ class SplitIntersectedLoopsAlgo(GeomAlgo):
     def _preprocess(self)->None:
         super()._preprocess()
         # 预先split自相交的单环：×行不通，因为接下来第二次（偶数次）的交换会回到自相交的状态
-        # 预先offset有重叠边的单环
+        """
+        prepared_loops=[]
+        for loop in self.loops:
+            loop.simplify()
+            if loop.has_self_intersection():
+                new_loop=SplitIntersectedLoopsAlgo([loop],positive=False,ensure_valid=False,const=self.const).get_result()
+                prepared_loops.extend(new_loop)
+            else: prepared_loops.append(loop)
+        self.loops=prepared_loops
+        """
+        # 预先offset有重叠边的单环：×会导致和原loop有误差
+        
         prepared_loops=[]
         for loop in self.loops:
             loop.simplify()
@@ -812,8 +823,9 @@ class SplitIntersectedLoopsAlgo(GeomAlgo):
                 new_loop=loop.offset(split=False)
                 prepared_loops.extend(new_loop)
             else: prepared_loops.append(loop)
-        self.loops=prepared_loops        
-
+        self.loops=prepared_loops
+       
+        
         # 所有边集合
         self.all_edges=[edge for loop in self.loops for edge in loop.edges]
         # 初始化loop顶点的next_edge和dual_node
@@ -934,10 +946,10 @@ class SplitIntersectedLoopsAlgo(GeomAlgo):
             else: loops_valid.append(l1)
         return loops_valid
 
-def _find_or_insert_node(target_node:Node,nodes:list[Node])->Node:
+def _find_or_insert_node(target_node:Node,nodes:list[Node],copy=False)->Node:
     for node in nodes:
         if target_node.equals(node):
-            return node
+            return node if not copy else Node(node.x,node.y)
     nodes.append(target_node)
     return target_node
 def _draw_polygon(poly: Polygon | Poly, show:bool=False, *args, **kwargs):
@@ -963,7 +975,7 @@ def _draw_loops(loops:list[Loop],show_node_text:bool=False,show:bool=False)->Non
                 for sub_edge in sub_edges:
                     plt.plot(sub_edge.to_array()[:,0], sub_edge.to_array()[:,1],color=color,linestyle=line_style)
             if show_node_text:
-                plt.text(edge.s.x+1.0*j,edge.s.y+1.0*j,j,color="b")
+                plt.text(edge.s.x+1.0*j,edge.s.y+1.0*j,f"{i}.{j}",color="b")
     if show:
         ax = plt.gca()
         ax.set_aspect(1)
@@ -979,6 +991,8 @@ def _draw_edges(edges:list[Edge],show_node_text:bool=False,show:bool=False)->Non
                 plt.plot(sub_edge.to_array()[:,0], sub_edge.to_array()[:,1],color=color)
         if show_node_text:
             plt.text(edge.s.x+1.0*j,edge.s.y+1.0*j,j,color="b")
+            if j==len(edges)-1:
+                plt.text(edge.e.x+1.0*j+1,edge.e.y+1.0*j+1,j+1,color="b")
     if show:
         ax = plt.gca()
         ax.set_aspect(1)
@@ -1264,7 +1278,7 @@ if 1 and __name__ == "__main__":
     # const=Constant("split_loop",tol_area=1e3,tol_dist=1e-2)
 
 
-    CASE_ID = "26"  ################ TEST #################
+    CASE_ID = "27"  ################ TEST #################
 
     with open(f"test/split_loop/case_{CASE_ID}.json",'r',encoding="utf8") as f:
         j_obj=json.load(f)
@@ -1285,8 +1299,8 @@ if 1 and __name__ == "__main__":
                 s=Node(x1,y1)
                 e=Node(x2,y2)
                 if s.equals(e):continue
-                s=_find_or_insert_node(s,nodes)
-                e=_find_or_insert_node(e,nodes)
+                s=_find_or_insert_node(s,nodes,copy=True)
+                e=_find_or_insert_node(e,nodes,copy=True)
                 if abs(bulge)<const.TOL_VAL:
                     edges.append(LineSeg(s,e))
                 else:
@@ -1301,4 +1315,4 @@ if 1 and __name__ == "__main__":
     # with open(f"test\split_loop\case_{CASE_ID}_out.json",'w',encoding="utf8") as f:
     #     json.dump([loop.area for loop in split_loops],f,ensure_ascii=False)
 
-    _draw_loops(split_loops,show=True)
+    _draw_loops(split_loops,show_node_text=True,show=True)

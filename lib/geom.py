@@ -140,8 +140,17 @@ class Edge(Geom):
         vz=vx.cross(vy)
         return Mat3d.from_column_vecs([vx,vy,vz])
     @abstractmethod
-    def slice_between_points(self,p1:Node,p2:Node)->"Edge":
-        """返回p1->p2的切片，允许p1==p2"""
+    def slice_between_points(self,p1:Node,p2:Node,extend:bool=False)->"Edge":
+        """返回p1->p2的切片
+
+        Args:
+            p1 (Node): 起点
+            p2 (Node): 终点，满足t(p1)<=t(p2)
+            extend (bool, optional): 允许向外延伸. Defaults to False.
+
+        Returns:
+            Edge: p1->p2的切片
+        """
         ...
     @abstractmethod
     def is_point_on_edge(self,point:Node,include_endpoints:bool=True)->bool:
@@ -154,6 +163,10 @@ class Edge(Geom):
     @abstractmethod
     def is_collinear(self, other:"Edge")->bool:
         """共线"""
+        ...
+    @abstractmethod
+    def is_on_same_direction(self,other:"Edge")->bool:
+        """同向"""
         ...
     @abstractmethod
     def intersects(self,other:"Edge",)->bool: 
@@ -302,13 +315,22 @@ class LineSeg(Edge):
         return 0<self.get_point_param(point)<1
     def is_parallel(self, other:Edge) -> bool:
         """平行，含共线；认为点和任意曲线都平行"""
-        if self.is_zero() or other.is_zero(): return True  # 点和任意曲线都平行
+        if self.is_zero() or other.is_zero(): return True
         if isinstance(other,Arc):
             return abs(other.bulge)<self.const.TOL_VAL and self.is_parallel(LineSeg(other.s,other.e))
         if isinstance(other,LineSeg):
-            v1=self.to_vec3d().unit()
-            v2=other.to_vec3d().unit()
-            return abs(v1.cross(v2).z) < self.const.TOL_DIST2
+            # 判断平行距离相等
+            # 但是会拖慢速度，待优化 TODO
+            v=[other.projection(self.s).to_vec3d()-self.s.to_vec3d(),
+               other.projection(self.e).to_vec3d()-self.e.to_vec3d(),
+               -(self.projection(other.s).to_vec3d()-other.s.to_vec3d()),
+               -(self.projection(other.e).to_vec3d()-other.e.to_vec3d()),
+               ]
+            for i in range(3):
+                for j in range(i+1,4):
+                    if not (v[i]-v[j]).is_zero():
+                        return False
+            return True
     def is_collinear(self, other:Edge, method:str="by_dist")->bool:
         """共线"""
         if not self.is_parallel(other): return False
@@ -321,6 +343,12 @@ class LineSeg(Edge):
             cond3=other.s.dist(self.projection(other.s))<self.const.TOL_DIST
             cond4=other.e.dist(self.projection(other.e))<self.const.TOL_DIST
             return cond1 and cond2 and cond3 and cond4
+    def is_on_same_direction(self,other:Edge)->bool:
+        """线段同向"""
+        if not isinstance(other,LineSeg): return False
+        if self.is_zero() or other.is_zero(): return True  # 零线段和所有人都同向
+        return (self.is_parallel(other)
+                and self.to_vec3d().dot(other.to_vec3d())>self.const.TOL_VAL)
     def point_at(self,t:float=None,x:float=None,y:float=None,cut:bool=False) -> tuple[Node,float]: 
         """求线段所在直线上的点，并返回参数t∈[0,1]
         优先级t>x>y，cut==True时在线段端点t==0/1处截断
@@ -402,11 +430,15 @@ class LineSeg(Edge):
         dot_prod=(other.x-self.s.x)*(self.e.x-self.s.x)+(other.y-self.s.y)*(self.e.y-self.s.y)
         t=dot_prod/(self.length**2)
         return self.point_at(t,cut=True)[0]
-    def slice_between_points(self,p1:Node,p2:Node)->"LineSeg":
-        """返回线段上p1->p2的切片，允许p1==p2"""
+    def slice_between_points(self,p1:Node,p2:Node,extend:bool=False)->"LineSeg":
+        """返回线段上p1->p2的切片"""
         t1,t2=self.get_point_param(p1),self.get_point_param(p2)
-        if not (0<=t1+self.const.TOL_VAL<=t2+2*self.const.TOL_VAL<=1+3*self.const.TOL_VAL): return None
-        return LineSeg(p1,p2)
+        if extend:
+            if (t1<t2 or p1.equals(p2)): return LineSeg(p1,p2)
+            else: return None
+        else:
+            if 0<=t1+self.const.TOL_VAL<=t2+2*self.const.TOL_VAL<=1+3*self.const.TOL_VAL: return LineSeg(p1,p2)
+            else: return None
     def offset(self,dist:float) -> "LineSeg": 
         """左正右负"""
         vector=(self.e.x-self.s.x,self.e.y-self.s.y)
@@ -482,7 +514,8 @@ class Arc(Edge):
         e=Node(center_point.x+radius*math.cos(end_angle),
                center_point.y+radius*math.sin(end_angle))
         bulge=math.tan(total_angle/4)
-        return cls(s,e,bulge)
+        if abs(bulge)<cls.const.TOL_VAL: return LineSeg(s,e)
+        else: return cls(s,e,bulge)
     def get_mbb(self) -> tuple["Node", "Node"]:
         angles_ccw=self.angles if self.bulge>0 else self.angles[::-1]
         if angles_ccw[0]<math.pi and angles_ccw[1]>math.pi: # 圆的最左点
@@ -532,6 +565,16 @@ class Arc(Edge):
     def is_zero(self)->bool:
         """0线段"""
         return self.s.equals(self.e)
+    def is_point_on_edge(self,point:Node,include_endpoints:bool=True)->bool:
+        """点在圆弧上"""
+        if self.is_zero(): return self.s.equals(point)
+        # 点是否在圆周上
+        if abs(point.dist(self.center)-self.radius)>self.const.TOL_DIST: return False
+        # 点是否在端点上
+        if point.dist(self.s)<self.const.TOL_DIST or point.dist(self.e)<self.const.TOL_DIST:
+            return include_endpoints
+        # 点在线段内
+        return 0<self.get_point_param(point)<1
     def is_parallel(self, other:Edge) -> bool:
         """圆弧平行"""
         if self.is_zero() or other.is_zero(): return True
@@ -541,6 +584,12 @@ class Arc(Edge):
         """圆弧共圆"""
         if not isinstance(other,Arc): return False
         return self.is_parallel(other) and abs(self.radius-other.radius)<self.const.TOL_DIST
+    def is_on_same_direction(self,other:Edge)->bool:
+        """圆弧同向"""
+        if not isinstance(other,Arc): return False
+        if self.is_zero() or other.is_zero(): return True  # 零线段和所有人都同向        
+        return (abs(self.radius-other.radius)<self.const.TOL_DIST
+                and (self.bulge>0)==(other.bulge>0))
     def closest_point(self, other: Node) -> Node:
         if other.equals(self.center): return self.s
         edge=Edge(self.center,other)
@@ -629,12 +678,16 @@ class Arc(Edge):
         dists=[other.dist(p) for p in possible_projections]
         nearest_p=possible_projections[dists.index(min(dists))]
         return nearest_p
-    def slice_between_points(self,p1:Node,p2:Node)->"Arc":
-        """返回圆弧上p1->p2的切片，允许p1==p2"""
+    def slice_between_points(self,p1:Node,p2:Node,extend:bool=False)->"Arc":
+        """返回圆弧上p1->p2的切片"""
         t1,t2=self.get_point_param(p1),self.get_point_param(p2)
-        if not (0<=t1+self.const.TOL_VAL<=t2+2*self.const.TOL_VAL<=1+3*self.const.TOL_VAL): return None
         radian=self.radian*(t2-t1)
-        return Arc(p1,p2,math.tan(radian/4))
+        if extend:
+            if (t1<t2 or p1.equals(p2)): return Arc(p1,p2,math.tan(radian/4))
+            else: return None
+        else:
+            if 0<=t1+self.const.TOL_VAL<=t2+2*self.const.TOL_VAL<=1+3*self.const.TOL_VAL: return Arc(p1,p2,math.tan(radian/4))
+            else: return None
     def fit(self,quad_segs:int=16,min_segs:int=1) -> list[LineSeg]:
         subdiv_num=max(min_segs,math.ceil(abs(self.radian/(math.pi/2)*quad_segs)))
         if subdiv_num==0: return [LineSeg(self.s,self.e)]
@@ -678,7 +731,7 @@ class Loop(Geom):
             self.edges[i-1].e=self.edges[i].s
             if update_node: self.edges[i].s.edge_out=[self.edges[i]]
         self.area=self.get_area()
-        
+
         self.polygon=None
         if abs(self.area)>self.const.TOL_AREA:
             new_edges=[]
@@ -751,12 +804,19 @@ class Loop(Geom):
             centroid+=triangle_centroid*triangle_area/self.area
         return Node(centroid.x,centroid.y)
     def simplify(self,cull_dup=True,cull_insig=True)->None:
-        for i in range(len(self.edges)-1,-1,-1):
-            if cull_dup and self.edges[i].is_zero():
-                del(self.edges[i])
-        for i in range(len(self.edges)-1,-1,-1):
-            if cull_insig and self.edges[i].is_collinear(self.edges[i-1]) and self.edges[i].tangent_at(0).dot(self.edges[i-1].tangent_at(0))>0:
-                del(self.edges[i])
+        """去除环上冗余的顶点/边
+
+        Args:
+            cull_dup (bool, optional): 去除重复的顶点（长度为0的边）. Defaults to True.
+            cull_insig (bool, optional): 去除共线的边中间的顶点. Defaults to True.
+        """
+        if cull_dup:
+            self.edges=[edge for edge in self.edges if not edge.is_zero()]
+        if cull_insig:
+            for i in range(len(self.edges)-1,-1,-1):
+                if self.edges[i-1].is_collinear(self.edges[i]):
+                    self.edges[i-1]=self.edges[i-1].slice_between_points(self.edges[i-1].s,self.edges[i].e,extend=True)
+                    del(self.edges[i])
         self.update(update_node=True)
     def offset(self,side:str="left",dist:float=None,split:bool=True,mitre_limit:float=None) -> list["Loop"]:
         def comb_dist(edge:Edge,dist:float)->float:

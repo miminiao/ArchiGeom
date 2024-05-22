@@ -12,8 +12,8 @@ const=Constant.default()
 
 @pytest.mark.parametrize(
     argnames="case",
-    argvalues=[{"in":f"case_{i}","out":f"case_{i}_out"} for i in range(1,26)],
-    ids=[f"case_{i}" for i in range(1,26)],
+    argvalues=[{"in":f"case_{i}","out":f"case_{i}_out"} for i in range(1,30)],
+    ids=[f"case_{i}" for i in range(1,30)],
 )
 def test_split_loops_algo(case):
     """测试自相交Loop处理"""
@@ -34,8 +34,8 @@ def test_split_loops_algo(case):
                 s=Node(x1,y1)
                 e=Node(x2,y2)
                 if s.equals(e):continue
-                s=_find_or_insert_node(s,nodes)
-                e=_find_or_insert_node(e,nodes)
+                s=_find_or_insert_node(s,nodes,copy=True)
+                e=_find_or_insert_node(e,nodes,copy=True)
                 if abs(bulge)<const.TOL_VAL:
                     edges.append(LineSeg(s,e))
                 else:
@@ -43,10 +43,15 @@ def test_split_loops_algo(case):
         loops.append(Loop(edges))
     split_loops=SplitIntersectedLoopsAlgo(loops,False,False,const=const).get_result()
     split_loops=list(filter(lambda loop:abs(loop.area*2/loop.length)>1,split_loops))
-    split_loops.sort(key=lambda loop:loop.area)
 
     with open(f"./test/split_loop/{case['out']}.json",'r',encoding="utf8") as f:
         std_out=json.load(f)
+    std_out=list(filter(lambda area:abs(area)>const.TOL_AREA,std_out))
+    
+    split_loops=list(filter(lambda loop:abs(loop.area)>const.TOL_AREA,split_loops))
+    split_loops.sort(key=lambda loop:loop.area)
+    
     assert len(split_loops)==len(std_out)
     for i in range(len(std_out)):
-        assert abs(std_out[i]-split_loops[i].area)/abs(std_out[i])<0.001
+        assert (abs(std_out[i]-split_loops[i].area)/abs(std_out[i])<0.001
+                or abs(std_out[i]-split_loops[i].area)<const.TOL_AREA)

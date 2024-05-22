@@ -2,6 +2,6 @@
     "MAX_VAL": "inf",
     "TOL_VAL": 1E-3,
     "TOL_DIST": 1E-2,
-    "TOL_AREA": 1E1,
+    "TOL_AREA": 2E4,
     "TOL_ANG":1E-2
 }

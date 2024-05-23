@@ -480,17 +480,17 @@ class MergeLineAlgo(GeomAlgo):
                 merged_lines.append(dom.line)
         return merged_lines
 class BreakLineAlgo(GeomAlgo):
-    def __init__(self,line_groups:list[list[LineSeg]],const:Constant=None) -> None:
+    def __init__(self,line_groups:list[list[Edge]],const:Constant=None) -> None:
         """线段打断，并保留原先的分组
 
         Args:
             line_groups (list[list[Edge]]): 若干个分组，每组包含若干条线段.
             const (Constants, optional): 误差控制常量. Defaults to Constants.DEFAULT.
         """
-        super().__init__(const)
+        super().__init__(const=const)
         self.line_groups=line_groups
-        self.all_lines:list[LineSeg]=[]
-        self.broken_line_groups:list[list[LineSeg]]=[]
+        self.all_lines:list[Edge]=[]
+        self.broken_line_groups:list[list[Edge]]=[]
     def get_result(self)->list[list[Edge]]:
         """获取打断的结果
 
@@ -504,12 +504,13 @@ class BreakLineAlgo(GeomAlgo):
         return self.broken_lines
     def _preprocess(self)->None:
         """预处理"""
+        super()._preprocess()
         self.all_lines=[line for group in self.line_groups for line in group]
         # 去除0线段
         self.all_lines=list(filter(lambda line: not line.is_zero(),self.all_lines))
     def _postprocess(self)->None:
         """后处理"""
-        pass
+        super()._postprocess()
     def _get_break_points(self)->dict[Edge:list[Node]]:
         """获取线段上的断点，没有排序，也没有去重"""
         visited={line:set() for line in self.all_lines} # 记录已经求过交点的线段
@@ -525,14 +526,15 @@ class BreakLineAlgo(GeomAlgo):
                 # 共线且有重叠的情况
                 if line.is_collinear(other):
                     overlap=line.overlap(other)
-                    if overlap is not None and not overlap.is_zero():
-                        break_points[line].extend([overlap.s,overlap.e])
-                        break_points[other].extend([overlap.s,overlap.e])
+                    for edge in overlap:
+                        if edge.is_zero(): continue
+                        break_points[line].extend([edge.s,edge.e])
+                        break_points[other].extend([edge.s,edge.e])
                 # 相交的情况
                 if line.intersects(other):
                     intersection=line.intersection(other)
-                    break_points[line].append(intersection)
-                    break_points[other].append(intersection)
+                    break_points[line].extend(intersection)
+                    break_points[other].extend(intersection)
         return break_points
     def _rebuild_lines(self,break_points:dict[Edge:list[Node]])->list[list[Edge]]:
         """根据断点重构线段"""
@@ -540,12 +542,11 @@ class BreakLineAlgo(GeomAlgo):
         for group in self.line_groups:
             new_group=[]
             for line in group:
-                unit_vector=line.to_vec3d().unit()
-                break_points[line].sort(key=lambda p:p.to_vec3d().dot(unit_vector))
+                break_points[line].sort(key=lambda p:line.get_point_param(p))
                 pre=break_points[line][0]
                 for p in break_points[line]:
                     if p.equals(pre): continue
-                    new_group.append(Edge(pre, p))
+                    new_group.append(line.slice_between_points(pre, p))
                     pre=p
             broken_lines.append(new_group)
         return broken_lines
@@ -693,20 +694,22 @@ class FindLoopAlgo(GeomAlgo):  #TODO
         """搜索线段构成的所有封闭区域
 
         Args:
-            edges (list[Edge]): 所有线段，需要提前在交点处打断
+            edges (list[Edge]): 所有线段，无需打断
             const (Constant, optional): 误差控制常量. Defaults to None.
         """
-        self.const=const or Constant.default()
+        super().__init__(const=const)
         self.edges:list[Edge]=edges
         self.loops:list[Loop]=[]
     def _preprocess(self)->None:
-        pass
+        super()._preprocess()
+        self.edges=BreakLineAlgo(self.edges,self.const).get_result()
+
     def get_result(self):
         self._preprocess()
         self.loops=self._find_loop()
         self._postprocess()
     def _postprocess(self)->None:
-        pass
+        super()._postprocess()
     def _find_loop(self)->list[Loop]:
         loops:list[Loop] =[]
         visited_edges=set()
@@ -719,9 +722,12 @@ class FindLoopAlgo(GeomAlgo):  #TODO
                     break
             while True: #以pre_edge.e为当前结点开始找一个环
                 node=pre_edge.e #当前结点
-                theta=pre_edge.opposite().angle #入边的角度
+                op=pre_edge.opposite()
+                current_angle=op.tangent_at(0).angle #入边的角度
+                current_curvature=pre_edge.opposite().curvature_at(0)
                 i=len(node.edge_out)-1
-                while i>=0 and node.edge_out[i].angle+const.TOL_ANG>=theta: #按角度找下一条出边
+                while i>=0 and (node.edge_out[i].tangent_at(0).angle+const.TOL_ANG>=current_angle 
+                                or (node.edge_out[i].tangent_at(0).angle-current_angle)<const.TOL_ANG): #按角度找下一条出边 ##########################
                     i-=1
                 if node.edge_out[i] in visited_edges:  #如果找到了已访问的边就封闭这个环
                     loops.append(Loop(new_loop)) #先将此环加入list
@@ -789,6 +795,7 @@ class SplitIntersectedLoopsAlgo(GeomAlgo):
         self.positive=positive
         self.ensure_valid=ensure_valid
         self.split_loops:list[Loop]=[]
+    """
     def _get_overlapping_edges_in_loop(self,loop:Loop)->list[Edge]:
         res=set()
         for i in range(len(loop.edges)-1):
@@ -798,33 +805,9 @@ class SplitIntersectedLoopsAlgo(GeomAlgo):
                     res.add(loop.edges[i])
                     res.add(loop.edges[j])
         return list(res)
+    """
     def _preprocess(self)->None:
         super()._preprocess()
-        # 预先split自相交的单环：×行不通，因为接下来第二次（偶数次）的交换会回到自相交的状态
-        """
-        prepared_loops=[]
-        for loop in self.loops:
-            loop.simplify()
-            if loop.has_self_intersection():
-                new_loop=SplitIntersectedLoopsAlgo([loop],positive=False,ensure_valid=False,const=self.const).get_result()
-                prepared_loops.extend(new_loop)
-            else: prepared_loops.append(loop)
-        self.loops=prepared_loops
-        """
-        # 预先offset有重叠边的单环：×会导致和原loop有误差
-        """
-        prepared_loops=[]
-        for loop in self.loops:
-            loop.simplify()
-            overlapping_edges=self._get_overlapping_edges_in_loop(loop)
-            if len(overlapping_edges)>0:
-                for edge in overlapping_edges:
-                    edge.lw=self.const.TOL_DIST
-                new_loop=loop.offset(split=False)
-                prepared_loops.extend(new_loop)
-            else: prepared_loops.append(loop)
-        self.loops=prepared_loops
-        """
         # 所有边集合
         self.all_edges=[edge for loop in self.loops for edge in loop.edges]
         # 初始化loop顶点的next_edge和dual_node
@@ -834,12 +817,6 @@ class SplitIntersectedLoopsAlgo(GeomAlgo):
                 loop.edges[i].s.dual_node_on_next_edge=loop.edges[i-1].e
                 loop.edges[i-1].e.next_edge=loop.edges[i]
                 loop.edges[i-1].e.dual_node_on_next_edge=loop.edges[i].s
-        # 存储环中相邻的两条边
-        self.neighbor_edges={edge:set() for edge in self.all_edges}
-        for loop in self.loops:
-            for i,edge in enumerate(loop.edges):
-                self.neighbor_edges[edge].add(loop.edges[i-1])
-                self.neighbor_edges[edge].add(loop.edges[(i+1)%len(loop.edges)])
     def get_result(self):
         self._preprocess()
         # 先在所有的交点处打断，并交换方向
@@ -852,7 +829,7 @@ class SplitIntersectedLoopsAlgo(GeomAlgo):
         self._postprocess()
         return self.split_loops
     def _postprocess(self)->None:
-        # 当前算法存在永远处理不了的情况：内外同向相切的环。此时稍微offset一下由相切转为相交再处理。
+        # 当前算法存在永远处理不了的情况：内外同向相切的环。此时稍微offset一下由相切转为相交再处理。（当前是否需要待验证 TODO）
         if (len(self.loops)==len(self.split_loops)==1 and 
                 abs(self.loops[0].area-self.split_loops[0].area)<self.loops[0].length*self.const.TOL_DIST+self.const.TOL_AREA):
             self.split_loops=self.split_loops[0].offset(dist=self.const.TOL_DIST,split=False)
@@ -869,28 +846,18 @@ class SplitIntersectedLoopsAlgo(GeomAlgo):
     def _get_breakpoints(self)->dict[Edge:list[Node]]:
         """在所有的交点处打断，并交换方向"""
         breakpoints={edge:[] for edge in self.all_edges}  # 记录每条边上的断点
-        existing_breakpoints={}  # 全局记录某个位置的点已经打断的次数
         # 枚举不相邻的两条边ei、ej
         for i in range(len(self.all_edges)-1):
             ei=self.all_edges[i]
             for j in range(i+1,len(self.all_edges)):
                 ej=self.all_edges[j]
-                if ej in self.neighbor_edges[ei]: continue  # 不相邻
                 all_pi:list[Node]=[]  # 位于ei上的断点（圆弧相交可能不止一个）
                 if ei.intersects(ej):  # 如果相交，就在交点处打断
                     new_breakpoints=ei.intersection(ej)
                     for pi in new_breakpoints:
                         # 求交的时候每条线段的有效范围是[0,1)->[s,e)；只算头，不算尾巴
                         if pi.equals(ei.e) or pi.equals(ej.e): continue
-                        # 同一个点不要打断2次，否则会让点在边上的排序反掉
-                        for ex in existing_breakpoints:
-                            if pi.equals(ex):
-                                existing_breakpoints[ex]+=1
-                                if existing_breakpoints[ex]>1:
-                                    pass  # break
-                        else: 
-                            all_pi.append(pi)
-                            existing_breakpoints[pi]=1
+                        all_pi.append(pi)
                 elif len(ei.overlap(ej))>0: # 如果重叠且反向，就在端点处打断；只算头不算尾巴
                     if ei.is_on_same_direction(ej): continue
                     if ei.s.is_on_edge(ej) and not ei.s.equals(ej.e):
@@ -935,7 +902,7 @@ class SplitIntersectedLoopsAlgo(GeomAlgo):
                         new_loop=Loop(new_loop_edges)
                         if (not ensure_valid or (abs(new_loop.area)>self.const.TOL_AREA) and (new_loop.area>self.const.TOL_AREA or not positive)):  # 如果非0，且面积为正或原本就是一个负环
                             new_loop.simplify(cull_insig=True)
-                            if len(new_loop.edges)>1: 
+                            if len(new_loop.edges)>1:
                                 split_loops.append(new_loop)  # 将环加入list
                         break
                     else:  # 如果找到的不是已访问的顶点
@@ -954,13 +921,6 @@ class SplitIntersectedLoopsAlgo(GeomAlgo):
                 if l2.covers(l1): break
             else: valid_loops.append(l1)
         return valid_loops
-
-def _find_or_insert_node(target_node:Node,nodes:list[Node],copy=False)->Node:
-    for node in nodes:
-        if target_node.equals(node):
-            return node if not copy else Node(node.x,node.y)
-    nodes.append(target_node)
-    return target_node
 def _draw_polygon(poly: Polygon | Poly, show:bool=False, *args, **kwargs):
     x, y = poly.exterior.xy
     plt.plot(x, y, *args, **kwargs)
@@ -1285,50 +1245,27 @@ if 0 and __name__ == "__main__":
     #     json.dump(merged_lines,f,ensure_ascii=False,default=lambda x:x.__dict__)
 # %% 合并相交环测试
 if 1 and __name__ == "__main__":
-
     import json
     import matplotlib.pyplot as plt
     from matplotlib.colors import TABLEAU_COLORS
+    from tool.dwg_converter.json_parser import polyline_to_loop
     colors=list(TABLEAU_COLORS)
     const=Constant.default()
     # const=Constant("split_loop",tol_area=1e3,tol_dist=1e-2)
 
-
-    CASE_ID = "8"  ################ TEST #################
+    CASE_ID = "6"  ################ TEST #################
 
     with open(f"test/split_loop/case_{CASE_ID}.json",'r',encoding="utf8") as f:
         j_obj=json.load(f)
+    loops=polyline_to_loop(j_obj)
 
-    loops=[]
-    nodes=[]
-    for obj in j_obj:
-        if obj["object_name"]=="polyline":
-            edges=[]
-            seg_num=len(obj["segments"]) if obj["is_closed"] else len(obj["segments"])-1
-            for i in range(seg_num):
-                seg=obj["segments"][i]
-                next_seg=obj["segments"][(i+1)%len(obj["segments"])]
-                x1,y1,_=seg["start_point"]
-                x2,y2,_=next_seg["start_point"]
-                lw=rw=seg["start_width"]/2
-                bulge=seg["bulge"]
-                s=Node(x1,y1)
-                e=Node(x2,y2)
-                if s.equals(e):continue
-                s=_find_or_insert_node(s,nodes,copy=True)
-                e=_find_or_insert_node(e,nodes,copy=True)
-                if abs(bulge)<const.TOL_VAL:
-                    edges.append(LineSeg(s,e))
-                else:
-                    edges.append(Arc(s,e,bulge))
-            loops.append(Loop(edges))
-
-    split_loops=SplitIntersectedLoopsAlgo(loops,False,False,const=const).get_result()
+    with Timer(tag="split_loop"):
+        split_loops=SplitIntersectedLoopsAlgo(loops,False,False,const=const).get_result()
     split_loops.sort(key=lambda loop:loop.area)
 
     print(len(split_loops))
     _draw_loops(split_loops,show_node=False,show_text=False,show=True)
 
     # 输出标准结果
-    # with open(f"test\split_loop\case_{CASE_ID}_out.json",'w',encoding="utf8") as f:
-    #     json.dump([loop.area for loop in split_loops],f,ensure_ascii=False)
+    with open(f"test\split_loop\case_{CASE_ID}_out.json",'w',encoding="utf8") as f:
+        json.dump([loop.area for loop in split_loops],f,ensure_ascii=False)

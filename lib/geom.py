@@ -89,6 +89,13 @@ class Node(Geom):
     def is_on_edge(self, edge:"Edge", include_endpoints:bool=True) ->bool:
         """点在曲线上"""
         return edge.is_point_on_edge(self,include_endpoints)
+    @staticmethod
+    def find_or_insert_node(target_node:"Node",nodes:list["Node"],copy=False)->"Node":
+        for node in nodes:
+            if target_node.equals(node):
+                return node if not copy else Node(node.x,node.y)
+        nodes.append(target_node)
+        return target_node
 class Edge(Geom):  
     """边/曲线段"""
     def __init__(self,s:Node,e:Node) -> None:
@@ -319,18 +326,36 @@ class LineSeg(Edge):
         if isinstance(other,Arc):
             return abs(other.bulge)<self.const.TOL_VAL and self.is_parallel(LineSeg(other.s,other.e))
         if isinstance(other,LineSeg):
-            # 判断平行距离相等
-            # 但是会拖慢速度，待优化 TODO
-            v=[other.projection(self.s).to_vec3d()-self.s.to_vec3d(),
-               other.projection(self.e).to_vec3d()-self.e.to_vec3d(),
-               -(self.projection(other.s).to_vec3d()-other.s.to_vec3d()),
-               -(self.projection(other.e).to_vec3d()-other.e.to_vec3d()),
-               ]
-            for i in range(3):
-                for j in range(i+1,4):
-                    if not (v[i]-v[j]).is_zero():
-                        return False
+            # 四个点互相投影，判断平行距离相等；；这样会拖慢速度
+            # v=[other.projection(self.s).to_vec3d()-self.s.to_vec3d(),
+            #    other.projection(self.e).to_vec3d()-self.e.to_vec3d(),
+            #    -(self.projection(other.s).to_vec3d()-other.s.to_vec3d()),
+            #    -(self.projection(other.e).to_vec3d()-other.e.to_vec3d()),
+            #    ]
+            # for i in range(3):
+            #     for j in range(i+1,4):
+            #         if not v[i].equals(v[j]):
+            #             return False
+            
+            # 丑而快的写法
+            vself=self.to_vec3d().unit()
+            vos=other.s.to_vec3d()-self.s.to_vec3d()
+            v1=vos-vself*vos.dot(vself)
+            voe=other.e.to_vec3d()-self.s.to_vec3d()
+            v2=voe-vself*voe.dot(vself)
+            if not v1.equals(v2): return False
+            vother=other.to_vec3d().unit()
+            vss=self.s.to_vec3d()-other.s.to_vec3d()
+            v3=-(vss-vother*vss.dot(vother))
+            if not v1.equals(v3): return False
+            if not v2.equals(v3): return False
+            vse=self.e.to_vec3d()-other.s.to_vec3d()
+            v4=-(vse-vother*vse.dot(vother))
+            if not v1.equals(v4): return False
+            if not v2.equals(v4): return False
+            if not v3.equals(v4): return False
             return True
+        return False                    
     def is_collinear(self, other:Edge, method:str="by_dist")->bool:
         """共线"""
         if not self.is_parallel(other): return False
@@ -514,8 +539,9 @@ class Arc(Edge):
         e=Node(center_point.x+radius*math.cos(end_angle),
                center_point.y+radius*math.sin(end_angle))
         bulge=math.tan(total_angle/4)
-        if abs(bulge)<cls.const.TOL_VAL: return LineSeg(s,e)
-        else: return cls(s,e,bulge)
+        # if abs(bulge)<cls.const.TOL_VAL: return LineSeg(s,e)
+        # else: return cls(s,e,bulge)
+        return cls(s,e,bulge)
     def get_mbb(self) -> tuple["Node", "Node"]:
         angles_ccw=self.angles if self.bulge>0 else self.angles[::-1]
         if angles_ccw[0]<math.pi and angles_ccw[1]>math.pi: # 圆的最左点
@@ -565,11 +591,14 @@ class Arc(Edge):
     def is_zero(self)->bool:
         """0线段"""
         return self.s.equals(self.e)
+    def is_point_on_circle(self,point:Node)->bool:
+        """点在圆弧所在的圆周上"""
+        if self.is_zero(): return self.s.equals(point)
+        return abs(point.dist(self.center)-self.radius)<self.const.TOL_DIST
     def is_point_on_edge(self,point:Node,include_endpoints:bool=True)->bool:
         """点在圆弧上"""
-        if self.is_zero(): return self.s.equals(point)
         # 点是否在圆周上
-        if abs(point.dist(self.center)-self.radius)>self.const.TOL_DIST: return False
+        if not self.is_point_on_circle(point): return False
         # 点是否在端点上
         if point.dist(self.s)<self.const.TOL_DIST or point.dist(self.e)<self.const.TOL_DIST:
             return include_endpoints
@@ -583,6 +612,11 @@ class Arc(Edge):
     def is_collinear(self, other:Edge)->bool:
         """圆弧共圆"""
         if not isinstance(other,Arc): return False
+        # 两个点是否定义为共圆待定 TODO
+        if self.is_zero() and other.is_zero(): return True
+        # 其中一个是点，则它需要在另一个圆周上
+        if self.is_zero() and other.is_point_on_circle(self.s) and other.is_point_on_circle(self.e): return True
+        if other.is_zero() and self.is_point_on_circle(other.s) and self.is_point_on_circle(other.e): return True
         return self.is_parallel(other) and abs(self.radius-other.radius)<self.const.TOL_DIST
     def is_on_same_direction(self,other:Edge)->bool:
         """圆弧同向"""
@@ -624,6 +658,10 @@ class Arc(Edge):
                 res.append(p)
         return res
     def get_point_param(self,point:Node)->float:
+        if self.is_zero():
+            if self.s.equals(point): return 0
+            if self.e.equals(point): return 1
+            return float("inf")
         v_p=point.to_vec3d()-self.center.to_vec3d()
         v_s=self.s.to_vec3d()-self.center.to_vec3d()
         radian_s2p=v_s.angle_to(v_p)
@@ -814,7 +852,9 @@ class Loop(Geom):
             self.edges=[edge for edge in self.edges if not edge.is_zero()]
         if cull_insig:
             for i in range(len(self.edges)-1,-1,-1):
-                if self.edges[i-1].is_collinear(self.edges[i]):
+                if self.edges[i-1].is_collinear(self.edges[i]) and self.edges[i-1].is_on_same_direction(self.edges[i]):
+                    # if self.edges[i-1].slice_between_points(self.edges[i-1].s,self.edges[i].e,extend=True) is None:
+                    #     ...  # DEBUG
                     self.edges[i-1]=self.edges[i-1].slice_between_points(self.edges[i-1].s,self.edges[i].e,extend=True)
                     del(self.edges[i])
         self.update(update_node=True)

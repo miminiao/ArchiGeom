@@ -830,9 +830,9 @@ class SplitIntersectedLoopsAlgo(GeomAlgo):
         return self.split_loops
     def _postprocess(self)->None:
         # 当前算法存在永远处理不了的情况：内外同向相切的环。此时稍微offset一下由相切转为相交再处理。（当前是否需要待验证 TODO）
-        if (len(self.loops)==len(self.split_loops)==1 and 
-                abs(self.loops[0].area-self.split_loops[0].area)<self.loops[0].length*self.const.TOL_DIST+self.const.TOL_AREA):
-            self.split_loops=self.split_loops[0].offset(dist=self.const.TOL_DIST,split=False)
+        # if (len(self.loops)==len(self.split_loops)==1 and 
+        #         abs(self.loops[0].area-self.split_loops[0].area)<self.loops[0].length*self.const.TOL_DIST+self.const.TOL_AREA):
+        #     self.split_loops=self.split_loops[0].offset(dist=self.const.TOL_DIST,split=False)
         # 经过一次交换处理，自相交的部分可能从一个环上转移到另一个环上。所以需要看看还有没有残留的自相交环，如果有的话需要继续递归处理
         res=[]
         for loop in self.split_loops:
@@ -1253,7 +1253,7 @@ if 1 and __name__ == "__main__":
     const=Constant.default()
     # const=Constant("split_loop",tol_area=1e3,tol_dist=1e-2)
 
-    CASE_ID = "6"  ################ TEST #################
+    CASE_ID = "16"  ################ TEST #################
 
     with open(f"test/split_loop/case_{CASE_ID}.json",'r',encoding="utf8") as f:
         j_obj=json.load(f)
@@ -1267,5 +1267,5 @@ if 1 and __name__ == "__main__":
     _draw_loops(split_loops,show_node=False,show_text=False,show=True)
 
     # 输出标准结果
-    with open(f"test\split_loop\case_{CASE_ID}_out.json",'w',encoding="utf8") as f:
-        json.dump([loop.area for loop in split_loops],f,ensure_ascii=False)
+    # with open(f"test\split_loop\case_{CASE_ID}_out.json",'w',encoding="utf8") as f:
+    #     json.dump([loop.area for loop in split_loops],f,ensure_ascii=False)

@@ -8,6 +8,12 @@ class Vec3d:
     def __init__(self,x:float,y:float,z:float=0.0) -> None:
         self.x,self.y,self.z=x,y,z
     @classmethod
+    def X(cls)->"Vec3d": return cls(1,0,0)    
+    @classmethod
+    def Y(cls)->"Vec3d": return cls(0,1,0)
+    @classmethod
+    def Z(cls)->"Vec3d": return cls(0,0,1)
+    @classmethod
     def push_const(cls,const:Constant)->None:
         cls._const_stack.append(cls.const)
         cls.const=const
@@ -70,7 +76,6 @@ class Vec3d:
         return Vec3d(math.cos(angle)*self.x-math.sin(angle)*self.y,math.sin(angle)*self.x+math.cos(angle)*self.y,self.z)
     def to_array(self)->np.ndarray:
         return np.array([self.x,self.y,self.z]).T
-
 class Mat3d:
     dim=3
     def __init__(self,mat:list[list[float]]) -> None:

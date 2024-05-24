@@ -825,7 +825,7 @@ class Loop(Geom):
             if isinstance(edge,Arc) and not edge.is_zero():
                 vs=edge.s.to_vec3d()-edge.center.to_vec3d()
                 ve=edge.e.to_vec3d()-edge.center.to_vec3d()
-                bow_area=edge.radian/2*edge.radius**2-0.5*(vs.cross(ve).z)
+                bow_area=edge.radian/2*edge.radius**2-0.5*(vs.cross(ve).dot(Vec3d.Z()))
             s+=(edge.s.x*edge.e.y-edge.s.y*edge.e.x)/2+bow_area
         return s
     def get_centroid(self)->Node:  # 需测试 TODO
@@ -897,15 +897,21 @@ class Loop(Geom):
         if not split:
             return [new_loop]
     def has_self_intersection(self) -> bool:
-        for i in range(len(self.edges)-1):
-            e1=self.edges[i]
-            for j in range(i+1,len(self.edges)):
-                e2=self.edges[j]
-                if j-i>1 and j-i<len(self.edges)-1 and e1.intersects(e2): 
-                    return True
-                overlap=e1.overlap(e2)
-                if len(overlap)>0 and not overlap[0].is_zero():
-                    return True
+        """判断是否有自相交"""
+        # self.edges们两两判断是否相交/重叠
+        # 判断的时候每条线段的有效范围是[0,1)->[s,e)；只算头，不算尾巴
+        l=len(self.edges)
+        for i in range(l-1):
+            ei=self.edges[i]
+            for j in range(i+1,l):
+                ej=self.edges[j]
+                # 相交
+                intersection=ei.intersection(ej)
+                for p in intersection:
+                    if not p.equals(ei.e) and not p.equals(ej.e): return True
+                # 重叠
+                if ei.s.is_on_edge(ej) and not ei.s.equals(ej.e): return True
+                if ej.s.is_on_edge(ei) and not ej.s.equals(ei.e): return True
         return False
     def contains(self,other:Geom)->bool:
         if len(self.edges)<3 or self.polygon is None:return False
@@ -1211,3 +1217,12 @@ if 0 and __name__=="__main__":
     for pt2 in intersection:
         pt=basis@(pt2.to_vec3d())
         print(pt)
+
+#%% Loop面积测试
+if 1 and __name__=="__main__":
+    import json
+    from tool.dwg_converter.json_parser import polyline_to_loop
+    with open(f"test/split_loop/case_a.json",'r',encoding="utf8") as f:
+        j_obj=json.load(f)
+    loops=polyline_to_loop(j_obj)
+    print(loops[0].get_area())

@@ -31,5 +31,5 @@ if __name__ == "__main__":
     res.extend(list(CADBlockDef.blocks.values()))
 
     # %%
-    with open("./tool/dwg_converter/output/case_28.1.json",'w',encoding="utf8") as f:
+    with open("./tool/dwg_converter/output/case_a.json",'w',encoding="utf8") as f:
         json.dump(res,f,ensure_ascii=False,default=lambda x:x.__dict__)

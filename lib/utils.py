@@ -71,7 +71,7 @@ class Constant:
                         )
     @classmethod
     def default(cls):
-        """返回默认的容差配置"""
+        """返回默认的常量配置"""
         if not hasattr(Constant,"DEFAULT"):
             Constant.DEFAULT=Constant(tag="default")
         return Constant.DEFAULT

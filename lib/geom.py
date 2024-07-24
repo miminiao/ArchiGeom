@@ -56,6 +56,9 @@ class Node(Geom):
         # self.edge_in:list[Edge]=[]
     def __repr__(self) -> str:
         return f"Node({round(self.x,2)},{round(self.y,2)})"
+    def __eq__(self,other:"Node")->bool:
+        if not isinstance(other,Node): return False
+        return self.equals(other)
     @classmethod
     def from_array(cls,arr:np.ndarray) -> "Node":
         if arr.shape==(2,):

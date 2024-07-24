@@ -21,7 +21,8 @@ if __name__ == "__main__":
             ent = sel[i] 
             if object_name:=ent.ObjectName=="":
                 ...  # DEBUG
-            res.append(CADEntity.parse(ent))
+            if (parsed_ent:=CADEntity.parse(ent)) is not None:
+                res.append(parsed_ent)
             i += 1
         except Exception as e:
             if i>last_exception: 
@@ -31,5 +32,5 @@ if __name__ == "__main__":
     res.extend(list(CADBlockDef.blocks.values()))
 
     # %%
-    with open("./tool/dwg_converter/output/case_a.json",'w',encoding="utf8") as f:
+    with open("./tool/dwg_converter/output/case_12.2.json",'w',encoding="utf8") as f:
         json.dump(res,f,ensure_ascii=False,default=lambda x:x.__dict__)

@@ -6,7 +6,8 @@ class CADEntity:
         self.color=color
     @classmethod
     def parse(cls,ent)->"CADEntity":
-        ent_type=_ENT_CLASS_MAP[ent.ObjectName]
+        ent_type=_ENT_CLASS_MAP.get(ent.ObjectName)
+        if ent_type is None: return 
         return ent_type(ent)
 class CADPoint(CADEntity):
     def __init__(self,ent) -> None:

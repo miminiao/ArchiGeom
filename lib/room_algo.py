@@ -1,5 +1,3 @@
-"""平面最短路径"""
-
 import pandas as pd
 import matplotlib.pyplot as plt
 from lib.geom import Node,Edge,Loop,Poly,_draw_polygon
@@ -12,7 +10,6 @@ def find_or_insert_node(target_node:Node,nodes:list[Node])->Node:
             return node
     nodes.append(target_node)
     return target_node
-
 def find_loop(nodes:list[Node])->list[Loop]:
     loops:list[Loop] =[]
     visited_edges=set()

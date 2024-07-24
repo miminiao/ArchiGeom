@@ -8,7 +8,7 @@ class BuildingElement(ABC):
         pass
 
 class Wall(BuildingElement):
-    def __init__(self,base_edge:Edge,lw:float=100,rw:float=100,h:float=3000.0) -> None:
+    def __init__(self,base:Edge,lw:float=100,rw:float=100,h:float=3000.0) -> None:
         """墙
 
         Args:
@@ -18,15 +18,15 @@ class Wall(BuildingElement):
             h (float, optional): 墙高. Defaults to 3000.
         """
         super().__init__()
-        self.base_edge=base_edge
+        self.base=base
         self.lw,self.rw,self.h=lw,rw,h
         self.windows:list[Window]=[]
         self.doors:list[Door]=[]
         self.holes:list[Hole]=[]
     def insert_opening(self,opening:"Opening")->None:
         opening.parent=self
-        translation=opening.insert_point.to_vec3d()-self.base_edge.s.to_vec3d()
-        basis=self.base_edge.frame_at(self.base_edge.get_point_param(opening.insert_point))
+        translation=opening.insert_point.to_vec3d()-self.base.s.to_vec3d()
+        basis=self.base.frame_at(self.base.get_point_param(opening.insert_point))
         opening.pos_wrt_wall=basis.transpose()@translation
         type_map={Window:self.windows,Door:self.doors,Hole:self.holes}
         type_map[type(opening)].append(opening)
@@ -51,7 +51,7 @@ class Opening(BuildingElement):
         # if self.pos_wrt_wall is None: 
             return self._insert_point
     def start_point(self)->Node:
-        self.parent.base_edge.point_at(self.parent.base_edge.get_point_param(self.insert_point))
+        self.parent.base.point_at(self.parent.base.get_point_param(self.insert_point))
         return 
 class Door(Opening):
     def __init__(self, parent: Wall, type: str, width: float, insert_point: Node=None, region: Loop=None) -> None:
@@ -76,7 +76,7 @@ class RoomProfileEdge(BuildingElement):
         Returns:
             int: 1:同向平行; -1:反向平行; 0:不平行.
         """
-        e1,e2=self.edge,self.wall.base_edge
+        e1,e2=self.edge,self.wall.base
         if not e1.is_collinear(e2): return 0
         if e1.is_zero() or e2.is_zero(): return 1
         return e1.tangent_at(0.5).dot(e2.tangent_at(0.5))>0

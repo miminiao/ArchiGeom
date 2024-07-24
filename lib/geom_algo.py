@@ -3,6 +3,7 @@ import numpy as np
 from copy import copy
 from typing import Callable
 from abc import ABC,abstractmethod
+from itertools import groupby
 
 from shapely.geometry import Polygon,Point,box
 from shapely.affinity import rotate
@@ -345,8 +346,8 @@ class MergeLineAlgo(GeomAlgo):
             collinear_groups+=self._get_collinear_groups(group)
         # 3.合并重叠的线段
         for i,group in enumerate(collinear_groups):
-            # self.merged_lines+=self._merge_collinear_lines(group)
-            self.merged_lines+=self._merge_collinear_lines_by_segtree(group)
+            self.merged_lines+=self._merge_collinear_lines(group)
+            # self.merged_lines+=self._merge_collinear_lines_by_segtree(group)
         # 4.后处理
         self._postprocess()
         return self.merged_lines
@@ -463,7 +464,7 @@ class MergeLineAlgo(GeomAlgo):
     def _merge_collinear_lines_by_segtree(self,unmerged_lines:list[Edge]):
         """用线段树合并共线的线段"""
         # 找一根最长的，作为方向向量
-        longest_line=max(lines,key=lambda line:line.length)
+        longest_line=max(unmerged_lines,key=lambda line:line.length)
         unit_vector=longest_line.to_vec3d().unit()
         proj=lambda p:p.to_vec3d().dot(unit_vector)
         domains=[]
@@ -665,7 +666,7 @@ class FindOutlineAlgo(GeomAlgo):
                    and (op.tangent_at(0).angle_to(edges_from_this_node[i].tangent_at(0))<self.const.TOL_ANG 
                         or op.tangent_at(0).angle_to(edges_from_this_node[i].tangent_at(0))>2*math.pi-self.const.TOL_ANG)):
                 i+=1
-            new_edge=edges_from_this_node[i%l] # 如果走到死路了（i==l），就倒回去
+            new_edge=edges_from_this_node[i%len(edges_from_this_node)] # 如果走到死路了（i==l），就倒回去
             # 求所有与new_edge可能相交的线
             nearest_edges_i=rt_edges.query_idx(new_edge.get_mbb(),tol=self.const.TOL_DIST)
             # 遍历相交的线，取距离最近的一个交点(起点除外)，作为下一个顶点
@@ -830,9 +831,9 @@ class SplitIntersectedLoopsAlgo(GeomAlgo):
         return self.split_loops
     def _postprocess(self)->None:
         # 当前算法存在永远处理不了的情况：内外同向相切的环。此时稍微offset一下由相切转为相交再处理。（当前是否需要待验证 TODO）
-        # if (len(self.loops)==len(self.split_loops)==1 and 
-        #         abs(self.loops[0].area-self.split_loops[0].area)<self.loops[0].length*self.const.TOL_DIST+self.const.TOL_AREA):
-        #     self.split_loops=self.split_loops[0].offset(dist=self.const.TOL_DIST,split=False)
+        if (len(self.loops)==len(self.split_loops)==1 and 
+                abs(self.loops[0].area-self.split_loops[0].area)<self.loops[0].length*self.const.TOL_DIST+self.const.TOL_AREA):
+            self.split_loops=self.split_loops[0].offset(dist=self.const.TOL_DIST,split=False)
         # 经过一次交换处理，自相交的部分可能从一个环上转移到另一个环上。所以需要看看还有没有残留的自相交环，如果有的话需要继续递归处理
         res=[]
         for loop in self.split_loops:
@@ -921,6 +922,44 @@ class SplitIntersectedLoopsAlgo(GeomAlgo):
                 if l2.covers(l1): break
             else: valid_loops.append(l1)
         return valid_loops
+class MergeWallAlgo(GeomAlgo):
+    def __init__(self,walls:list[Wall],const:Constant=None) -> None:
+        """合并平行且有重叠的墙
+
+        Args:
+            walls (list[Wall]): 任意一组待合并的墙.
+            const (Constant, optional): 误差控制常量. Defaults to None.
+        """
+        super().__init__(const=const)
+        self.walls=walls
+    def _preprocess(self)->None:
+        super()._postprocess()
+    def _get_parallel_groups(self,walls:list[Wall])->list[list[Wall]]:
+        """按平行分组"""
+        parallel_groups=[]
+        # 圆弧墙分组
+        arc_walls=filter(lambda wall:isinstance(wall.base,Arc),walls)
+        arc_groups=groupby(arc_walls,key=lambda wall:wall.base.center)
+        parallel_groups.extend()
+        # 直墙分组
+        line_walls=filter(lambda wall:isinstance(wall.base,LineSeg),walls)
+        walls.sort(key=lambda wall:wall.base.angle)
+        current_angle=-self.const.MAX_VAL
+        for line in lines:
+            if line.angle-current_angle>self.const.TOL_ANG: # !parallel
+                new_group=[line]
+                parallel_groups.append(new_group)
+                current_angle=line.angle
+            else: 
+                new_group.append(line)
+        return parallel_groups
+    def get_result(self):
+        for i in range(len(self.walls)-1):
+            for j in range(i+1,len(self.walls)):
+                if self.walls[i].base
+    def _postprocess(self)->None:
+        super()._postprocess()
+
 def _draw_polygon(poly: Polygon | Poly, show:bool=False, *args, **kwargs):
     x, y = poly.exterior.xy
     plt.plot(x, y, *args, **kwargs)
@@ -1253,7 +1292,7 @@ if 1 and __name__ == "__main__":
     const=Constant.default()
     # const=Constant("split_loop",tol_area=1e3,tol_dist=1e-2)
 
-    CASE_ID = "16"  ################ TEST #################
+    CASE_ID = "12.2"  ################ TEST #################
 
     with open(f"test/split_loop/case_{CASE_ID}.json",'r',encoding="utf8") as f:
         j_obj=json.load(f)

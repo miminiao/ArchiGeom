@@ -2,6 +2,7 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+from copy import copy,deepcopy
 from abc import ABC,abstractmethod
 from lib.utils import Timer,Constant
 from lib.linalg import Vec3d,Mat3d
@@ -21,8 +22,8 @@ class Geom(ABC):
     @classmethod
     def pop_const(cls)->Constant:
         return cls._const_stack.pop()
-    @classmethod
-    def merge_mbb(cls,mbbs:list[tuple["Node","Node"]]) -> tuple["Node","Node"]:
+    @staticmethod
+    def merge_mbb(mbbs:list[tuple["Node","Node"]]) -> tuple["Node","Node"]:
         """合并包围盒，返回一堆包围盒的包围盒.
 
         Args:
@@ -46,18 +47,15 @@ class Geom(ABC):
         ...
     
 class Node(Geom):
-    """点/几何点"""
-    def __init__(self, x:float=0, y:float=0, z:float=0) -> None:
+    """几何点"""
+    def __init__(self, x:float, y:float, z:float=None) -> None:
         super().__init__()
-        self.x=float(x)
-        self.y=float(y)
-        self.z=float(z)
-        self.edge_out:list[Edge]=[]
-        # self.edge_in:list[Edge]=[]
+        self.x=x
+        self.y=y
+        self.z=z or 0
     def __repr__(self) -> str:
         return f"Node({round(self.x,2)},{round(self.y,2)})"
     def __eq__(self,other:"Node")->bool:
-        if not isinstance(other,Node): return False
         return self.equals(other)
     @classmethod
     def from_array(cls,arr:np.ndarray) -> "Node":
@@ -76,19 +74,7 @@ class Node(Geom):
     def to_array(self) ->np.ndarray:
         return np.array([self.x,self.y])
     def to_vec3d(self) -> Vec3d:
-        return Vec3d(self.x,self.y,0)
-    def add_edge_in_order(self, edge:"Edge"): 
-        """有序插入：第一关键字角度，第二关键字曲率（左正右负）"""
-        ang=edge.tangent_at(0).angle
-        cur=edge.curvature_at(0)*edge.binormal_at(0).z
-        i=0
-        while i<len(self.edge_out):
-            ang_i=self.edge_out[i].tangent_at(0).angle
-            cur_i=self.edge_out[i].curvature_at(0)*edge.binormal_at(0).z
-            if ang_i+self.const.TOL_ANG<ang: break  # 角度升序
-            if abs(ang_i-ang)<self.const.TOL_ANG and cur_i+self.const.TOL_VAL<cur: break  # 角度相同时按曲率升序
-            i+=1
-        self.edge_out.insert(i,edge)
+        return Vec3d(self.x,self.y)
     def is_on_edge(self, edge:"Edge", include_endpoints:bool=True) ->bool:
         """点在曲线上"""
         return edge.is_point_on_edge(self,include_endpoints)
@@ -96,7 +82,7 @@ class Node(Geom):
     def find_or_insert_node(target_node:"Node",nodes:list["Node"],copy=False)->"Node":
         for node in nodes:
             if target_node.equals(node):
-                return node if not copy else Node(node.x,node.y)
+                return node if not copy else Node(node.x,node.y,node.z)
         nodes.append(target_node)
         return target_node
 class Edge(Geom):  

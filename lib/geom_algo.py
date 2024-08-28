@@ -711,6 +711,18 @@ class FindLoopAlgo(GeomAlgo):  #TODO
         self._postprocess()
     def _postprocess(self)->None:
         super()._postprocess()
+    def _add_edge_in_order(self, edge:"Edge"): 
+        """有序插入：第一关键字角度，第二关键字曲率（左正右负）"""
+        ang=edge.tangent_at(0).angle
+        cur=edge.curvature_at(0)*edge.binormal_at(0).z
+        i=0
+        while i<len(self.edge_out):
+            ang_i=self.edge_out[i].tangent_at(0).angle
+            cur_i=self.edge_out[i].curvature_at(0)*edge.binormal_at(0).z
+            if ang_i+self.const.TOL_ANG<ang: break  # 角度升序
+            if abs(ang_i-ang)<self.const.TOL_ANG and cur_i+self.const.TOL_VAL<cur: break  # 角度相同时按曲率升序
+            i+=1
+        self.edge_out.insert(i,edge)
     def _find_loop(self)->list[Loop]:
         loops:list[Loop] =[]
         visited_edges=set()

@@ -128,7 +128,7 @@ class SegmentTree:  # TODO
         self.const=const or Constant.default()
         self.endpoints=[]
         for seg in segs: self.endpoints.extend([seg.l,seg.r])
-        ListTool.sort_and_overkill(self.endpoints,const)
+        ListTool.sort_and_overkill(self.endpoints,self.const)
         self.root=self._construct_tree(0,len(self.endpoints)-1)
         for seg in segs: self._insert(self.root,seg)
     def _construct_tree(self,l:int,r:int)->TreeNode:
@@ -142,11 +142,11 @@ class SegmentTree:  # TODO
             TreeNode: 当前根节点
         """
         # full_num=1<<int(math.ceil(math.log2(len(endpoints))))
-        node=TreeNode(Domain1d(self.endpoints[l],self.endpoints[r],None))
-        if r-l==1:
-            return node
-        node.child=[self._construct_tree(l,l+(r-l)//2),
-                    self._construct_tree(l+(r-l)//2,r),
+        if l==r: return None
+        node=TreeNode(Domain1d(self.endpoints[l],self.endpoints[r],-1))
+        if r-l==1: return node
+        node.child=[self._construct_tree(l,(l+r)//2),
+                    self._construct_tree((l+r)//2,r),
                     ]
         for ch in node.child: ch.parent=node
         return node
@@ -167,7 +167,61 @@ class SegmentTree:  # TODO
             self._insert(node.child[0],seg)
         if seg.r>node.child[1].obj.l:
             self._insert(node.child[1],seg)
-    def get_leaf_segs(self)->list[Domain1d]:
-        nodes=self.root.get_leaf_nodes()
-        return [node.obj for node in nodes]
+    def get_leaf_segs_value(self)->list[Domain1d]:
+        ...
+
+# %% 线段合并测试，带优先级比较
+if 1 and __name__ == "__main__":
+    import json,random
+    import matplotlib.pyplot as plt
+    from lib.geom import LineSeg,Edge
+    const=Constant.default()
+
+    # with open("./test/merge_line/case_1.json",'r',encoding="utf8") as f:
+    #     j_obj=json.load(f)
+    # edges:list[Edge]=[]
+    # for ent in j_obj:
+    #     if ent["object_name"]=="line" and ent["layer"]=="WALL":
+    #         x1,y1,z1=ent["start_point"]
+    #         x2,y2,z2=ent["end_point"]
+    #         s=Node(x1,y1)
+    #         e=Node(x2,y2)
+    #         if s.equals(e):continue
+    #         edges.append(Edge(s,e))
+
+    doms:list[Domain1d]=[]
+    limits=(0,10000,1000)
+    random.seed(0)
+    for i in range(10):
+        l=random.random()*(limits[1]-limits[0])+limits[0]
+        # r=random.random()*(limits[1]-limits[0])+limits[0]
+        r=l.x+1000
+        h=random.random()*limits[2]
+        doms.append(Domain1d(l,r,h))
+
+    plt.subplot(2,1,1)
+    for i,dom in enumerate(doms):
+        plt.plot([dom.l,dom.r],[dom.h,dom.h])
+
+    print(f"{len(doms)} lines before")
+    def compare(self,a:Domain1d,b:Domain1d): 
+        if abs(a.value-b.value)<const.TOL_VAL: return 0
+        elif a.value>b.value: return 1
+        else: return -1
+    segtree=SegmentTree(doms)
+
     
+    print(f"{len(merged_lines)} lines after")
+
+    plt.subplot(2,1,2)
+    for i,dom in enumerate(merged_lines):
+        plt.plot([dom.s.x,dom.e.x],[dom.s.y+dom.lw+dom.rw,dom.e.y+dom.lw+dom.rw])
+
+    plt.show()
+
+    # CASE_ID="6"
+
+    # with open(f"./test/merge_line/case_{CASE_ID}.json",'w',encoding="utf8") as f:
+    #     json.dump(lines,f,ensure_ascii=False,default=lambda x:x.__dict__)
+    # with open(f"./test/merge_line/case_{CASE_ID}_out.json",'w',encoding="utf8") as f:
+    #     json.dump(merged_lines,f,ensure_ascii=False,default=lambda x:x.__dict__)

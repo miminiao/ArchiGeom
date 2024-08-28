@@ -5,9 +5,8 @@ class CADEntity:
         self.layer=layer
         self.color=color
     @classmethod
-    def parse(cls,ent)->"CADEntity":
+    def parse(cls,ent)->"CADEntity|None":
         ent_type=_ENT_CLASS_MAP.get(ent.ObjectName)
-        if ent_type is None: return 
         return ent_type(ent)
 class CADPoint(CADEntity):
     def __init__(self,ent) -> None:
@@ -129,7 +128,9 @@ class CADBlockDef:
         blk=cls._doc_blocks[block_name]
         cls.blocks[block_name]=CADBlockDef(blk)
         return cls.blocks[block_name]
-
+class TZWall:
+    pass
+    """(cdr (assoc 300 (entget (car (entsel)))))"""
 _ENT_CLASS_MAP = {
     "AcDbPoint": CADPoint,
     "AcDbLine": CADLine,

@@ -42,7 +42,7 @@ class _STRNode(TreeNode):
         super().__init__(geom,None,child)
         self.index=index
         self.mbb=geom.get_mbb() if index!=-1 else Geom.merge_mbb([ch.mbb for ch in child])
-            
+
 class STRTree:
     """STR树"""
     def __init__(self, geoms:list[Geom], node_capacity:int=10) -> None:
@@ -53,7 +53,7 @@ class STRTree:
             node_capacity (int, optional): 划分子结点的数量. Defaults to 10.
         """
         self.geoms=geoms
-        child_treenodes=[_STRNode(i,geoms[i],None) for i in range(len(geoms))] #初始化叶子结点：几何图形的mbb
+        child_treenodes=[_STRNode(i,geom,None) for i,geom in enumerate(geoms)] #初始化叶子结点：几何图形的mbb
         if len(geoms)==0: return
         while True: #每次循环自底向上构建一层树结构
             child_num=len(child_treenodes) #子结点的数量
@@ -94,7 +94,7 @@ class STRTree:
         Returns:
             list[int]: 查询到的几何图形index.
         """        
-        if tree_node is None: tree_node=self._root
+        tree_node=tree_node or self._root
         if tree_node.index!=-1:
             return [tree_node.index]
         res=[]

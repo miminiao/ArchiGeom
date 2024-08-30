@@ -130,7 +130,8 @@ class CADBlockDef:
         return cls.blocks[block_name]
 class TZWall:
     pass
-    """(cdr (assoc 300 (entget (car (entsel)))))"""
+    # (cdr (assoc 300 (entget (car (entsel)))))
+    # doc.GetVariable("lastprompt")
 _ENT_CLASS_MAP = {
     "AcDbPoint": CADPoint,
     "AcDbLine": CADLine,

@@ -1,3 +1,4 @@
+import base64
 from lib.linalg import Vec3d,Mat3d
 class CADEntity:
     def __init__(self,object_name:str,layer:str,color:int) -> None:
@@ -164,7 +165,9 @@ class TZWall(CADEntity):
         self.radius=ent.Radius  # 弧半径
         self.style=ent.Style  # 材料: 钢筋砼|混凝土|砖|耐火砖|石材|毛石|填充墙|加气块|空心砖|石膏板
         self.usage=ent.Usage  # 用途: 外墙|内墙|分户墙|虚墙|矮墙|卫生隔断
-        self.dxf_data=CADEntity.get_dxf_data(ent)
+        
+        dxf_data=CADEntity.get_dxf_data(ent)
+        baseline=base64.decode(dxf_data[300]).split(",")
         
     def get_height_vec(self)->Vec3d:
         return Vec3d(0,0,self.height)

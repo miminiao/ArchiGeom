@@ -7,50 +7,70 @@ class CADEntity:
     @classmethod
     def parse(cls,ent)->"CADEntity|None":
         ent_type=_ENT_CLASS_MAP.get(ent.ObjectName)
-        return ent_type(ent)
+        if ent_type is not None: 
+            return ent_type(ent)
+    @classmethod
+    def get_dxf_data(cls,ent)->dict[int:str]:
+        dxf_data={}
+        doc=ent.Document
+        doc.SendCommand(f'(setvar "users1" (vl-princ-to-string (entget (handent "{ent.Handle}"))))(princ) ')
+        dxf_str=doc.GetVariable('users1')
+        split_str=dxf_str.strip("()").split(') (')
+        for s in split_str:
+            k,v=s.split(' . ')
+            k=int(k)
+            if k not in dxf_data: dxf_data[k]=[]
+            dxf_data[k].append(v)
+        return dxf_data
+        
 class CADPoint(CADEntity):
     def __init__(self,ent) -> None:
         super().__init__("point",ent.Layer,ent.Color)
-        self.point=ent.Coordinates[:]
+        self.point:list[float]=ent.Coordinates[:]
 class CADLine(CADEntity):
     def __init__(self,ent) -> None:
         super().__init__("line",ent.Layer,ent.Color)
-        self.start_point=ent.StartPoint[:]
-        self.end_point=ent.EndPoint[:]
+        self.start_point:list[float]=ent.StartPoint[:]
+        self.end_point:list[float]=ent.EndPoint[:]
 class CADArc(CADEntity):
     def __init__(self,ent) -> None:
         super().__init__("arc", ent.Layer, ent.Color)
-        self.center=ent.Center[:]
-        self.start_angle=ent.StartAngle
-        self.end_angle=ent.EndAngle
-        self.start_point=ent.StartPoint[:]
-        self.end_point=ent.EndPoint[:]
-        self.radius=ent.Radius
-        self.normal=ent.Normal[:]
+        self.center:list[float]=ent.Center[:]
+        self.start_angle:float=ent.StartAngle
+        self.end_angle:float=ent.EndAngle
+        self.start_point:list[float]=ent.StartPoint[:]
+        self.end_point:list[float]=ent.EndPoint[:]
+        self.radius:float=ent.Radius
+        self.normal:list[float]=ent.Normal[:]
 class CADPolyline(CADEntity):
-    class _Segment:
-        def __init__(self,ent,coords,i) -> None:
-            self.start_width=0.0
-            self.end_width=0.0     
-            self.start_width,self.end_width=ent.GetWidth(i,self.start_width,self.end_width)       
-            self.bulge=ent.GetBulge(i)
-            self.start_point=[coords[i * 2],coords[i * 2 + 1],0]
+    class _CADPolylineSegment:
+        def __init__(self,ent,i) -> None:
+            coords=ent.Coordinates[:]
+            l=len(coords)
+            self.start_point:list[float]=[coords[i*2], coords[i*2+1], 0]
+            self.end_point:list[float]=[coords[(i+1)*2-l], coords[(i+1)*2+1-l], 0]
+            self.start_width, self.end_width=ent.GetWidth(i)
+            self.bulge:float=ent.GetBulge(i)
     def __init__(self,ent) -> None:
         super().__init__("polyline", ent.Layer, ent.Color)
-        self.segments=[]
-        self.is_closed=ent.Closed
-        coords=ent.Coordinates
-        for j in range(len(coords) // 2):
-            self.segments.append(self._Segment(ent,coords,j))
+        self.segments:list[CADPolyline._CADPolylineSegment]=[]
+        self.is_closed:bool=ent.Closed
+        for i in range(len(ent.Coordinates)//2):
+            self.segments.append(CADPolyline._CADPolylineSegment(ent,i))
 class CADHatch(CADEntity):
     def __init__(self,ent) -> None:
         super().__init__("hatch", ent.Layer, ent.Color)
-        self.pattern_name=ent.PatternName
-        self.angle=ent.Angle
-        self.scale=ent.Scale
-        self.is_closed=ent.Closed
-        self.is_visible=ent.Visible
-        self.is_filled=ent.IsFilled
+        self.pattern_name:str=ent.PatternName
+        self.pattern_angle:str=ent.PatternAngle
+        self.pattern_scale:float=ent.PatternScale
+        self.elevation:float=ent.Elevation
+        self.normal:list[float]=ent.Normal[:]
+        self.origin:list[float]=ent.Origin[:]
+        self.loops:list[CADPolyline]=[]
+        if ent.AssociativeHatch:
+            for i in range(ent.NumberOfLoops):
+                self.loops.append(CADPolyline(ent.GetLoopAt(i)[0]))
+        else:...  # TODO 用GetLoopAt()拿不到，需要从dxf组码读
 class CADText(CADEntity):
     """CAD单/多行文字，天正单行文字"""
     def __init__(self,ent) -> None:
@@ -128,10 +148,26 @@ class CADBlockDef:
         blk=cls._doc_blocks[block_name]
         cls.blocks[block_name]=CADBlockDef(blk)
         return cls.blocks[block_name]
-class TZWall:
-    pass
-    # (cdr (assoc 300 (entget (car (entsel)))))
-    # doc.GetVariable("lastprompt")
+class TZWall(CADEntity):
+    """天正墙"""
+    def __init__(self,ent) -> None:
+        super().__init__("tzwall", ent.Layer, ent.Color)
+        self.left_width=ent.LeftWidth  # 左宽
+        self.right_width=ent.RightWidth  # 右宽
+        self.elevation=ent.Elevation  # 标高
+        self.height=ent.Height  # 高度
+        self.insulate=ent.Insulate  # 保温      
+        self.insu_thick=ent.InsuThick  # 保温厚度
+        self.left_insu_thick=ent.LeftInsuThick  # 左保温厚度
+        self.right_insu_thick=ent.RightInsuThick  # 右保温厚度
+        self.is_arc=ent.IsArc  # 是否弧墙: 直墙|弧墙
+        self.radius=ent.Radius  # 弧半径
+        self.style=ent.Style  # 材料: 钢筋砼|混凝土|砖|耐火砖|石材|毛石|填充墙|加气块|空心砖|石膏板
+        self.usage=ent.Usage  # 用途: 外墙|内墙|分户墙|虚墙|矮墙|卫生隔断
+        self.dxf_data=CADEntity.get_dxf_data(ent)
+        
+    def get_height_vec(self)->Vec3d:
+        return Vec3d(0,0,self.height)
 _ENT_CLASS_MAP = {
     "AcDbPoint": CADPoint,
     "AcDbLine": CADLine,
@@ -143,4 +179,5 @@ _ENT_CLASS_MAP = {
     "TDbText": CADText,
     "AcDbBlockReference": CADBlockRef,
     "AcDbHatch": CADHatch,
+    "TDbWall": TZWall,
 }

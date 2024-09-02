@@ -11,17 +11,18 @@ class CADEntity:
         if ent_type is not None: 
             return ent_type(ent)
     @classmethod
-    def get_dxf_data(cls,ent)->dict[int:str]:
-        dxf_data={}
+    def get_dxf_data(cls,ent,code:int,index:int,data_type:type)->int|float|str:
+        """获取组码为code的第index个(从0开始)的数据"""
+        """ (setq b '())
+            (foreach x a
+                (if (= (car x) 10)
+                    (setq b (append (list x) b) ) 
+                )
+            )"""
         doc=ent.Document
-        doc.SendCommand(f'(setvar "users1" (vl-princ-to-string (entget (handent "{ent.Handle}"))))(princ) ')
-        dxf_str=doc.GetVariable('users1')
-        split_str=dxf_str.strip("()").split(') (')
-        for s in split_str:
-            k,v=s.split(' . ')
-            k=int(k)
-            if k not in dxf_data: dxf_data[k]=[]
-            dxf_data[k].append(v)
+        type_map={int:"useri1",float:"userr1",str:"users1"}
+        doc.SendCommand(f'(setvar {type_map[data_type]} (cdr (assoc {code} (entget (handent "{ent.Handle}"))))(princ) ')
+        dxf_data=doc.GetVariable(type_map[data_type])
         return dxf_data
         
 class CADPoint(CADEntity):
@@ -153,24 +154,28 @@ class TZWall(CADEntity):
     """天正墙"""
     def __init__(self,ent) -> None:
         super().__init__("tzwall", ent.Layer, ent.Color)
-        self.left_width=ent.LeftWidth  # 左宽
-        self.right_width=ent.RightWidth  # 右宽
-        self.elevation=ent.Elevation  # 标高
-        self.height=ent.Height  # 高度
-        self.insulate=ent.Insulate  # 保温      
-        self.insu_thick=ent.InsuThick  # 保温厚度
-        self.left_insu_thick=ent.LeftInsuThick  # 左保温厚度
-        self.right_insu_thick=ent.RightInsuThick  # 右保温厚度
-        self.is_arc=ent.IsArc  # 是否弧墙: 直墙|弧墙
-        self.radius=ent.Radius  # 弧半径
-        self.style=ent.Style  # 材料: 钢筋砼|混凝土|砖|耐火砖|石材|毛石|填充墙|加气块|空心砖|石膏板
-        self.usage=ent.Usage  # 用途: 外墙|内墙|分户墙|虚墙|矮墙|卫生隔断
-        
-        dxf_data=CADEntity.get_dxf_data(ent)
-        baseline=base64.decode(dxf_data[300]).split(",")
-        
-    def get_height_vec(self)->Vec3d:
-        return Vec3d(0,0,self.height)
+        self.left_width:float=ent.LeftWidth  # 左宽
+        self.right_width:float=ent.RightWidth  # 右宽
+        self.elevation:float=ent.Elevation  # 标高
+        self.height:float=ent.Height  # 高度
+        self.insulate:str=ent.Insulate  # 保温: 无|双侧|内侧|外侧
+        self.insu_thick:float=ent.InsuThick  # 保温厚度
+        self.left_insu_thick:float=ent.LeftInsuThick  # 左保温厚度
+        self.right_insu_thick:float=ent.RightInsuThick  # 右保温厚度
+        self.is_arc:bool=ent.IsArc=="弧墙"  # 是否弧墙: 直墙|弧墙
+        self.radius:float=ent.Radius  # 弧墙半径，对于直墙radius=0
+        self.style:str=ent.Style  # 材料: 钢筋砼|混凝土|砖|耐火砖|石材|毛石|填充墙|加气块|空心砖|石膏板
+        self.usage:str=ent.Usage  # 用途: 外墙|内墙|分户墙|虚墙|矮墙|卫生隔断
+        self.start_point,self.end_point=self.get_endpoints(ent)
+        self.total_angle=CADEntity.get_dxf_data(ent,50,float)[0]
+    def get_endpoints(self,ent)->dict[str,list[float]]:
+        curve_data={}
+        doc=ent.Document
+        doc.SendCommand(f'(setvar "userr1" (car (vlax-curve-getStartPoint (handent "{ent.Handle}"))))(setvar "userr2" (cadr (vlax-curve-getStartPoint (handent "{ent.Handle}"))))(princ) ')
+        doc.SendCommand(f'(setvar "userr3" (car (vlax-curve-getEndPoint (handent "{ent.Handle}"))))(setvar "userr4" (cadr (vlax-curve-getEndPoint (handent "{ent.Handle}"))))(princ) ')
+        s=[doc.GetVariable('users1'),doc.GetVariable('users2'),0]
+        e=[doc.GetVariable('users3'),doc.GetVariable('users4'),0]
+        return list(s),list(e)
 _ENT_CLASS_MAP = {
     "AcDbPoint": CADPoint,
     "AcDbLine": CADLine,

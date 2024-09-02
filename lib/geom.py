@@ -965,7 +965,8 @@ class Loop(Geom):
                 arc=pre_edge.fillet_with(edge,radius)
                 new_nodes+=arc.fit().nodes
         return Loop.from_nodes(new_nodes)
-class Poly(Geom):  # 多边形
+class Poly(Geom): 
+    """多边形"""
     def __init__(self,exterior:Loop,interiors:list[Loop]=None,simplify=True) -> None:
         super().__init__()        
         self.exterior=exterior
@@ -1002,7 +1003,7 @@ class Poly(Geom):  # 多边形
         if isinstance(other,Edge):
             return self.polygon.contains(LineString(other.to_array()))
         if isinstance(other,Loop):
-            return self.polygon.contains(other.polygon)        
+            return self.polygon.contains(other.polygon)
     def covers(self,other:Geom)->bool:
         if isinstance(other,Node):
             return self.polygon.covers(Point(other.to_array()))

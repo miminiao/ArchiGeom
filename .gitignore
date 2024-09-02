@@ -4,6 +4,7 @@
 data/
 .vscode/
 *.code-workspace
+output/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

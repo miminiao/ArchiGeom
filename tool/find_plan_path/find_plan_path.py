@@ -195,18 +195,18 @@ if 1 and __name__ == "__main__":
         # 画房间
         for room in rooms:
             _draw_polygon(room.polygon,color=('y','g'))
-        # # 画门
-        # pass
-        # # 画视线
-        # for s in vis_graph:
-        #     for e in vis_graph[s]:
-        #         plt.plot([s.x,e.x],[s.y,e.y],color='k',alpha=0.1)
-        # # 画路径
-        # if d[ST_PAIR[1]]<const.MAX_NUM:
-        #     path=[ST_PAIR[1]]
-        #     while path[-1] is not ST_PAIR[0]:
-        #         path.append(pre[path[-1]])
-        #     plt.plot([node.x for node in path],[node.y for node in path],color='r')
+        # 画门
+        pass
+        # 画视线
+        for s in vis_graph:
+            for e in vis_graph[s]:
+                plt.plot([s.x,e.x],[s.y,e.y],color='k',alpha=0.1)
+        # 画路径
+        if d[ST_PAIR[1]]<const.MAX_NUM:
+            path=[ST_PAIR[1]]
+            while path[-1] is not ST_PAIR[0]:
+                path.append(pre[path[-1]])
+            plt.plot([node.x for node in path],[node.y for node in path],color='r')
             
         ax = plt.gca()
         ax.set_aspect(1)

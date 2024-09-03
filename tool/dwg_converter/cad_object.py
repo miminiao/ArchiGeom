@@ -11,17 +11,13 @@ class CADEntity:
         if ent_type is not None: 
             return ent_type(ent)
     @classmethod
-    def get_dxf_data(cls,ent,code:int,index:int,data_type:type)->int|float|str:
-        """获取组码为code的第index个(从0开始)的数据"""
-        """ (setq b '())
-            (foreach x a
-                (if (= (car x) 10)
-                    (setq b (append (list x) b) ) 
-                )
-            )"""
+    def get_dxf_data(cls,ent,code:int,data_type:type,index:int=0)->list[int|float|str]:
+        """获取组码为code的第index (starting from 0)个的数据"""
         doc=ent.Document
         type_map={int:"useri1",float:"userr1",str:"users1"}
-        doc.SendCommand(f'(setvar {type_map[data_type]} (cdr (assoc {code} (entget (handent "{ent.Handle}"))))(princ) ')
+        # doc.SendCommand(f'(setvar {type_map[data_type]} (cdr (assoc {code} (entget (handent "{ent.Handle}"))))(princ) ')
+        command=f'(setvar "{type_map[data_type]}" (nth {index} (mapcar \'cdr (vl-remove-if-not \'(lambda(x) (= {code} (car x))) (entget (handent "{ent.Handle}"))))))(princ) '
+        doc.SendCommand(command)
         dxf_data=doc.GetVariable(type_map[data_type])
         return dxf_data
         
@@ -162,19 +158,24 @@ class TZWall(CADEntity):
         self.insu_thick:float=ent.InsuThick  # 保温厚度
         self.left_insu_thick:float=ent.LeftInsuThick  # 左保温厚度
         self.right_insu_thick:float=ent.RightInsuThick  # 右保温厚度
-        self.is_arc:bool=ent.IsArc=="弧墙"  # 是否弧墙: 直墙|弧墙
-        self.radius:float=ent.Radius  # 弧墙半径，对于直墙radius=0
         self.style:str=ent.Style  # 材料: 钢筋砼|混凝土|砖|耐火砖|石材|毛石|填充墙|加气块|空心砖|石膏板
         self.usage:str=ent.Usage  # 用途: 外墙|内墙|分户墙|虚墙|矮墙|卫生隔断
-        self.start_point,self.end_point=self.get_endpoints(ent)
-        self.total_angle=CADEntity.get_dxf_data(ent,50,float)[0]
+        self.start_point,self.end_point=self.get_endpoints(ent)  # 起终点
+        self.is_arc:bool=ent.IsArc=="弧墙"  # 是否弧墙: 直墙|弧墙
+        self.radius:float=ent.Radius  # 圆弧半径，对于直墙radius=0
+        self.total_angle=CADEntity.get_dxf_data(ent,50,float) if self.is_arc else 0  # 圆弧总角度
     def get_endpoints(self,ent)->dict[str,list[float]]:
-        curve_data={}
         doc=ent.Document
-        doc.SendCommand(f'(setvar "userr1" (car (vlax-curve-getStartPoint (handent "{ent.Handle}"))))(setvar "userr2" (cadr (vlax-curve-getStartPoint (handent "{ent.Handle}"))))(princ) ')
-        doc.SendCommand(f'(setvar "userr3" (car (vlax-curve-getEndPoint (handent "{ent.Handle}"))))(setvar "userr4" (cadr (vlax-curve-getEndPoint (handent "{ent.Handle}"))))(princ) ')
-        s=[doc.GetVariable('users1'),doc.GetVariable('users2'),0]
-        e=[doc.GetVariable('users3'),doc.GetVariable('users4'),0]
+        command_gen:str=lambda var,pos,num,handle: f'(setvar "{var}" ({num} (vlax-curve-get{pos}Point (handent "{handle}"))))'
+        command="".join(command_gen("userr1","Start","car",ent.Handle),
+                        command_gen("userr2","Start","cadr",ent.Handle),
+                        command_gen("userr3","End","car",ent.Handle),
+                        command_gen("userr4","End","cadr",ent.Handle),
+                        "(princ) ",
+        )
+        doc.SendCommand(command)
+        s=[doc.GetVariable('userr1'),doc.GetVariable('userr2'),0]
+        e=[doc.GetVariable('userr3'),doc.GetVariable('userr4'),0]
         return list(s),list(e)
 _ENT_CLASS_MAP = {
     "AcDbPoint": CADPoint,

@@ -164,6 +164,24 @@ class TZWall(CADEntity):
         self.is_arc:bool=ent.IsArc=="弧墙"  # 是否弧墙: 直墙|弧墙
         self.radius:float=ent.Radius  # 圆弧半径，对于直墙radius=0
         self.total_angle=CADEntity.get_dxf_data(ent,50,float) if self.is_arc else 0  # 圆弧总角度
+class TZDoor(CADEntity):
+    """天正门"""
+    def __init__(self,ent) -> None:
+        super().__init__("tzdoor", ent.Layer, ent.Color)
+        self.left_width:float=ent.LeftWidth  # 左宽
+        self.right_width:float=ent.RightWidth  # 右宽
+        self.elevation:float=ent.Elevation  # 标高
+        self.height:float=ent.Height  # 高度
+        self.insulate:str=ent.Insulate  # 保温: 无|双侧|内侧|外侧
+        self.insu_thick:float=ent.InsuThick  # 保温厚度
+        self.left_insu_thick:float=ent.LeftInsuThick  # 左保温厚度
+        self.right_insu_thick:float=ent.RightInsuThick  # 右保温厚度
+        self.style:str=ent.Style  # 材料: 钢筋砼|混凝土|砖|耐火砖|石材|毛石|填充墙|加气块|空心砖|石膏板
+        self.usage:str=ent.Usage  # 用途: 外墙|内墙|分户墙|虚墙|矮墙|卫生隔断
+        self.start_point,self.end_point=self.get_endpoints(ent)  # 起终点
+        self.is_arc:bool=ent.IsArc=="弧墙"  # 是否弧墙: 直墙|弧墙
+        self.radius:float=ent.Radius  # 圆弧半径，对于直墙radius=0
+        self.total_angle=CADEntity.get_dxf_data(ent,50,float) if self.is_arc else 0  # 圆弧总角度
     def get_endpoints(self,ent)->dict[str,list[float]]:
         doc=ent.Document
         command_gen:str=lambda var,pos,num,handle: f'(setvar "{var}" ({num} (vlax-curve-get{pos}Point (handent "{handle}"))))'
@@ -189,4 +207,5 @@ _ENT_CLASS_MAP = {
     "AcDbBlockReference": CADBlockRef,
     "AcDbHatch": CADHatch,
     "TDbWall": TZWall,
+    "TDbDoor": TZDoor,
 }

@@ -15,10 +15,21 @@ class CADEntity:
         """获取组码为code的第index (starting from 0)个的数据"""
         doc=ent.Document
         type_map={int:"useri1",float:"userr1",str:"users1"}
-        # doc.SendCommand(f'(setvar {type_map[data_type]} (cdr (assoc {code} (entget (handent "{ent.Handle}"))))(princ) ')
-        command=f'(setvar "{type_map[data_type]}" (nth {index} (mapcar \'cdr (vl-remove-if-not \'(lambda(x) (= {code} (car x))) (entget (handent "{ent.Handle}"))))))(princ) '
-        doc.SendCommand(command)
-        dxf_data=doc.GetVariable(type_map[data_type])
+        if data_type==list[float]:
+            dxf_data=[]
+            command_gen=lambda var,num,index,code,handle: f'(setvar "{var}" ({num} (nth {index} (mapcar \'cdr (vl-remove-if-not \'(lambda(x) (= {code} (car x))) (entget (handent "{handle}")))))))'
+            command="".join(
+                command_gen("userr1","car",index,code,ent.Handle),
+                command_gen("userr2","cadr",index,code,ent.Handle),
+                '(princ) ',
+            )
+            doc.SendCommand(command)
+            dxf_data=[doc.GetVariable("userr1"),doc.GetVariable("userr2"),0]
+        elif data_type in type_map:
+            command=f'(setvar "{type_map[data_type]}" (nth {index} (mapcar \'cdr (vl-remove-if-not \'(lambda(x) (= {code} (car x))) (entget (handent "{ent.Handle}"))))))(princ) '
+            doc.SendCommand(command)
+            dxf_data=doc.GetVariable(type_map[data_type])
+        else : raise ValueError('Value of "data_type" must be one of int, float, str or list[float].')
         return dxf_data
         
 class CADPoint(CADEntity):
@@ -154,19 +165,19 @@ class TZWall(CADEntity):
         self.right_width:float=ent.RightWidth  # 右宽
         self.elevation:float=ent.Elevation  # 标高
         self.height:float=ent.Height  # 高度
-        self.insulate:str=ent.Insulate  # 保温: 无|双侧|内侧|外侧
+        self.insulate:str=ent.Insulate  # 保温: "无" | "双侧" | "内侧" | "外侧"
         self.insu_thick:float=ent.InsuThick  # 保温厚度
         self.left_insu_thick:float=ent.LeftInsuThick  # 左保温厚度
         self.right_insu_thick:float=ent.RightInsuThick  # 右保温厚度
-        self.style:str=ent.Style  # 材料: 钢筋砼|混凝土|砖|耐火砖|石材|毛石|填充墙|加气块|空心砖|石膏板
-        self.usage:str=ent.Usage  # 用途: 外墙|内墙|分户墙|虚墙|矮墙|卫生隔断
+        self.style:str=ent.Style  # 材料: "钢筋砼" | "混凝土" | "砖" | "耐火砖" | "石材" | "毛石" | "填充墙" | "加气块" | "空心砖" | "石膏板"
+        self.usage:str=ent.Usage  # 用途: "外墙" | "内墙" | "分户墙" | "虚墙" | "矮墙" | "卫生隔断"
         self.start_point,self.end_point=self.get_endpoints(ent)  # 起终点
-        self.is_arc:bool=ent.IsArc=="弧墙"  # 是否弧墙: 直墙|弧墙
+        self.is_arc:bool=ent.IsArc=="弧墙"  # 是否弧墙: "直墙" | "弧墙"
         self.radius:float=ent.Radius  # 圆弧半径，对于直墙radius=0
         self.total_angle=CADEntity.get_dxf_data(ent,50,float) if self.is_arc else 0  # 圆弧总角度
-    def get_endpoints(self,ent)->dict[str,list[float]]:
+    def get_endpoints(self,ent)->tuple[list[float]]:
         doc=ent.Document
-        command_gen:str=lambda var,pos,num,handle: f'(setvar "{var}" ({num} (vlax-curve-get{pos}Point (handent "{handle}"))))'
+        command_gen=lambda var,pos,num,handle: f'(setvar "{var}" ({num} (vlax-curve-get{pos}Point (handent "{handle}"))))'
         command="".join(command_gen("userr1","Start","car",ent.Handle),
                         command_gen("userr2","Start","cadr",ent.Handle),
                         command_gen("userr3","End","car",ent.Handle),
@@ -179,27 +190,44 @@ class TZWall(CADEntity):
         return list(s),list(e)
 class TZOpening(CADEntity):
     """天正门窗洞"""
-    def __init__(self,ent) -> None:
-        super().__init__("tzdoor", ent.Layer, ent.Color)
-        self.door_line:int=ent.DoorLine  # 门口线: 0=无|1=开启侧|2=背开侧|3=双侧|4=居中
-        self.door_sill:float=ent.DoorSill  # 门槛高
-        self.evacuation_type:str=ent.EvacuationType  # 疏散类型: "无"|"房间疏散门|户门"|"安全出口"
-        self.kind:str=ent.GetKind  # 类别: 普通门
-        self.sub_kind:str=ent.GetSubKind  # 类型: 普通门|甲级防火门|乙级防火门|丙级防火门|防火卷帘|人防门|隔断门|电梯门
+    def __init__(self,ent,object_name:str) -> None:
+        super().__init__(object_name, ent.Layer, ent.Color)
+        self.kind:str=ent.GetKind  # 类别: "普通门" | "普通窗" |"弧窗" | "洞"
         self.height:float=ent.Height  # 高度
-        self.is_high:bool=ent.IsHigh=="是"  # 位于上层
         self.width:float=ent.Width  # 宽度
-        self.line_offset_distance:float=ent.LineOffsetDistance  # 偏移距离
+        self.door_line:int=ent.DoorLine  # 门口线: 0="无" | 1="开启侧" | 2="背开侧" | 3="双侧" | 4="居中"
+        self.up_lever:bool=ent.UpLever=="是"  # 位于上层
+        self.style2d:str=CADEntity.get_dxf_data(ent,1,str)  # 2d样式
+        self.position=self.get_dxf_data(ent,10,list[float])  # 插入点
+        self.angle=CADEntity.get_dxf_data(ent,50,float)  # 旋转角度
     @classmethod
     def classifier(cls,ent)->"TZOpening":
-        kind_map={"普通门": TZDoor,"普通窗": TZWindow,"洞":TZHole,}
+        kind_map={"普通门": TZDoor,"普通窗": TZWindow,"弧窗":TZWindow,"洞":TZHole,}
         return kind_map[ent.GetKind](ent)
 
 class TZDoor(TZOpening):
     """天正门"""
     def __init__(self,ent) -> None:
-        super().__init__(ent)
+        super().__init__(ent,"tzdoor")
+        self.door_sill:float=ent.DoorSill  # 门槛高
+        self.evacuation_type:str=ent.EvacuationType  # 疏散类别: "无" | "房间疏散门|户门" | "安全出口"
+        self.sub_kind:str=ent.GetSubKind  # 类型: "普通门" | "甲级防火门" | "乙级防火门" | "丙级防火门" | "防火卷帘" | "人防门" | "隔断门" | "电梯门"
 
+class TZWindow(TZOpening):        
+    """天正窗"""
+    def __init__(self,ent) -> None:
+        super().__init__(ent,"tzwindow")
+        self.win_sill:float=ent.WinSill  # 窗台高
+        self.is_high:bool=ent.IsHigh=="是"  # 高窗
+        self.sub_kind:str=ent.GetSubKind  # 类型: "普通窗" | "防火窗" | "弧窗"
+        self.is_arc:bool=ent.GetKind=="弧窗"  # 是否弧窗
+class TZHole(TZOpening):
+    """天正洞"""
+    def __init__(self,ent) -> None:
+        super().__init__(ent,"tzhole")
+        self.win_sill:float=ent.WinSill  # 窗台高
+        self.line_offset_distance:float=ent.LineOffsetDistance  # 偏移距离
+        
 _ENT_CLASS_MAP = {
     "AcDbPoint": CADPoint,
     "AcDbLine": CADLine,
@@ -212,5 +240,5 @@ _ENT_CLASS_MAP = {
     "AcDbBlockReference": CADBlockRef,
     "AcDbHatch": CADHatch,
     "TDbWall": TZWall,
-    "TDbOpening": TZOpening,
+    "TDbOpening": TZOpening.classifier,
 }

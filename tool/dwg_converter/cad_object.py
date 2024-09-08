@@ -164,24 +164,6 @@ class TZWall(CADEntity):
         self.is_arc:bool=ent.IsArc=="弧墙"  # 是否弧墙: 直墙|弧墙
         self.radius:float=ent.Radius  # 圆弧半径，对于直墙radius=0
         self.total_angle=CADEntity.get_dxf_data(ent,50,float) if self.is_arc else 0  # 圆弧总角度
-class TZDoor(CADEntity):
-    """天正门"""
-    def __init__(self,ent) -> None:
-        super().__init__("tzdoor", ent.Layer, ent.Color)
-        self.left_width:float=ent.LeftWidth  # 左宽
-        self.right_width:float=ent.RightWidth  # 右宽
-        self.elevation:float=ent.Elevation  # 标高
-        self.height:float=ent.Height  # 高度
-        self.insulate:str=ent.Insulate  # 保温: 无|双侧|内侧|外侧
-        self.insu_thick:float=ent.InsuThick  # 保温厚度
-        self.left_insu_thick:float=ent.LeftInsuThick  # 左保温厚度
-        self.right_insu_thick:float=ent.RightInsuThick  # 右保温厚度
-        self.style:str=ent.Style  # 材料: 钢筋砼|混凝土|砖|耐火砖|石材|毛石|填充墙|加气块|空心砖|石膏板
-        self.usage:str=ent.Usage  # 用途: 外墙|内墙|分户墙|虚墙|矮墙|卫生隔断
-        self.start_point,self.end_point=self.get_endpoints(ent)  # 起终点
-        self.is_arc:bool=ent.IsArc=="弧墙"  # 是否弧墙: 直墙|弧墙
-        self.radius:float=ent.Radius  # 圆弧半径，对于直墙radius=0
-        self.total_angle=CADEntity.get_dxf_data(ent,50,float) if self.is_arc else 0  # 圆弧总角度
     def get_endpoints(self,ent)->dict[str,list[float]]:
         doc=ent.Document
         command_gen:str=lambda var,pos,num,handle: f'(setvar "{var}" ({num} (vlax-curve-get{pos}Point (handent "{handle}"))))'
@@ -195,6 +177,29 @@ class TZDoor(CADEntity):
         s=[doc.GetVariable('userr1'),doc.GetVariable('userr2'),0]
         e=[doc.GetVariable('userr3'),doc.GetVariable('userr4'),0]
         return list(s),list(e)
+class TZOpening(CADEntity):
+    """天正门窗洞"""
+    def __init__(self,ent) -> None:
+        super().__init__("tzdoor", ent.Layer, ent.Color)
+        self.door_line:int=ent.DoorLine  # 门口线: 0=无|1=开启侧|2=背开侧|3=双侧|4=居中
+        self.door_sill:float=ent.DoorSill  # 门槛高
+        self.evacuation_type:str=ent.EvacuationType  # 疏散类型: "无"|"房间疏散门|户门"|"安全出口"
+        self.kind:str=ent.GetKind  # 类别: 普通门
+        self.sub_kind:str=ent.GetSubKind  # 类型: 普通门|甲级防火门|乙级防火门|丙级防火门|防火卷帘|人防门|隔断门|电梯门
+        self.height:float=ent.Height  # 高度
+        self.is_high:bool=ent.IsHigh=="是"  # 位于上层
+        self.width:float=ent.Width  # 宽度
+        self.line_offset_distance:float=ent.LineOffsetDistance  # 偏移距离
+    @classmethod
+    def classifier(cls,ent)->"TZOpening":
+        kind_map={"普通门": TZDoor,"普通窗": TZWindow,"洞":TZHole,}
+        return kind_map[ent.GetKind](ent)
+
+class TZDoor(TZOpening):
+    """天正门"""
+    def __init__(self,ent) -> None:
+        super().__init__(ent)
+
 _ENT_CLASS_MAP = {
     "AcDbPoint": CADPoint,
     "AcDbLine": CADLine,
@@ -207,5 +212,5 @@ _ENT_CLASS_MAP = {
     "AcDbBlockReference": CADBlockRef,
     "AcDbHatch": CADHatch,
     "TDbWall": TZWall,
-    "TDbDoor": TZDoor,
+    "TDbOpening": TZOpening,
 }

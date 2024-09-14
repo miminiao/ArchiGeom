@@ -1,111 +1,71 @@
 import uuid
-from modelling_data_constructor import Stair
 import lib.geom as geom
 import numpy as np
-from typing import TypeVar, List, Tuple
 import shapely as sp
 
-T = TypeVar("T")
+class AnalyticalObject:
+    """解析数据对象"""
+    def __init__(self,parent=None,child=None): 
+        self.parent:AnalyticalObject = parent
+        self.child:list[AnalyticalObject] = child
+    def get_ancestor[T](self, expeced_type:T) -> T:
+        obj = self
+        while obj is not None:
+            if isinstance(obj, expeced_type):
+                return obj
+            if hasattr(obj, "parent") and (obj.parent is not None):
+                obj = obj.parent
+            else: return None
+    def get_descendants[T](self, expeced_type:T) -> list[T]:
+        if isinstance(self, expeced_type):
+            return [self]
+        res = []
+        if hasattr(self, "child") and (self.child is not None):
+            for ch in self.child:
+                res += ch.get_descendants(expeced_type)
+        return res
+    def get_attributes[T](self, expeced_type:T, expected_attr:str) -> list:
+        if isinstance(self, expeced_type):
+            return [getattr(self, expected_attr)]
+        res = []
+        if hasattr(self, "child") and (self.child is not None):
+            for ch in self.child:
+                res += ch.get_attributes(expeced_type, expected_attr)
+        return res
+    def json_loader(cls, json_data:dict):
+        new_obj= cls()
+        for k,v in json_data.items():
+            setattr(new_obj, k, v)
+        return new_obj
+    def json_dumper(self) -> dict:
+        return {k:v for k,v in self.__dict__.items() if k not in ["parent", "child"]}
+    
+class Floor(AnalyticalObject):...
+class Celling(AnalyticalObject):...
 
-
-def getAncestor(obj, expectedType: T, *args, **kwargs) -> T:
-    while True:
-        if isinstance(obj, expectedType):
-            return obj
-        if hasattr(obj, "parent") and (obj.parent != None):
-            obj = obj.parent
-        else:
-            return None
-
-
-def getDescendants(obj, expectedType: T, *args, **kwargs) -> List[T]:
-    if isinstance(obj, expectedType):
-        return [obj]
-    if hasattr(obj, "child") and (len(obj.child) > 0):
-        des = []
-        for i in obj.child:
-            des += getDescendants(i, expectedType)
-        return des
-    else:
-        return []
-
-
-def getAttributes(obj, expectedType, expectedAttr, *args, **kwargs) -> list:
-    if isinstance(obj, expectedType):
-        return [getattr(obj, expectedAttr)]
-    if hasattr(obj, "child") and (len(obj.child) > 0):
-        des = []
-        for i in obj.child:
-            des += getAttributes(i, expectedType, expectedAttr)
-        return des
-    else:
-        return []
-
-
-class UniformConfig:
-    arg_names = [
-        "Land", # 用地配置
-        "Parking", # 车位配置
-        "Basement", # 地库配置
-        "MasterPlan", # 总图配置
-        "Building", # 单体配置
-        "Material", # 材料配置
-        "Profile", # 轮廓形状配置
-        "Wall", # 墙配置
-        "Door", # 门配置
-        "Window", # 窗配置
-        "Railing", # 栏杆配置
-        "Stair", # 楼梯配置
-        "Beam", # 梁配置
-        "Slab", # 楼地面配置
-        "RoomConfigs",  # 房间默认配置表
-        "ConstructionDefinitions",  # 构造做法定义表        
-    ]
-
-    def __init__(self, dictArgs, parent=None):
-        pass
-
-
-class Building:
-    # 默认从dwgData.json创建
-    def __init__(self, dictArgs, dictSlab, parent=None):
-        self.vecFrames = []
-        if "vecFrames" in dictArgs:
-            for floor in dictArgs["vecFrames"]:
-                newFloor = Floor(floor, self)
-                self.vecFrames.append(newFloor)
-        self.AxisGrid = []
-        self.Insulation = None
-        self.Altitude = None
-        self.SectionLine = None  # 剖面线
-        self.ID = str(uuid.uuid4())
-        if "AxisGrid" not in dictArgs: return
-        for axis in dictArgs["AxisGrid"]:  # 轴网
-            newAxis = Axis(axis)
-            self.AxisGrid.append(newAxis)
-        self.InsulationThickness = dictArgs["InsulationThickness"]  # 全局保温厚度
-        self.InsulationMaterial = dictArgs["InsulationMaterial"]  # 全局保温厚度
-        self.Altitude = dictArgs["Altitude"]  # 绝对高程
-        self.SectionLine = dictArgs["SectionLine"]  # 剖面线
-        self.guid = dictArgs["guid"]
+class Building(AnalyticalObject):
+    """建筑单体"""
+    __slots__ = ["vecFrames", "Height", "CellingNum", "ID", "HeightGap"]
+    attr_hook = {"vecFrames": Floor.json_loader}
+    def __init__(self, 
+                 vecFrames:list["Floor"]=None,
+                 Height:float=None,
+                 CellingNum:float=None,
+                 ID:str=None,
+                 HeightGap:float=None,
+                 parent=None,):
+        self.vecFrames:list[Floor] = vecFrames
+        self.Height:float = Height
+        self.CellingNum:float = CellingNum
+        self.ID:str = ID
+        self.HeightGap:float = HeightGap
         self.parent = parent
-        self.child = self.vecFrames
-        self.ElevationDiff = 0.0  # 室内外高差--------------------------------------修改
-        # self.RoofHeight = self.getBuildingHeight(
-        #     definition="ROOF"
-        # )  # 建筑高度：大屋面--------------------------------------修改
-        # self.ParapetHeight = self.getBuildingHeight(
-        #     definition="PARAPET"
-        # )  # 建筑高度：大屋面女儿墙--------------------------------------修改
-        # self.AbsoluteHeight = self.getBuildingHeight(
-        #     definition="ABSOLUTE"
-        # )  # 建筑高度：最顶部女儿墙--------------------------------------修改
-
-        # try:
-        # except KeyError as e:
-        #     print("adc.Building ",self.ID,"MissingKey",e)
-
-        self.floor_frame_map=self.get_floor_frame_map()
+    @classmethod
+    def json_loader(cls, json_data:dict):
+        new_obj= cls()
+        for k,v in json_data.items():
+            setattr(new_obj, k, v)
+        return new_obj
     # 也可以从已经输出过的OutputModel创建
     @classmethod
     def init_from_output(cls, jsonOutput):

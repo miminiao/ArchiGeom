@@ -4,11 +4,20 @@ import numpy as np
 import shapely as sp
 
 class AnalyticalObject:
-    """解析数据对象"""
+    """CAD解析数据对象"""
     def __init__(self,parent=None,child=None): 
         self.parent:AnalyticalObject = parent
         self.child:list[AnalyticalObject] = child
     def get_ancestor[T](self, expeced_type:T) -> T:
+        """通过parent找到指定类型的祖先对象.
+
+        Args:
+            expeced_type (T): 祖先类型.
+
+        Returns:
+            T: 祖先对象.
+        """
+        if not issubclass(expeced_type, AnalyticalObject): return None
         obj = self
         while obj is not None:
             if isinstance(obj, expeced_type):
@@ -17,6 +26,15 @@ class AnalyticalObject:
                 obj = obj.parent
             else: return None
     def get_descendants[T](self, expeced_type:T) -> list[T]:
+        """通过child找到指定类型的后代对象.
+
+        Args:
+            expeced_type (T): 后代类型.
+
+        Returns:
+            list[T]: 后代对象.
+        """        
+        if not issubclass(expeced_type, AnalyticalObject): return None
         if isinstance(self, expeced_type):
             return [self]
         res = []
@@ -25,6 +43,16 @@ class AnalyticalObject:
                 res += ch.get_descendants(expeced_type)
         return res
     def get_attributes[T](self, expeced_type:T, expected_attr:str) -> list:
+        """通过child找到指定类型的后代的指定属性.
+
+        Args:
+            expeced_type (T): 后代类型.
+            expected_attr (str): 属性名.
+
+        Returns:
+            list: 后代的属性值.
+        """        
+        if not issubclass(expeced_type, AnalyticalObject): return None        
         if isinstance(self, expeced_type):
             return [getattr(self, expected_attr)]
         res = []
@@ -32,23 +60,19 @@ class AnalyticalObject:
             for ch in self.child:
                 res += ch.get_attributes(expeced_type, expected_attr)
         return res
-    def json_loader(cls, json_data:dict):
-        new_obj= cls()
-        for k,v in json_data.items():
-            setattr(new_obj, k, v)
-        return new_obj
+    def json_loader(cls, json_data:dict)->"AnalyticalObject":...
     def json_dumper(self) -> dict:
         return {k:v for k,v in self.__dict__.items() if k not in ["parent", "child"]}
-    
+
 class Floor(AnalyticalObject):...
 class Celling(AnalyticalObject):...
 
 class Building(AnalyticalObject):
     """建筑单体"""
     __slots__ = ["vecFrames", "Height", "CellingNum", "ID", "HeightGap"]
-    attr_hook = {"vecFrames": Floor.json_loader}
+    _attr_hooks = {"vecFrames": list[Floor]}
     def __init__(self, 
-                 vecFrames:list["Floor"]=None,
+                 vecFrames:list[Floor]=None,
                  Height:float=None,
                  CellingNum:float=None,
                  ID:str=None,
@@ -63,8 +87,12 @@ class Building(AnalyticalObject):
     @classmethod
     def json_loader(cls, json_data:dict):
         new_obj= cls()
-        for k,v in json_data.items():
-            setattr(new_obj, k, v)
+        for k, v in json_data.items():
+            if k in cls._attr_hooks:
+                hooked_obj = cls._attr_hooks[k].json_loader(v)
+                setattr(new_obj, k, hooked_obj)
+            else:
+                setattr(new_obj, k, v)
         return new_obj
     # 也可以从已经输出过的OutputModel创建
     @classmethod

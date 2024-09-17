@@ -1,7 +1,5 @@
 import uuid
 import lib.geom as geom
-import numpy as np
-import shapely as sp
 
 class AnalyticalObject:
     """CAD解析数据对象"""
@@ -60,7 +58,16 @@ class AnalyticalObject:
             for ch in self.child:
                 res += ch.get_attributes(expeced_type, expected_attr)
         return res
-    def json_loader(cls, json_data:dict)->"AnalyticalObject":...
+    @classmethod
+    def json_loader(cls, json_data:dict):
+        new_obj= cls()
+        for k, v in json_data.items():
+            if hasattr(cls,"_attr_hooks") and k in cls._attr_hooks:
+                hooked_obj = cls._attr_hooks[k].json_loader(v)
+                setattr(new_obj, k, hooked_obj)
+            else:
+                setattr(new_obj, k, v)
+        return new_obj
     def json_dumper(self) -> dict:
         return {k:v for k,v in self.__dict__.items() if k not in ["parent", "child"]}
 
@@ -84,30 +91,7 @@ class Building(AnalyticalObject):
         self.ID:str = ID
         self.HeightGap:float = HeightGap
         self.parent = parent
-    @classmethod
-    def json_loader(cls, json_data:dict):
-        new_obj= cls()
-        for k, v in json_data.items():
-            if k in cls._attr_hooks:
-                hooked_obj = cls._attr_hooks[k].json_loader(v)
-                setattr(new_obj, k, hooked_obj)
-            else:
-                setattr(new_obj, k, v)
-        return new_obj
-    # 也可以从已经输出过的OutputModel创建
-    @classmethod
-    def init_from_output(cls, jsonOutput):
-        newBuilding = cls({})
-        for floor in jsonOutput["Floors"]:
-            newBuilding.vecFrames.append(Floor(floor, newBuilding))
-        for axis in jsonOutput["AxisGrid"]:
-            newBuilding.AxisGrid.append(Axis(axis))
-        newBuilding.Insulation = jsonOutput["Insulation"]
-        newBuilding.Altitude = jsonOutput["Altitude"]
-        newBuilding.SectionLine = jsonOutput["SectionLine"]
-        newBuilding.ID = jsonOutput["ID"]
-        return newBuilding
-    
+
     def get_floor_frame_map(self):
         dic={}
         for floor in self.vecFrames:
@@ -175,7 +159,7 @@ class Floor:
         self.parent = parent
         self.child = self.Celling.Structs
 
-class Frame:
+class Frame(AnalyticalObject):
     def __init__(self, dictArgs):
         # self.FrameLayer=dictArgs["FrameLayer"]
         # self.SideDistance=dictArgs["SideDistance"]
@@ -204,7 +188,7 @@ class Frame:
         res.sort()
         return res
     def get_neighbor_frames(self):
-        building=getAncestor(self,Building)
+        building=self.get_ancestor(Building)
         upper=self.working_floor_list[-1]+1
         lower=self.working_floor_list[0]-1
         neighbor_frames=[]
@@ -214,7 +198,7 @@ class Frame:
             else: neighbor_frames.append(None)
         return neighbor_frames
 
-class Celling:
+class Celling(AnalyticalObject):
     def __init__(self, dictArgs,dictSlab, parent=None):
         self.FloorCode = dictArgs["FloorCode"]
         self.FloorNum = dictArgs["FloorNum"]
@@ -257,7 +241,7 @@ def gen_slabs(building:Building, dictACASlab:dict):
         celling=floor.Celling
         roof_areas=[]
         # 生成楼面、阳台、设备平台、飘窗板      
-        rooms=getDescendants(celling,Room)  
+        rooms=celling.get_descendants(Room)  
         room_slab_type_dict={
             "阳台":("Balcony",-20,100),
             "设备平台":("Equipment",-100,30),

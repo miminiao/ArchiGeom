@@ -1,8 +1,10 @@
 import uuid
 import lib.geom as geom
+from typing import get_origin,get_args
 
 class AnalyticalObject:
     """CAD解析数据对象"""
+    _attr_hooks: dict[str, type|list[type]] ={}
     def __init__(self,parent=None,child=None): 
         self.parent:AnalyticalObject = parent
         self.child:list[AnalyticalObject] = child
@@ -62,7 +64,9 @@ class AnalyticalObject:
     def json_loader(cls, json_data:dict):
         new_obj= cls()
         for k, v in json_data.items():
-            if hasattr(cls,"_attr_hooks") and k in cls._attr_hooks:
+            if k not in cls._attr_hooks: raise KeyError(f'Attribute "{k}" of {cls.__name__} is not defined')
+            if k in cls._attr_hooks and v is not None:
+                if get_origin(v)
                 hooked_obj = cls._attr_hooks[k].json_loader(v)
                 setattr(new_obj, k, hooked_obj)
             else:
@@ -76,8 +80,7 @@ class Celling(AnalyticalObject):...
 
 class Building(AnalyticalObject):
     """建筑单体"""
-    __slots__ = ["vecFrames", "Height", "CellingNum", "ID", "HeightGap"]
-    _attr_hooks = {"vecFrames": list[Floor]}
+    _attr_hooks = {"vecFrames": list[Floor],"Height":None,"CellingNum":None, "ID":None, "HeightGap":None}
     def __init__(self, 
                  vecFrames:list[Floor]=None,
                  Height:float=None,

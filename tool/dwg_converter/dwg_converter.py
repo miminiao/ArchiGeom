@@ -32,5 +32,7 @@ if __name__ == "__main__":
     res.extend(list(CADBlockDef.blocks.values()))
 
     # %%
+    from tool.dwg_converter.json_converter import JsonDumper
+    
     with open("./tool/dwg_converter/output/output.json",'w',encoding="utf8") as f:
-        json.dump(res,f,ensure_ascii=False,default=lambda x:x.__dict__)
+        json.dump(res,f,ensure_ascii=False,default=JsonDumper.default)

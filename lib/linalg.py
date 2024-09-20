@@ -2,10 +2,15 @@ import math
 from lib.utils import Constant
 import numpy as np
 
+class Tensor:
+    def __init__(self,dim:int) -> None:
+        self.dim=dim
+
 class Vec3d:
     const=Constant.default()
     _const_stack=[const]
     def __init__(self,x:float,y:float,z:float=0.0) -> None:
+        super().__init__(dim=3)
         self.x,self.y,self.z=x,y,z
     @classmethod
     def X(cls)->"Vec3d": return cls(1,0,0)    
@@ -76,6 +81,7 @@ class Vec3d:
         return Vec3d(math.cos(angle)*self.x-math.sin(angle)*self.y,math.sin(angle)*self.x+math.cos(angle)*self.y,self.z)
     def to_array(self)->np.ndarray:
         return np.array([self.x,self.y,self.z]).T
+
 class Mat3d:
     dim=3
     def __init__(self,mat:list[list[float]]) -> None:

@@ -1211,7 +1211,7 @@ if 0 and __name__=="__main__":
 #%% Loop面积测试
 if 1 and __name__=="__main__":
     import json
-    from tool.dwg_converter.json_parser import polyline_to_loop
+    from tool.dwg_converter.json_converter import polyline_to_loop
     with open(f"test/split_loop/case_a.json",'r',encoding="utf8") as f:
         j_obj=json.load(f)
     loops=polyline_to_loop(j_obj)

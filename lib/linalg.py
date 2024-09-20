@@ -2,7 +2,7 @@ import math
 from lib.utils import Constant
 import numpy as np
 class Tensor:
-    dim:tuple[int,int]
+    dim:tuple[int,...]
     const=Constant.default()
     _const_stack=[const]
     @classmethod

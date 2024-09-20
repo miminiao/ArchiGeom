@@ -1299,7 +1299,7 @@ if 1 and __name__ == "__main__":
     import json
     import matplotlib.pyplot as plt
     from matplotlib.colors import TABLEAU_COLORS
-    from tool.dwg_converter.json_converter import polyline_to_loop
+    from tool.dwg_converter.json_parser import cad_polyline_to_loop
     colors=list(TABLEAU_COLORS)
     const=Constant.default()
     # const=Constant("split_loop",tol_area=1e3,tol_dist=1e-2)
@@ -1308,7 +1308,7 @@ if 1 and __name__ == "__main__":
 
     with open(f"test/split_loop/case_{CASE_ID}.json",'r',encoding="utf8") as f:
         j_obj=json.load(f)
-    loops=polyline_to_loop(j_obj)
+    loops=cad_polyline_to_loop(j_obj)
 
     with Timer(tag="split_loop"):
         split_loops=SplitIntersectedLoopsAlgo(loops,False,False,const=const).get_result()

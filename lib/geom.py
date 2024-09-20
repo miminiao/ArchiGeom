@@ -745,7 +745,8 @@ class Arc(Edge):
         new_s=Node.from_vec3d(self.s.to_vec3d()+vs*dist)
         new_e=Node.from_vec3d(self.e.to_vec3d()+ve*dist)
         return Arc(new_s,new_e,self.bulge)
-class Loop(Geom):
+class Polyline(Geom):...
+class Loop(Polyline):
     """环/几何环"""
     def __init__(self,edges:list[Edge],update_node:bool=False) -> None:
         super().__init__()
@@ -1211,8 +1212,8 @@ if 0 and __name__=="__main__":
 #%% Loop面积测试
 if 1 and __name__=="__main__":
     import json
-    from tool.dwg_converter.json_parser import polyline_to_loop
+    from tool.dwg_converter.json_parser import cad_polyline_to_loop
     with open(f"test/split_loop/case_a.json",'r',encoding="utf8") as f:
         j_obj=json.load(f)
-    loops=polyline_to_loop(j_obj)
+    loops=cad_polyline_to_loop(j_obj)
     print(loops[0].get_area())

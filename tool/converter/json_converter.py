@@ -1,5 +1,7 @@
-from lib.geom import Node,LineSeg,Arc,Loop
-def polyline_to_loop(j_obj:list)->list[Loop]:
+from lib.geom import Node,LineSeg,Arc,Polyline,Loop,Polygon
+from lib.linalg import Vec3d,Mat3d,Mat4d
+
+def cad_polyline_to_loop(j_obj:list)->list[Loop]:
     loops=[]
     nodes=[]
     for obj in j_obj:
@@ -24,3 +26,15 @@ def polyline_to_loop(j_obj:list)->list[Loop]:
                     edges.append(Arc(s,e,bulge))
             loops.append(Loop(edges))
     return loops
+
+class JsonDumper:
+    default=lambda _:_.__dict__
+    @classmethod
+    def to_cgs(cls,obj)->dict|None:
+        match obj.__class__.__name__:
+            case "Vec3d":
+                return {"type":"vector3"}.update(obj.__dict__)
+            case "Vec4d":
+                return {"type":"vector4"}.update(obj.__dict__)
+            case "Mat4d":
+                return {"type":"matrix4","row1":obj[0],"row2":obj[1],"row3":obj[2],"row4":obj[3],}

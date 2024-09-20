@@ -4,7 +4,7 @@ import pytest
 import json
 from lib.utils import Constant
 from lib.geom_algo import SplitIntersectedLoopsAlgo
-from tool.dwg_converter.json_parser import polyline_to_loop
+from tool.dwg_converter.json_parser import cad_polyline_to_loop
 const=Constant.default()
 # const=Constant("split_loop",tol_area=1e3,tol_dist=1e-2)
 
@@ -18,7 +18,7 @@ def test_split_loops_algo(case):
     """测试自相交Loop处理"""
     with open(f"./test/split_loop/{case['in']}.json",'r',encoding="utf8") as f:
         j_obj=json.load(f)
-    loops=polyline_to_loop(j_obj)
+    loops=cad_polyline_to_loop(j_obj)
 
     split_loops=SplitIntersectedLoopsAlgo(loops,False,False,const=const).get_result()
     split_loops=list(filter(lambda loop:abs(loop.area*2/loop.length)>1,split_loops))

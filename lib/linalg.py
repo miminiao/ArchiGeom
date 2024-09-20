@@ -1,23 +1,10 @@
 import math
 from lib.utils import Constant
 import numpy as np
-
 class Tensor:
-    def __init__(self,dim:int) -> None:
-        self.dim=dim
-
-class Vec3d:
+    dim:tuple[int,int]
     const=Constant.default()
     _const_stack=[const]
-    def __init__(self,x:float,y:float,z:float=0.0) -> None:
-        super().__init__(dim=3)
-        self.x,self.y,self.z=x,y,z
-    @classmethod
-    def X(cls)->"Vec3d": return cls(1,0,0)    
-    @classmethod
-    def Y(cls)->"Vec3d": return cls(0,1,0)
-    @classmethod
-    def Z(cls)->"Vec3d": return cls(0,0,1)
     @classmethod
     def push_const(cls,const:Constant)->None:
         cls._const_stack.append(cls.const)
@@ -25,6 +12,17 @@ class Vec3d:
     @classmethod
     def pop_const(cls)->Constant:
         return cls._const_stack.pop()
+class Vector(Tensor):...
+class Vec3d(Vector):
+    dim=(3,1)
+    def __init__(self,x:float,y:float,z:float=0.0) -> None:
+        self.x,self.y,self.z=x,y,z
+    @classmethod
+    def X(cls)->"Vec3d": return cls(1,0,0)    
+    @classmethod
+    def Y(cls)->"Vec3d": return cls(0,1,0)
+    @classmethod
+    def Z(cls)->"Vec3d": return cls(0,0,1)
     def __getitem__(self,index:int)->float:
         if index>=3 or index<-3: raise IndexError
         match index%3:
@@ -44,9 +42,6 @@ class Vec3d:
     def __truediv__(self,divider:float)->"Vec3d":
         return Vec3d(self.x/divider,self.y/divider,self.z/divider)
     def equals(self,other:"Vec3d")->bool:
-        # return (abs(self.x-other.x)<self.const.TOL_VAL 
-        #         and abs(self.y-other.y)<self.const.TOL_VAL 
-        #         and abs(self.z-other.z)<self.const.TOL_VAL)
         return (self-other).length<self.const.TOL_DIST
     def dot(self,other:"Vec3d")->float:
         return self.x*other.x+self.y*other.y+self.z*other.z
@@ -81,12 +76,13 @@ class Vec3d:
         return Vec3d(math.cos(angle)*self.x-math.sin(angle)*self.y,math.sin(angle)*self.x+math.cos(angle)*self.y,self.z)
     def to_array(self)->np.ndarray:
         return np.array([self.x,self.y,self.z]).T
-
-class Mat3d:
-    dim=3
+class Vec4d(Vector):
+    dim=(4,1)
+    def __init__(self,x:float,y:float,z:float,w:float) -> None:
+        self.x,self.y,self.z,self.w=x,y,z,w
+class Matrix(Tensor):
     def __init__(self,mat:list[list[float]]) -> None:
-        """3x3矩阵"""
-        assert len(mat)==len(mat[0])==len(mat[1])==len(mat[2])==self.dim
+        assert len(mat)==self.dim[0] and all([len(row)==self.dim[1] for row in mat])
         self.mat=np.array(mat)
     def __getitem__(self,index:tuple[int,int]|int)->float|list[float]:
         if isinstance(index,int): 
@@ -95,6 +91,8 @@ class Mat3d:
         elif isinstance(index,tuple):
             if index[0]>=self.dim or index[0]<-self.dim or index[1]>=self.dim or index[1]<-self.dim: raise IndexError
             return self.mat[index]
+class Mat3d(Matrix):
+    dim=(3,3)
     @classmethod
     def from_column_vecs(cls,columns:list[Vec3d])->"Mat3d":
         return cls([[columns[j][i] for j in range(cls.dim)] for i in range(cls.dim)])
@@ -114,6 +112,11 @@ class Mat3d:
             return Mat3d(list(self.mat@other.mat))
     def __mul__(self,other):
         return Mat3d(list(self.mat*other))
+class Mat4d(Matrix):
+    """4x4矩阵"""
+    dim=(4,4)
+    def __init__(self,mat:list[list[float]]) -> None:
+        super().init(mat)
 if __name__=="__main__":
     a=[[0,1,2],[3,4,5],[6,7,8]]
     m=Mat3d(a)

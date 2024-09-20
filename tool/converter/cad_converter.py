@@ -28,8 +28,11 @@ while i < sel_num:
 
 res.extend(CADBlockDef.blocks.values())
 
-with open("./tool/dwg_converter/output/output.json",'w',encoding="utf8") as f:
-    json.dump(res,f,ensure_ascii=False,default=lambda x:x.__dict__)
+
+import tool.converter.json_converter as jconv
+
+dumper=jconv.JsonDumper.to_cgs
+# dumper=jconv.JsonDumper.default
 
 with open("./tool/dwg_converter/output/output.json",'w',encoding="utf8") as f:
-    json.dump(res,f,ensure_ascii=False,default=JsonConverter.dump2CGS)
+    json.dump(res,f,ensure_ascii=False,default=dumper)

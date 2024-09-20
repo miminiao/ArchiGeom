@@ -1,6 +1,7 @@
 from lib.geom import Node,LineSeg,Arc,Polyline,Loop,Polygon
-from lib.linalg import Vec3d,Mat3d,Mat4d
+from lib.linalg import Vec3d,Vec4d,Mat3d,Mat4d
 
+class JsonLoader:...
 def cad_polyline_to_loop(j_obj:list)->list[Loop]:
     loops=[]
     nodes=[]
@@ -36,5 +37,21 @@ class JsonDumper:
                 return {"type":"vector3"}.update(obj.__dict__)
             case "Vec4d":
                 return {"type":"vector4"}.update(obj.__dict__)
+            case "Mat3d":
+                return {"type":"matrix4","row1":Vec4d(obj[0]),"row2":Vec4d(obj[1]),"row3":Vec4d(obj[2]),"row4":Vec4d.W}
             case "Mat4d":
-                return {"type":"matrix4","row1":obj[0],"row2":obj[1],"row3":obj[2],"row4":obj[3],}
+                return {"type":"matrix4","row1":Vec4d(obj[0]),"row2":Vec4d(obj[1]),"row3":Vec4d(obj[2]),"row4":Vec4d(obj[3])}
+            case "Node":
+                return {"type":"point3"}.update(obj.__dict__)
+            case "LineSeg":
+                return {"type":"line"}.update(obj.__dict__)
+            case "Arc":
+                return {"type":"arc"}.update(obj.__dict__)
+            case "Polyline":
+                return {"type":"polyline"}.update(obj.__dict__)
+            case "Loop":
+                return {"type":"loop"}.update(obj.__dict__)
+            case "Polygon":
+                return {"type":"polygon"}.update(obj.__dict__)
+            case _: 
+                return {"type":"_undefined"}.update(obj.__dict__)

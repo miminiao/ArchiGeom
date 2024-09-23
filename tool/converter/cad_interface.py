@@ -28,11 +28,9 @@ while i < sel_num:
 
 res.extend(CADBlockDef.blocks.values())
 
-
 import tool.converter.json_converter as jconv
-
-dumper=jconv.JsonDumper.to_cgs
 # dumper=jconv.JsonDumper.default
-
-with open("./tool/dwg_converter/output/output.json",'w',encoding="utf8") as f:
+dumper=jconv.JsonDumper.to_cgs
+res=[ent.to_geom() for ent in res if isinstance(ent,CADEntity)]
+with open("./tool/converter/output/output.json",'w',encoding="utf8") as f:
     json.dump(res,f,ensure_ascii=False,default=dumper)

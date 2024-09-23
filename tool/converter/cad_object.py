@@ -1,10 +1,11 @@
-import base64
 from lib.linalg import Vec3d,Mat3d
+from lib.geom import Geom,Node,LineSeg,Arc,Polyline,Loop,Polygon
 class CADEntity:
     def __init__(self,object_name:str,layer:str,color:int) -> None:
         self.object_name=object_name
         self.layer=layer
         self.color=color
+    def to_geom(self)->Geom:...
     @classmethod
     def parse(cls,ent)->"CADEntity|None":
         ent_type=_ENT_CLASS_MAP.get(ent.ObjectName)
@@ -36,21 +37,28 @@ class CADPoint(CADEntity):
     def __init__(self,ent) -> None:
         super().__init__("point",ent.Layer,ent.Color)
         self.point:list[float]=ent.Coordinates[:]
+    def to_geom(self) -> Node:
+        return Node(*self.point)
 class CADLine(CADEntity):
     def __init__(self,ent) -> None:
         super().__init__("line",ent.Layer,ent.Color)
         self.start_point:list[float]=ent.StartPoint[:]
         self.end_point:list[float]=ent.EndPoint[:]
+    def to_geom(self) -> LineSeg:
+        return LineSeg(Node(*self.start_point), Node(*self.end_point))
 class CADArc(CADEntity):
     def __init__(self,ent) -> None:
         super().__init__("arc", ent.Layer, ent.Color)
         self.center:list[float]=ent.Center[:]
         self.start_angle:float=ent.StartAngle
         self.end_angle:float=ent.EndAngle
+        self.total_angle:float=ent.TotalAngle
         self.start_point:list[float]=ent.StartPoint[:]
         self.end_point:list[float]=ent.EndPoint[:]
         self.radius:float=ent.Radius
         self.normal:list[float]=ent.Normal[:]
+    def to_geom(self) -> Arc:
+        return Arc.from_center_radius_angle(Node(*self.center), self.radius, self.start_angle, self.total_angle)
 class CADPolyline(CADEntity):
     class _CADPolylineSegment:
         def __init__(self,ent,i) -> None:
@@ -66,6 +74,11 @@ class CADPolyline(CADEntity):
         self.is_closed:bool=ent.Closed
         for i in range(len(ent.Coordinates)//2):
             self.segments.append(CADPolyline._CADPolylineSegment(ent,i))
+    def to_geom(self) -> Polyline|Loop:  # TODO
+        if self.is_closed:
+            return Loop(...)
+        else: return Polyline(...)
+        
 class CADHatch(CADEntity):
     def __init__(self,ent) -> None:
         super().__init__("hatch", ent.Layer, ent.Color)
@@ -204,7 +217,6 @@ class TZOpening(CADEntity):
     def classifier(cls,ent)->"TZOpening":
         kind_map={"普通门": TZDoor,"普通窗": TZWindow,"弧窗":TZWindow,"洞":TZHole,}
         return kind_map[ent.GetKind](ent)
-
 class TZDoor(TZOpening):
     """天正门"""
     def __init__(self,ent) -> None:
@@ -212,7 +224,6 @@ class TZDoor(TZOpening):
         self.door_sill:float=ent.DoorSill  # 门槛高
         self.evacuation_type:str=ent.EvacuationType  # 疏散类别: "无" | "房间疏散门|户门" | "安全出口"
         self.sub_kind:str=ent.GetSubKind  # 类型: "普通门" | "甲级防火门" | "乙级防火门" | "丙级防火门" | "防火卷帘" | "人防门" | "隔断门" | "电梯门"
-
 class TZWindow(TZOpening):        
     """天正窗"""
     def __init__(self,ent) -> None:
@@ -227,7 +238,7 @@ class TZHole(TZOpening):
         super().__init__(ent,"tzhole")
         self.win_sill:float=ent.WinSill  # 窗台高
         self.line_offset_distance:float=ent.LineOffsetDistance  # 偏移距离
-        
+
 _ENT_CLASS_MAP = {
     "AcDbPoint": CADPoint,
     "AcDbLine": CADLine,

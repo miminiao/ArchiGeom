@@ -1,7 +1,60 @@
-from lib.geom import Node,LineSeg,Arc,Polyline,Loop,Polygon
-from lib.linalg import Vec3d,Vec4d,Mat3d,Mat4d
+from lib.geom import Geom,Node,LineSeg,Arc,Polyline,Loop,Polygon
+from lib.linalg import Tensor,Vec3d,Vec4d,Mat3d,Mat4d
+from test.cgs.case_model import CGSTestCase
 
-class JsonLoader:...
+class JsonDumper:
+    default=lambda _:_.__dict__
+    @classmethod
+    def to_cgs(cls,obj:Geom|Tensor)->dict|None:
+        match obj.__class__.__name__:
+            case "Vec3d":
+                return {"type":"vector3",**obj.__dict__}
+            case "Vec4d":
+                return {"type":"vector4",**obj.__dict__}
+            case "Mat3d":
+                return {"type":"matrix4",
+                        "row1":Vec4d(*obj[0]),
+                        "row2":Vec4d(*obj[1]),
+                        "row3":Vec4d(*obj[2]),
+                        "row4":Vec4d.W,}
+            case "Mat4d":
+                return {"type":"matrix4",
+                        "row1":Vec4d(*obj[0]),
+                        "row2":Vec4d(*obj[1]),
+                        "row3":Vec4d(*obj[2]),
+                        "row4":Vec4d(*obj[3]),}
+            case "Node":
+                return {"type":"point3",**obj.__dict__}
+            case "LineSeg":
+                return {"type":"line2d",
+                        "origin":obj.s,
+                        "vector":obj.tangent_at(0),
+                        "minRange":0,
+                        "maxRange":obj.length,}
+            case _: 
+                return obj.__dict__
+            
+class JsonLoader:
+    @classmethod
+    def from_cgs(cls,obj:dict)->Geom|Tensor:
+        if "params" in obj and "expected" in obj:
+            return CGSTestCase(obj["params"],obj["expected"])
+        if "type" in obj:
+            match obj["type"]:
+                case "vector3":
+                    return Vec3d(obj["x"],obj["y"],obj["z"])
+                case "vector4":
+                    return Vec4d(obj["x"],obj["y"],obj["z"],obj["w"])
+                case "matrix4":
+                    return Mat4d.from_row_vecs([obj["row1"],obj["row2"],obj["row3"],obj["row4"]])
+                case "point3":
+                    return Node(obj["x"],obj["y"],obj["z"])
+                case "line2d":
+                    origin:Node=obj["origin"]
+                    vector:Vec3d=obj["vector"]
+                    s=Node.from_vec3d(origin.to_vec3d()+vector*obj["minRange"])
+                    e=Node.from_vec3d(origin.to_vec3d()+vector*obj["maxRange"])
+                    return LineSeg(s,e)
 def cad_polyline_to_loop(j_obj:list)->list[Loop]:
     loops=[]
     nodes=[]
@@ -27,31 +80,3 @@ def cad_polyline_to_loop(j_obj:list)->list[Loop]:
                     edges.append(Arc(s,e,bulge))
             loops.append(Loop(edges))
     return loops
-
-class JsonDumper:
-    default=lambda _:_.__dict__
-    @classmethod
-    def to_cgs(cls,obj)->dict|None:
-        match obj.__class__.__name__:
-            case "Vec3d":
-                return {"type":"vector3"}.update(obj.__dict__)
-            case "Vec4d":
-                return {"type":"vector4"}.update(obj.__dict__)
-            case "Mat3d":
-                return {"type":"matrix4","row1":Vec4d(obj[0]),"row2":Vec4d(obj[1]),"row3":Vec4d(obj[2]),"row4":Vec4d.W}
-            case "Mat4d":
-                return {"type":"matrix4","row1":Vec4d(obj[0]),"row2":Vec4d(obj[1]),"row3":Vec4d(obj[2]),"row4":Vec4d(obj[3])}
-            case "Node":
-                return {"type":"point3"}.update(obj.__dict__)
-            case "LineSeg":
-                return {"type":"line"}.update(obj.__dict__)
-            case "Arc":
-                return {"type":"arc"}.update(obj.__dict__)
-            case "Polyline":
-                return {"type":"polyline"}.update(obj.__dict__)
-            case "Loop":
-                return {"type":"loop"}.update(obj.__dict__)
-            case "Polygon":
-                return {"type":"polygon"}.update(obj.__dict__)
-            case _: 
-                return {"type":"_undefined"}.update(obj.__dict__)

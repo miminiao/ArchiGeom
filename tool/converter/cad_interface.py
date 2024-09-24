@@ -16,7 +16,7 @@ last_exception=-1
 while i < sel_num:
     try:
         ent = sel[i] 
-        if object_name:=ent.ObjectName=="":
+        if object_name:=ent.ObjectName!="":
             ...  # DEBUG
         if (parsed_ent:=CADEntity.parse(ent)) is not None:
             res.append(parsed_ent)

@@ -1,4 +1,4 @@
-from lib.linalg import Vec3d,Mat3d
+from lib.linalg import Tensor,Vec3d,Vec4d,Mat3d,Mat4d
 from lib.geom import Geom,Node,LineSeg,Arc,Polyline,Loop,Polygon
 class CADEntity:
     def __init__(self,object_name:str,layer:str,color:int) -> None:
@@ -114,6 +114,8 @@ class CADText(CADEntity):
 class CADBlockRef(CADEntity):
     def __init__(self,ent) -> None:
         super().__init__("block_ref", ent.Layer, ent.Color)
+        self.block_name=ent.Name
+        self.effective_name=ent.EffectiveName
         self.insert_point=ent.InsertionPoint[:]
         self.scale=[
             ent.XScaleFactor,
@@ -123,27 +125,45 @@ class CADBlockRef(CADEntity):
         self.rotation=ent.Rotation
         self.normal=ent.Normal[:]
         self.is_dynamic=ent.IsDynamicBlock
-        self.block_name=ent.Name
-        self.effective_name=ent.EffectiveName
+        self.dynamic_properties={prop.PropertyName:prop.Value for prop in ent.GetDynamicBlockProperties()}
+        self.has_attributes=ent.HasAttributes
+        self.attributes={attr.TagString:attr.TextString for attr in ent.GetAttributes()}
         CADBlockDef.parse(self.block_name)
-    def get_basis_mat(self)->Mat3d:
-        vx=Vec3d(0,0,1).cross(self.normal)
-        if vx.is_zero(is_unit=True): vx=Vec3d(1,0,0)
-        vz=self.normal
-        vy=self.normal.cross(vx)
+    @property
+    def basis3d(self)->Mat3d:
+        vz=Vec3d(*self.normal)
+        vx=Vec3d.Z().cross(vz)
+        if vx.is_zero(is_unit=True): vx=Vec3d.X()
+        vy=vz.cross(vx)
         return Mat3d.from_column_vecs([vx,vy,vz])
-    def get_scale_mat(self)->Mat3d:
+    @property
+    def mat4d(self)->Mat4d:
+        mat3d=self.basis3d @ self.rotation_mat @ self.scale_mat
+        return Mat4d.from_row_vecs([Vec4d(*mat3d[0],self.insert_point[0]),
+                                    Vec4d(*mat3d[1],self.insert_point[1]),
+                                    Vec4d(*mat3d[2],self.insert_point[2]),
+                                    Vec4d.W(),])
+    @property
+    def scale_mat(self)->Mat3d:
         return Mat3d.from_column_vecs([
             Vec3d(self.scale[0],0,0),
             Vec3d(0,self.scale[1],0),
             Vec3d(0,0,self.scale[2]),
         ])
-    def get_rotation_mat(self)->Mat3d:
+    @property
+    def rotation_mat(self)->Mat3d:
         return Mat3d.from_column_vecs([
-            Vec3d(1,0,0).rotate2d(self.rotation),
-            Vec3d(0,1,0).rotate2d(self.rotation),
-            Vec3d(0,0,1),
+            Vec3d.X().rotate2d(self.rotation),
+            Vec3d.Y().rotate2d(self.rotation),
+            Vec3d.Z(),
         ])
+    def to_geom(self)->Geom|Tensor:
+        if self.block_name=="_Matrix4d":
+            return self.mat4d
+        elif self.block_name=="_Vector3d":
+            return Vec3d(*self.scale)
+        else: ...
+
 class CADBlockDef:
     blocks={}
     _doc_blocks={}

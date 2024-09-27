@@ -1,0 +1,162 @@
+[
+    {
+        "params": [
+            {
+                "type": "line2d",
+                "origin": {
+                    "type": "point3",
+                    "x": 1600.0,
+                    "y": 4800.0,
+                    "z": 0
+                },
+                "vector": {
+                    "type": "vector3",
+                    "x": 1.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "minRange": 0,
+                "maxRange": 3000.0
+            },
+            -4000,
+            3000
+        ],
+        "expected": {
+            "minRange": 0.0,
+            "maxRange": 2000.0,
+            "origin": {
+                "x": 5600.0,
+                "y": 4800.0,
+                "z": 0.0,
+                "type": "point3"
+            },
+            "vector": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0,
+                "type": "vector3"
+            },
+            "type": "line2d"
+        }
+    },
+    {
+        "params": [
+            {
+                "type": "line2d",
+                "origin": {
+                    "type": "point3",
+                    "x": 11600.0,
+                    "y": 4800.0,
+                    "z": 0
+                },
+                "vector": {
+                    "type": "vector3",
+                    "x": 1.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "minRange": 0,
+                "maxRange": 3000.0
+            },
+            -4000,
+            -900
+        ],
+        "expected": {
+            "minRange": 0.0,
+            "maxRange": 1900.0,
+            "origin": {
+                "x": 5600.0,
+                "y": 4800.0,
+                "z": 0.0,
+                "type": "point3"
+            },
+            "vector": {
+                "x": -1.0,
+                "y": 0.0,
+                "z": 0.0,
+                "type": "vector3"
+            },
+            "type": "line2d"
+        }
+    }    ,
+    {
+        "params": [
+            {
+                "type": "line2d",
+                "origin": {
+                    "type": "point3",
+                    "x": 21600.0,
+                    "y": 4800.0,
+                    "z": 0
+                },
+                "vector": {
+                    "type": "vector3",
+                    "x": 1.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "minRange": 0,
+                "maxRange": 4000.0
+            },
+            0,
+            -4000
+        ],
+        "expected": {
+            "minRange": 0.0,
+            "maxRange": 1900.0,
+            "origin": {
+                "x": 5600.0,
+                "y": 4800.0,
+                "z": 0.0,
+                "type": "point3"
+            },
+            "vector": {
+                "x": -1.0,
+                "y": 0.0,
+                "z": 0.0,
+                "type": "vector3"
+            },
+            "type": "line2d"
+        }
+    }    ,    {
+        "params": [
+            {
+                "type": "line2d",
+                "origin": {
+                    "type": "point3",
+                    "x": 31600.0,
+                    "y": 4800.0,
+                    "z": 0
+                },
+                "vector": {
+                    "type": "vector3",
+                    "x": 1.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "minRange": 0,
+                "maxRange": 3000.0
+            },
+            300,
+            200
+        ],
+        "expected": {
+            "minRange": 0.0,
+            "maxRange": 1900.0,
+            "origin": {
+                "x": 5600.0,
+                "y": 4800.0,
+                "z": 0.0,
+                "type": "point3"
+            },
+            "vector": {
+                "x": -1.0,
+                "y": 0.0,
+                "z": 0.0,
+                "type": "vector3"
+            },
+            "type": "line2d"
+        }
+    }    
+    
+]

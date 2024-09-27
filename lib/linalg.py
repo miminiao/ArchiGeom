@@ -18,7 +18,7 @@ class Vec3d(Vector):
     def __init__(self,x:float,y:float,z:float=0.0) -> None:
         self.x,self.y,self.z=x,y,z
     @classmethod
-    def X(cls)->"Vec3d": return cls(1,0,0)    
+    def X(cls)->"Vec3d": return cls(1,0,0)
     @classmethod
     def Y(cls)->"Vec3d": return cls(0,1,0)
     @classmethod
@@ -76,26 +76,42 @@ class Vec3d(Vector):
         return Vec3d(math.cos(angle)*self.x-math.sin(angle)*self.y,math.sin(angle)*self.x+math.cos(angle)*self.y,self.z)
     def to_array(self)->np.ndarray:
         return np.array([self.x,self.y,self.z]).T
+    def to_list(self)->list[float]:
+        return [self.x,self.y,self.z]
+    def to_vec4d(self,w:float=0)->"Vec4d":
+        return Vec4d(self.x,self.y,self.z,w)
 class Vec4d(Vector):
     dim=(4,1)
-    def __init__(self,x:float,y:float,z:float,w:float) -> None:
+    def __init__(self,x:float,y:float,z:float,w:float=1) -> None:
         self.x,self.y,self.z,self.w=x,y,z,w
+    @classmethod
+    def X(cls)->"Vec4d": return cls(1,0,0,0)
+    @classmethod
+    def Y(cls)->"Vec4d": return cls(0,1,0,0)
+    @classmethod
+    def Z(cls)->"Vec4d": return cls(0,0,1,0)        
+    @classmethod
+    def W(cls)->"Vec4d": return cls(0,0,0,1)            
+    def to_list(self)->list[float]:
+        return [self.x,self.y,self.z,self.w]
 class Matrix(Tensor):
     def __init__(self,mat:list[list[float]]) -> None:
         assert len(mat)==self.dim[0] and all([len(row)==self.dim[1] for row in mat])
         self.mat=np.array(mat)
     def __getitem__(self,index:tuple[int,int]|int)->float|list[float]:
         if isinstance(index,int): 
-            if index>=self.dim or index<-self.dim: raise IndexError
+            if index>=self.dim[1] or index<-self.dim[1]: raise IndexError
             return list(self.mat[index])
         elif isinstance(index,tuple):
-            if index[0]>=self.dim or index[0]<-self.dim or index[1]>=self.dim or index[1]<-self.dim: raise IndexError
+            if index[0]>=self.dim[0] or index[0]<-self.dim[0] or index[1]>=self.dim[1] or index[1]<-self.dim[1]: raise IndexError
             return self.mat[index]
 class Mat3d(Matrix):
     dim=(3,3)
+    def __init__(self,mat:list[list[float]]) -> None:
+        super().__init__(mat)    
     @classmethod
     def from_column_vecs(cls,columns:list[Vec3d])->"Mat3d":
-        return cls([[columns[j][i] for j in range(cls.dim)] for i in range(cls.dim)])
+        return cls([[columns[j][i] for j in range(cls.dim[1])] for i in range(cls.dim[0])])
     @classmethod
     def from_row_vecs(cls,rows:list[Vec3d])->"Mat3d":
         return cls([vec.to_list() for vec in rows])
@@ -110,13 +126,19 @@ class Mat3d(Matrix):
             return Vec3d(*(self.mat@other.to_array()))
         elif isinstance(other,Mat3d):
             return Mat3d(list(self.mat@other.mat))
-    def __mul__(self,other):
+    def __mul__(self,other:int|float):
         return Mat3d(list(self.mat*other))
 class Mat4d(Matrix):
     """4x4矩阵"""
     dim=(4,4)
     def __init__(self,mat:list[list[float]]) -> None:
-        super().init(mat)
+        super().__init__(mat)
+    @classmethod
+    def from_row_vecs(cls,rows:list[Vec4d])->"Mat4d":
+        return cls([vec.to_list() for vec in rows])
+    @classmethod
+    def from_column_vecs(cls,columns:list[Vec4d])->"Mat4d":
+        return cls([[columns[j][i] for j in range(cls.dim[1])] for i in range(cls.dim[0])])    
 if __name__=="__main__":
     a=[[0,1,2],[3,4,5],[6,7,8]]
     m=Mat3d(a)

@@ -1,10 +1,11 @@
-import base64
-from lib.linalg import Vec3d,Mat3d
+from lib.linalg import Tensor,Vec3d,Vec4d,Mat3d,Mat4d
+from lib.geom import Geom,Node,LineSeg,Arc,Polyline,Loop,Polygon
 class CADEntity:
     def __init__(self,object_name:str,layer:str,color:int) -> None:
         self.object_name=object_name
         self.layer=layer
         self.color=color
+    def to_geom(self)->Geom:...
     @classmethod
     def parse(cls,ent)->"CADEntity|None":
         ent_type=_ENT_CLASS_MAP.get(ent.ObjectName)
@@ -36,21 +37,28 @@ class CADPoint(CADEntity):
     def __init__(self,ent) -> None:
         super().__init__("point",ent.Layer,ent.Color)
         self.point:list[float]=ent.Coordinates[:]
+    def to_geom(self) -> Node:
+        return Node(*self.point)
 class CADLine(CADEntity):
     def __init__(self,ent) -> None:
         super().__init__("line",ent.Layer,ent.Color)
         self.start_point:list[float]=ent.StartPoint[:]
         self.end_point:list[float]=ent.EndPoint[:]
+    def to_geom(self) -> LineSeg:
+        return LineSeg(Node(*self.start_point), Node(*self.end_point))
 class CADArc(CADEntity):
     def __init__(self,ent) -> None:
         super().__init__("arc", ent.Layer, ent.Color)
         self.center:list[float]=ent.Center[:]
         self.start_angle:float=ent.StartAngle
         self.end_angle:float=ent.EndAngle
+        self.total_angle:float=ent.TotalAngle
         self.start_point:list[float]=ent.StartPoint[:]
         self.end_point:list[float]=ent.EndPoint[:]
         self.radius:float=ent.Radius
         self.normal:list[float]=ent.Normal[:]
+    def to_geom(self) -> Arc:
+        return Arc.from_center_radius_angle(Node(*self.center), self.radius, self.start_angle, self.total_angle)
 class CADPolyline(CADEntity):
     class _CADPolylineSegment:
         def __init__(self,ent,i) -> None:
@@ -66,6 +74,11 @@ class CADPolyline(CADEntity):
         self.is_closed:bool=ent.Closed
         for i in range(len(ent.Coordinates)//2):
             self.segments.append(CADPolyline._CADPolylineSegment(ent,i))
+    def to_geom(self) -> Polyline|Loop:  # TODO
+        if self.is_closed:
+            return Loop(...)
+        else: return Polyline(...)
+        
 class CADHatch(CADEntity):
     def __init__(self,ent) -> None:
         super().__init__("hatch", ent.Layer, ent.Color)
@@ -101,6 +114,8 @@ class CADText(CADEntity):
 class CADBlockRef(CADEntity):
     def __init__(self,ent) -> None:
         super().__init__("block_ref", ent.Layer, ent.Color)
+        self.block_name=ent.Name
+        self.effective_name=ent.EffectiveName
         self.insert_point=ent.InsertionPoint[:]
         self.scale=[
             ent.XScaleFactor,
@@ -110,27 +125,45 @@ class CADBlockRef(CADEntity):
         self.rotation=ent.Rotation
         self.normal=ent.Normal[:]
         self.is_dynamic=ent.IsDynamicBlock
-        self.block_name=ent.Name
-        self.effective_name=ent.EffectiveName
+        self.dynamic_properties={prop.PropertyName:prop.Value for prop in ent.GetDynamicBlockProperties()}
+        self.has_attributes=ent.HasAttributes
+        self.attributes={attr.TagString:attr.TextString for attr in ent.GetAttributes()}
         CADBlockDef.parse(self.block_name)
-    def get_basis_mat(self)->Mat3d:
-        vx=Vec3d(0,0,1).cross(self.normal)
-        if vx.is_zero(is_unit=True): vx=Vec3d(1,0,0)
-        vz=self.normal
-        vy=self.normal.cross(vx)
+    @property
+    def basis3d(self)->Mat3d:
+        vz=Vec3d(*self.normal)
+        vx=Vec3d.Z().cross(vz)
+        vx=vx.unit() if not vx.is_zero(is_unit=True) else Vec3d.X()
+        vy=vz.cross(vx)
         return Mat3d.from_column_vecs([vx,vy,vz])
-    def get_scale_mat(self)->Mat3d:
+    @property
+    def mat4d(self)->Mat4d:
+        mat3d=self.basis3d @ self.rotation_mat @ self.scale_mat
+        return Mat4d.from_row_vecs([Vec4d(*mat3d[0],self.insert_point[0]),
+                                    Vec4d(*mat3d[1],self.insert_point[1]),
+                                    Vec4d(*mat3d[2],self.insert_point[2]),
+                                    Vec4d.W(),])
+    @property
+    def scale_mat(self)->Mat3d:
         return Mat3d.from_column_vecs([
             Vec3d(self.scale[0],0,0),
             Vec3d(0,self.scale[1],0),
             Vec3d(0,0,self.scale[2]),
         ])
-    def get_rotation_mat(self)->Mat3d:
+    @property
+    def rotation_mat(self)->Mat3d:
         return Mat3d.from_column_vecs([
-            Vec3d(1,0,0).rotate2d(self.rotation),
-            Vec3d(0,1,0).rotate2d(self.rotation),
-            Vec3d(0,0,1),
+            Vec3d.X().rotate2d(self.rotation),
+            Vec3d.Y().rotate2d(self.rotation),
+            Vec3d.Z(),
         ])
+    def to_geom(self)->Geom|Tensor:
+        if self.block_name=="_Matrix4d":
+            return self.mat4d
+        elif self.block_name=="_Vector3d":
+            return Vec3d(*self.scale)
+        else: ...
+
 class CADBlockDef:
     blocks={}
     _doc_blocks={}
@@ -204,7 +237,6 @@ class TZOpening(CADEntity):
     def classifier(cls,ent)->"TZOpening":
         kind_map={"普通门": TZDoor,"普通窗": TZWindow,"弧窗":TZWindow,"洞":TZHole,}
         return kind_map[ent.GetKind](ent)
-
 class TZDoor(TZOpening):
     """天正门"""
     def __init__(self,ent) -> None:
@@ -212,7 +244,6 @@ class TZDoor(TZOpening):
         self.door_sill:float=ent.DoorSill  # 门槛高
         self.evacuation_type:str=ent.EvacuationType  # 疏散类别: "无" | "房间疏散门|户门" | "安全出口"
         self.sub_kind:str=ent.GetSubKind  # 类型: "普通门" | "甲级防火门" | "乙级防火门" | "丙级防火门" | "防火卷帘" | "人防门" | "隔断门" | "电梯门"
-
 class TZWindow(TZOpening):        
     """天正窗"""
     def __init__(self,ent) -> None:
@@ -227,7 +258,7 @@ class TZHole(TZOpening):
         super().__init__(ent,"tzhole")
         self.win_sill:float=ent.WinSill  # 窗台高
         self.line_offset_distance:float=ent.LineOffsetDistance  # 偏移距离
-        
+
 _ENT_CLASS_MAP = {
     "AcDbPoint": CADPoint,
     "AcDbLine": CADLine,

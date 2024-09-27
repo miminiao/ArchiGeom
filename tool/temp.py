@@ -1,10 +1,9 @@
-class A:
-    def __init__(self,a:int,b:int) -> None:
-        self.a=a
-        self.b=b
-class B:
-    def __init__(self,a:int,b:int) -> None:
-        self.a=A(a,b)
-        self.b=b
-b=B(1,2)
-print(b.__dict__)
+import json
+from tool.converter.json_converter import JsonLoader,JsonDumper
+
+f_name="Line2SetRangeUnit_int"
+with open(f"./test/CGS/cases/{f_name}.json") as f:
+    cases=json.load(f,object_hook=JsonLoader.from_cgs)
+with open(f"./test/CGS/cases/{f_name}_int.json",'w') as f:
+    json.dump(cases,f,default=JsonDumper.to_cgs)
+...

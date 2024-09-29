@@ -841,12 +841,17 @@ class Loop(Polyline):
         if cull_dup:
             self.edges=[edge for edge in self.edges if not edge.is_zero()]
         if cull_insig:
-            for i in range(len(self.edges)-1,-1,-1):
-                if self.edges[i-1].is_collinear(self.edges[i]) and self.edges[i-1].is_on_same_direction(self.edges[i]):
-                    # if self.edges[i-1].slice_between_points(self.edges[i-1].s,self.edges[i].e,extend=True) is None:
-                    #     ...  # DEBUG
-                    self.edges[i-1]=self.edges[i-1].slice_between_points(self.edges[i-1].s,self.edges[i].e,extend=True)
-                    del(self.edges[i])
+            for start_i,start_edge in enumerate(self.edges):  # 先确定一个转折点的边作为起始边(start_i和start_i-1构成一个转折)
+                if not start_edge.is_collinear(self.edges[start_i-1]):
+                    break
+            new_edges=[start_edge]
+            i=start_i+1
+            for _ in range(len(self.edges)):
+                if not self.edges[i-1].is_on_same_direction(self.edges[i]):
+                    new_edges.append(self.edges[i])
+                else: 
+                    new_edges[-1]=edges[i-1].slice_between_points(self.edges[i-1].s,self.edges[i].e,extend=True)
+            
         self.update(update_node=True)
     def offset(self,side:str="left",dist:float=None,split:bool=True,mitre_limit:float=None) -> list["Loop"]:
         def comb_dist(edge:Edge,dist:float)->float:

@@ -1,6 +1,6 @@
 from lib.geom import Geom,Node,LineSeg,Arc,Polyline,Loop,Polygon
 from lib.linalg import Tensor,Vec3d,Vec4d,Mat3d,Mat4d
-from test.cgs.case_model import CGSTestCase
+from test.CGS.case_model import CGSTestCase
 
 class JsonDumper:
     default=lambda _:_.__dict__
@@ -55,6 +55,23 @@ class JsonLoader:
                     s=Node.from_vec3d(origin.to_vec3d()+vector*obj["minRange"])
                     e=Node.from_vec3d(origin.to_vec3d()+vector*obj["maxRange"])
                     return LineSeg(s,e)
+    @classmethod
+    def from_cad_obj(cls,obj:dict)->Geom:
+        match obj["object_name"]:
+            case "point":
+                return Node(obj)
+            case "line":
+                return Node.from_cad_obj(obj)
+            case "arc":
+                ...
+            case "polyline":
+                ...
+            case "hatch":
+                ...
+            case "text":
+                ...
+                
+            case _: return None
 def cad_polyline_to_loop(j_obj:list)->list[Loop]:
     loops=[]
     nodes=[]

@@ -2,7 +2,6 @@
 *.dwl
 *.dwl2
 data/
-.vscode/
 *.code-workspace
 output/
 

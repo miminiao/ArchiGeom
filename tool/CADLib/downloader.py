@@ -1,36 +1,73 @@
-import requests as req
+import requests
 import json
-from building.model import Family,Building
+import asyncio
 
-data_type=Building
-type_name="building"
-name_attr="floorNo"
+class Downloader:
+    def __init__(self,data_type:type,suffix:str=".dwg"):
+        self.data_type=data_type
+        self.suffix=suffix
+        
+        self.type_name=data_type.type_name
+        self.id_attr=data_type.id_attr
+        module_path=data_type.__module__.split('.')[0]
+        self.info_path=f"{module_path}/info.json"
+        self.data_path=f"{module_path}/data"
+        self.failed_ids_path=f"{module_path}/failed_ids.json"
+        self.failed_ids=[]
+    def download_item(self,item_id:str,timeout:float)->None:
+        url="http://47.103.58.154:38405/FileInfo/Download"
+        data={
+            "fileName":item_id+self.suffix,
+            "typeName":self.type_name,
+        }
+        headers={
+            "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0",
+            "Content-Type":"application/x-www-form-urlencoded",
+            "userinfo":"",
+        }
+        try:
+            res=requests.post(url=url,data=data,headers=headers,timeout=timeout)
+            with open(f"{self.data_path}/{item_id}{self.suffix}","wb") as f:
+                f.write(res.content)
+        except requests.exceptions.Timeout:
+            self.failed_ids.append(item_id)
+    def execute(self,count:int=0,timeout:float=10)->None:
+        with open(self.info_path,encoding="utf8") as f:
+            info=json.load(f)
+        for i,j_obj in enumerate(info):
+            obj=self.data_type.from_dict(j_obj)
+            self.download_item(item_id=getattr(obj,self.id_attr),timeout=timeout)
+            if i==count-1: break
+        with open(self.failed_ids_path,"w") as f:
+            json.dump(self.failed_ids,f,ensure_ascii=False)
+        print(f"{i+1-len(self.failed_ids)} items downloaded successfully, {len(self.failed_ids)} items failed.")
 
-unsuccessful_ids=[]
-def download(type_name:type,id:str,suffix:str)->None:
-    url="http://47.103.58.154:38405/FileInfo/Download"
-    data={
-        "fileName":id+suffix,
-        "typeName":type_name
-    }
-    try:
-        file=req.post(url,data=data,timeout=10)
-        with open(f"{type_name}/{id}{suffix}","wb") as f:
-            f.write(file.content)
-    except req.exceptions.Timeout:
-        unsuccessful_ids.append(id)
-
-info_file_path=f"{type_name}/info.json"
-with open(info_file_path,encoding="utf8") as f:
-    info=json.load(f)
-
-all_data=[]
-for j_obj in info:
-    obj=data_type.from_dict(j_obj)
-    download(type_name=type_name,id=getattr(obj,name_attr),suffix=".dwg")
-    if len(all_data)==3: break
-
-with open(f"{type_name}/unsuccessful_ids.json","w"):
-    json.dump(unsuccessful_ids,ensure_ascii=False)
-
-
+def get_model(data_type:str):
+    match data_type:
+        case "building":
+            from building.model import Building
+            return Building
+        case "villa":
+            from villa.model import Villa
+            return Villa
+        case "kitchen":
+            from kitchen.model import Kitchen
+            return Kitchen
+        case "bathroom":
+            from bathroom.model import Bathroom
+            return Bathroom
+        case "coretube":
+            from coretube.model import Coretube
+            return Coretube
+        case "rental_group":
+            from rental_group.model import RentalGroup
+            return RentalGroup
+        case "rental_unit":
+            from rental_unit.model import RentalUnit
+            return RentalUnit
+        case _:
+            raise ValueError("Invalid data type")
+    
+if __name__=="__main__":
+    downloader=Downloader(data_type=get_model("rental_unit"))
+    downloader.execute()

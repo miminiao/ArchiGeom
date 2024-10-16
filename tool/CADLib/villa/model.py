@@ -5,36 +5,36 @@ from dataclasses_json import dataclass_json
 @dataclass
 class Family:
     familyNo: str
+    upperGroundNum: str
+    lowerGroundNum: str
     wideCount: float
-    dwellingFeature: str
+    roomNum:float
+    bathroomNum:float
     area: float
-    airconditionForm: str
+    indoorElevator:str|None
+    freeAreaForm:str
     familyFeature: str
 
 @dataclass_json
 @dataclass
-class Building:
+class Villa:
     floorNo: str
     customer: str
     province: str
     city: str
     designYear: int
     materialSource: str|None
-    residentType: str
-    applicableHeight: str
-    houseHold: str
-    floorArea: float
+    splicingForm: str
+    upperGroundNum: str
+    lowerGroundNum: str
     width: float
     depth: float
-    roomRate: float
-    stairsCount: int
-    elevatorCount: int
-    coreTubeInfo: str
-    floorFeature: str
+    floorForm: str
     downloadCount: int
     viewCount: int
     updatedAt: str
     families: list[Family]
 
-    type_name:str="Building"
+    type_name:str="villa"
     id_attr:str="floorNo"    
+    

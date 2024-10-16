@@ -1,7 +1,6 @@
 *.bak
 *.dwl
 *.dwl2
-data/
 *.code-workspace
 output/
 

@@ -1,0 +1,3726 @@
+[
+    {
+        "floorNo": "ZJ-ZH-UX-(74M2X4+33M1X15)",
+        "customer": "张江高科",
+        "designYear": 2019,
+        "materialSource": "2019张江国际社区人才公寓（三期）",
+        "buildingLayout": "围合式U型",
+        "floorArea": 484.535,
+        "width": 39.7,
+        "depth": 50.9,
+        "roomRate": 71.75,
+        "viewCount": 64,
+        "downloadCount": 219,
+        "families": [
+            {
+                "familyNo": "33M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.2,
+                "familyDepth": 8.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 32,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "74M2",
+                "wideCount": "1面宽",
+                "familyWidth": 7.2,
+                "familyDepth": 8.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 74,
+                "familyFeature": "双钥匙房;独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-30 15:44:29"
+    },
+    {
+        "floorNo": "ZJ-ZH-UX-(72M2X4+32M1X17+56M2X2)",
+        "customer": "张江高科",
+        "designYear": 2019,
+        "materialSource": "2019张江国际社区人才公寓（三期）",
+        "buildingLayout": "围合式U型",
+        "floorArea": 762.01,
+        "width": 39,
+        "depth": 49.1,
+        "roomRate": 74.38,
+        "viewCount": 60,
+        "downloadCount": 222,
+        "families": [
+            {
+                "familyNo": "56M2",
+                "wideCount": "2面宽",
+                "familyWidth": 7.2,
+                "familyDepth": 7.2,
+                "roomNum": 1,
+                "bathroomNum": 2,
+                "area": 56,
+                "familyFeature": "双钥匙房;独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "32M1",
+                "wideCount": "2面宽",
+                "familyWidth": 3.2,
+                "familyDepth": 8.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 32,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "72M2",
+                "wideCount": "2面宽",
+                "familyWidth": 7.2,
+                "familyDepth": 8.6,
+                "roomNum": 1,
+                "bathroomNum": 2,
+                "area": 72,
+                "familyFeature": "双钥匙房;独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-30 15:41:04"
+    },
+    {
+        "floorNo": "ZJ-ZH-LX-(76M2X6+34M1X1)",
+        "customer": "张江高科",
+        "designYear": 2019,
+        "materialSource": "2019张江国际社区人才公寓（三期）",
+        "buildingLayout": "围合式L型",
+        "floorArea": 484.535,
+        "width": 45.6,
+        "depth": 20.5,
+        "roomRate": 70.58,
+        "viewCount": 78,
+        "downloadCount": 217,
+        "families": [
+            {
+                "familyNo": "34M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.2,
+                "familyDepth": 8.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 34,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "76M2",
+                "wideCount": "1面宽",
+                "familyWidth": 7.2,
+                "familyDepth": 8.6,
+                "roomNum": 1,
+                "bathroomNum": 2,
+                "area": 76,
+                "familyFeature": "双钥匙房;独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-30 15:37:06"
+    },
+    {
+        "floorNo": "ZJ-ZH-LX-(72M2X5+32M1X9+57M2X2)",
+        "customer": "张江高科",
+        "designYear": 2019,
+        "materialSource": "2019张江国际社区人才公寓（三期）",
+        "buildingLayout": "围合式L型",
+        "floorArea": 646.935,
+        "width": 38.9,
+        "depth": 42.1,
+        "roomRate": 74.72,
+        "viewCount": 71,
+        "downloadCount": 216,
+        "families": [
+            {
+                "familyNo": "57M2",
+                "wideCount": "2面宽",
+                "familyWidth": 7.2,
+                "familyDepth": 7.2,
+                "roomNum": 1,
+                "bathroomNum": 2,
+                "area": 57,
+                "familyFeature": "双钥匙房;独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "32M1",
+                "wideCount": "2面宽",
+                "familyWidth": 3.2,
+                "familyDepth": 8.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 32,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "72M2",
+                "wideCount": "2面宽",
+                "familyWidth": 7.2,
+                "familyDepth": 8.6,
+                "roomNum": 1,
+                "bathroomNum": 2,
+                "area": 72,
+                "familyFeature": "双钥匙房;独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-30 15:33:44"
+    },
+    {
+        "floorNo": "ZJ-ZH-LX-(72M2X4+32M1X8+56M2X2)",
+        "customer": "张江高科",
+        "designYear": 2019,
+        "materialSource": "2019张江国际社区人才公寓（三期）",
+        "buildingLayout": "围合式L型",
+        "floorArea": 646.935,
+        "width": 38.9,
+        "depth": 42.1,
+        "roomRate": 74.72,
+        "viewCount": 63,
+        "downloadCount": 211,
+        "families": [
+            {
+                "familyNo": "56M2",
+                "wideCount": "2面宽",
+                "familyWidth": 7.2,
+                "familyDepth": 7.2,
+                "roomNum": 1,
+                "bathroomNum": 2,
+                "area": 56,
+                "familyFeature": "双钥匙房;独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "32M1",
+                "wideCount": "2面宽",
+                "familyWidth": 3.2,
+                "familyDepth": 8.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 32,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "72M2",
+                "wideCount": "2面宽",
+                "familyWidth": 7.2,
+                "familyDepth": 8.6,
+                "roomNum": 1,
+                "bathroomNum": 2,
+                "area": 72,
+                "familyFeature": "双钥匙房;独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-30 15:30:13"
+    },
+    {
+        "floorNo": "ZJ-ZH-LX-(50M2X9)",
+        "customer": "张江高科",
+        "designYear": 2018,
+        "materialSource": "2018仁恒浦东新区周浦东站10-01、10-05地块租赁住宅项目",
+        "buildingLayout": "围合式L型",
+        "floorArea": 442.61,
+        "width": 37.8,
+        "depth": 27.6,
+        "roomRate": 67.62,
+        "viewCount": 46,
+        "downloadCount": 207,
+        "families": [
+            {
+                "familyNo": "50M2",
+                "wideCount": "2面宽",
+                "familyWidth": 5.4,
+                "familyDepth": 7.3,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 49.53,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-30 15:04:08"
+    },
+    {
+        "floorNo": "ZJ-ZH-DYS-(121M4X2)",
+        "customer": "张江高科",
+        "designYear": 2018,
+        "materialSource": "2018仁恒浦东新区周浦东站10-01、10-05地块租赁住宅项目",
+        "buildingLayout": "单元式",
+        "floorArea": 239.12,
+        "width": 26.3,
+        "depth": 12.5,
+        "roomRate": 76.94,
+        "viewCount": 40,
+        "downloadCount": 138,
+        "families": [
+            {
+                "familyNo": "121M4",
+                "wideCount": "4面宽",
+                "familyWidth": 13.15,
+                "familyDepth": 9.5,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 121.22,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-30 14:58:52"
+    },
+    {
+        "floorNo": "ZJ-ZH-DYS-(95M2X2+69M3X2)",
+        "customer": "张江高科",
+        "designYear": 2018,
+        "materialSource": "2018仁恒浦东新区周浦东站10-01、10-05地块租赁住宅项目",
+        "buildingLayout": "单元式",
+        "floorArea": 324.355,
+        "width": 30.4,
+        "depth": 14.25,
+        "roomRate": 78.65,
+        "viewCount": 53,
+        "downloadCount": 207,
+        "families": [
+            {
+                "familyNo": "69M3",
+                "wideCount": "3面宽",
+                "familyWidth": 8.4,
+                "familyDepth": 7.2,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 69.07,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "95M2",
+                "wideCount": "3面宽",
+                "familyWidth": 6.8,
+                "familyDepth": 13.25,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 94.67,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-30 14:56:37"
+    },
+    {
+        "floorNo": "ZJ-ZH-DYS-(72M2X2+70M3X4)",
+        "customer": "张江高科",
+        "designYear": 2018,
+        "materialSource": "2018仁恒浦东新区周浦东站10-01、10-05地块租赁住宅项目",
+        "buildingLayout": "单元式",
+        "floorArea": 421.48,
+        "width": 45.6,
+        "depth": 12.1,
+        "roomRate": 77.24,
+        "viewCount": 52,
+        "downloadCount": 205,
+        "families": [
+            {
+                "familyNo": "70M3",
+                "wideCount": "3面宽",
+                "familyWidth": 5.6,
+                "familyDepth": 7.2,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 70.32,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "72M2",
+                "wideCount": "3面宽",
+                "familyWidth": 6,
+                "familyDepth": 10.5,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 71.66,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-30 14:52:16"
+    },
+    {
+        "floorNo": "ZJ-ZH-BS-(96M2X2+133M3X2+99M3X2)",
+        "customer": "张江高科",
+        "designYear": 2019,
+        "materialSource": "2019张江76地块长租公寓设计",
+        "buildingLayout": "板式",
+        "floorArea": 655.585,
+        "width": 44.8,
+        "depth": 16.9,
+        "roomRate": 78.46,
+        "viewCount": 64,
+        "downloadCount": 160,
+        "families": [
+            {
+                "familyNo": "99M3",
+                "wideCount": "3面宽",
+                "familyWidth": 10,
+                "familyDepth": 9.9,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 98.87,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "133M3",
+                "wideCount": "3面宽",
+                "familyWidth": 12.4,
+                "familyDepth": 9.9,
+                "roomNum": 4,
+                "bathroomNum": 2,
+                "area": 133.29,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "96M2",
+                "wideCount": "3面宽",
+                "familyWidth": 7,
+                "familyDepth": 12.4,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 96.44,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-30 14:38:51"
+    },
+    {
+        "floorNo": "ZJ-ZH-BS-(42M1X4+47M1X4+88M1X2+79M1X2)",
+        "customer": "张江高科",
+        "designYear": 2019,
+        "materialSource": "2019张江76地块长租公寓设计",
+        "buildingLayout": "板式",
+        "floorArea": 687.1,
+        "width": 44.8,
+        "depth": 18.8,
+        "roomRate": 72.43,
+        "viewCount": 68,
+        "downloadCount": 164,
+        "families": [
+            {
+                "familyNo": "79M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.6,
+                "familyDepth": 15.1,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 78.8,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "88M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.6,
+                "familyDepth": 15.1,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 87.7,
+                "familyFeature": "端厅;独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "47M1",
+                "wideCount": "1面宽",
+                "familyWidth": 4.3,
+                "familyDepth": 10.1,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 47.11,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "42M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 9.8,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 41.92,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-30 14:29:07"
+    },
+    {
+        "floorNo": "ZJ-ZH-BS-(39M1X4+30M1X4+54M2X2)",
+        "customer": "张江高科",
+        "designYear": 2019,
+        "materialSource": "2019张江国际社区人才公寓（三期）",
+        "buildingLayout": "围合式L型",
+        "floorArea": 646.935,
+        "width": 38.9,
+        "depth": 42.1,
+        "roomRate": 74.72,
+        "viewCount": 58,
+        "downloadCount": 152,
+        "families": [
+            {
+                "familyNo": "54M2",
+                "wideCount": "2面宽",
+                "familyWidth": 7.2,
+                "familyDepth": 7.2,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 54.15,
+                "familyFeature": "双钥匙房;独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "30M1",
+                "wideCount": "2面宽",
+                "familyWidth": 3.2,
+                "familyDepth": 8.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 30.48,
+                "familyFeature": "无;双钥匙房"
+            },
+            {
+                "familyNo": "39M1",
+                "wideCount": "2面宽",
+                "familyWidth": 4,
+                "familyDepth": 8.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 38.61,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-30 11:14:45"
+    },
+    {
+        "floorNo": "ZJ-ZH-BS-(32M1X5+40M1X5+57M2X2)",
+        "customer": "张江高科",
+        "designYear": 2019,
+        "materialSource": "2019张江国际社区人才公寓（三期）",
+        "buildingLayout": "板式",
+        "floorArea": 472.325,
+        "width": 36,
+        "depth": 17.3,
+        "roomRate": 74,
+        "viewCount": 54,
+        "downloadCount": 153,
+        "families": [
+            {
+                "familyNo": "57M2",
+                "wideCount": "2面宽",
+                "familyWidth": 7.2,
+                "familyDepth": 7.2,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 56.72,
+                "familyFeature": "双钥匙房;独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "40M1",
+                "wideCount": "2面宽",
+                "familyWidth": 4,
+                "familyDepth": 8.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 40.44,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "32M1",
+                "wideCount": "2面宽",
+                "familyWidth": 3.2,
+                "familyDepth": 8.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 31.93,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-30 10:51:48"
+    },
+    {
+        "floorNo": "SH-ZH-LX-(128M5X1+125M3X1+97M4X1+70M3X2+93M4X1+67M3X1)",
+        "customer": "上海地产",
+        "designYear": 2018,
+        "materialSource": "2018浦东新区南码头社区Z000301单元15街坊15-01地块租赁住房项目",
+        "buildingLayout": "围合式L型",
+        "floorArea": 650.41,
+        "width": 50.1,
+        "depth": 27,
+        "roomRate": 71.96,
+        "viewCount": 41,
+        "downloadCount": 122,
+        "families": [
+            {
+                "familyNo": "67M3",
+                "wideCount": "3面宽",
+                "familyWidth": 8.1,
+                "familyDepth": 8,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 67.11,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "93M4",
+                "wideCount": "3面宽",
+                "familyWidth": 10.8,
+                "familyDepth": 8.1,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 93.12,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "70M3",
+                "wideCount": "3面宽",
+                "familyWidth": 8.1,
+                "familyDepth": 8.1,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 70.58,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "97M4",
+                "wideCount": "3面宽",
+                "familyWidth": 10.8,
+                "familyDepth": 8,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 97.14,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "125M3",
+                "wideCount": "3面宽",
+                "familyWidth": 11.8,
+                "familyDepth": 11.5,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 125.46,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "128M5",
+                "wideCount": "3面宽",
+                "familyWidth": 5,
+                "familyDepth": 7.9,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 127.98,
+                "familyFeature": "端厅;独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 17:56:29"
+    },
+    {
+        "floorNo": "SH-ZH-LX-(71M3X2+70M3X3+47M2X6+95M4X3)",
+        "customer": "上海地产",
+        "designYear": 2018,
+        "materialSource": "2018浦东新区南码头社区Z000301单元15街坊15-01地块租赁住房项目",
+        "buildingLayout": "围合式L型",
+        "floorArea": 917.26,
+        "width": 57.2,
+        "depth": 28.4,
+        "roomRate": 72.59,
+        "viewCount": 53,
+        "downloadCount": 128,
+        "families": [
+            {
+                "familyNo": "95M4",
+                "wideCount": "4面宽",
+                "familyWidth": 10.8,
+                "familyDepth": 8,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 95.49,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "47M2",
+                "wideCount": "4面宽",
+                "familyWidth": 5.4,
+                "familyDepth": 8.1,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 46.99,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "70M3",
+                "wideCount": "4面宽",
+                "familyWidth": 8.1,
+                "familyDepth": 8,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 69.97,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "71M3",
+                "wideCount": "4面宽",
+                "familyWidth": 8.1,
+                "familyDepth": 8.1,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 70.52,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 17:37:23"
+    },
+    {
+        "floorNo": "SH-ZH-LX-(120M5X1+118M3X1+90M4X1+87M4X1+63M3X1)",
+        "customer": "上海地产",
+        "designYear": 2018,
+        "materialSource": "2018浦东新区南码头社区Z000301单元15街坊15-01地块租赁住房项目",
+        "buildingLayout": "围合式L型",
+        "floorArea": 478.035,
+        "width": 33.4,
+        "depth": 27,
+        "roomRate": 76.79,
+        "viewCount": 39,
+        "downloadCount": 122,
+        "families": [
+            {
+                "familyNo": "63M3",
+                "wideCount": "3面宽",
+                "familyWidth": 8,
+                "familyDepth": 8,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 63.16,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "87M4",
+                "wideCount": "3面宽",
+                "familyWidth": 10.8,
+                "familyDepth": 8.1,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 87.35,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "90M4",
+                "wideCount": "3面宽",
+                "familyWidth": 10.8,
+                "familyDepth": 8,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 90.48,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "118M3",
+                "wideCount": "3面宽",
+                "familyWidth": 11.8,
+                "familyDepth": 11.5,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 118.53,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "120M5",
+                "wideCount": "3面宽",
+                "familyWidth": 11.6,
+                "familyDepth": 7.9,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 120.23,
+                "familyFeature": "端厅;独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 17:02:02"
+    },
+    {
+        "floorNo": "ZH-LX-(57M2X1+59M2X5+46M1X1)",
+        "customer": "无",
+        "designYear": 2021,
+        "materialSource": "杭州37号地块租赁住房项目",
+        "buildingLayout": "板式",
+        "floorArea": 393.55,
+        "width": 32,
+        "depth": 14.6,
+        "roomRate": 78.11,
+        "viewCount": 46,
+        "downloadCount": 154,
+        "families": [
+            {
+                "familyNo": "46M1",
+                "wideCount": "1面宽",
+                "familyWidth": 4.4,
+                "familyDepth": 8.9,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 46,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "59M2",
+                "wideCount": "1面宽",
+                "familyWidth": 6.2,
+                "familyDepth": 8.9,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 59,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "57M2",
+                "wideCount": "1面宽",
+                "familyWidth": 6.2,
+                "familyDepth": 8.2,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 57,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 16:49:17"
+    },
+    {
+        "floorNo": "SH-ZH-BS-(151M3X1+71M3X3+47M2X2+94M4X1+68M3X1)",
+        "customer": "上海地产",
+        "designYear": 2018,
+        "materialSource": "2018浦东新区南码头社区Z000301单元15街坊15-01地块租赁住房项目",
+        "buildingLayout": "板式",
+        "floorArea": 621.485,
+        "width": 55.8,
+        "depth": 15.55,
+        "roomRate": 71.32,
+        "viewCount": 32,
+        "downloadCount": 125,
+        "families": [
+            {
+                "familyNo": "68M3",
+                "wideCount": "3面宽",
+                "familyWidth": 8.1,
+                "familyDepth": 8.1,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 68.51,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "94M4",
+                "wideCount": "3面宽",
+                "familyWidth": 10.8,
+                "familyDepth": 8.1,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 93.88,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "47M2",
+                "wideCount": "3面宽",
+                "familyWidth": 5.4,
+                "familyDepth": 8.1,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 47.76,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "71M3",
+                "wideCount": "3面宽",
+                "familyWidth": 8.1,
+                "familyDepth": 8.1,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 71.22,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "151M3",
+                "wideCount": "3面宽",
+                "familyWidth": 9.9,
+                "familyDepth": 14,
+                "roomNum": 3,
+                "bathroomNum": 3,
+                "area": 151.48,
+                "familyFeature": "端厅;独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 16:44:13"
+    },
+    {
+        "floorNo": "SH-ZH-BS-(148M3X1+47M2X3+69M3X3+92M4X1+67M3X1)",
+        "customer": "上海地产",
+        "designYear": 2018,
+        "materialSource": "2018浦东新区南码头社区Z000301单元15街坊15-01地块租赁住房项目",
+        "buildingLayout": "板式",
+        "floorArea": 654.395,
+        "width": 51.9,
+        "depth": 17.5,
+        "roomRate": 72.92,
+        "viewCount": 29,
+        "downloadCount": 115,
+        "families": [
+            {
+                "familyNo": "67M3",
+                "wideCount": "3面宽",
+                "familyWidth": 8.1,
+                "familyDepth": 8.1,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 67.43,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "92M4",
+                "wideCount": "3面宽",
+                "familyWidth": 10.8,
+                "familyDepth": 8,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 91.81,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "69M3",
+                "wideCount": "3面宽",
+                "familyWidth": 8.1,
+                "familyDepth": 8,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 69.65,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "47M2",
+                "wideCount": "3面宽",
+                "familyWidth": 5.4,
+                "familyDepth": 8,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 46.71,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "148M3",
+                "wideCount": "3面宽",
+                "familyWidth": 11.4,
+                "familyDepth": 14,
+                "roomNum": 3,
+                "bathroomNum": 3,
+                "area": 148.15,
+                "familyFeature": "端厅;独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 16:32:28"
+    },
+    {
+        "floorNo": "ZH-BS-(88M2X2+92M3X2)",
+        "customer": "无",
+        "designYear": 2021,
+        "materialSource": "杭州37号地块租赁住房项目",
+        "buildingLayout": "板式",
+        "floorArea": 356.82,
+        "width": 32,
+        "depth": 14.6,
+        "roomRate": 80.97,
+        "viewCount": 34,
+        "downloadCount": 118,
+        "families": [
+            {
+                "familyNo": "92M3",
+                "wideCount": "3面宽",
+                "familyWidth": 9.4,
+                "familyDepth": 9.8,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 92,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "88M2",
+                "wideCount": "3面宽",
+                "familyWidth": 6.6,
+                "familyDepth": 13.9,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 88,
+                "familyFeature": "端厅;独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 16:21:07"
+    },
+    {
+        "floorNo": "ZH-LX-(60M2X9)",
+        "customer": "无",
+        "designYear": 2019,
+        "materialSource": null,
+        "buildingLayout": "围合式L型",
+        "floorArea": 532.46,
+        "width": 42,
+        "depth": 21.6,
+        "roomRate": 71.88,
+        "viewCount": 54,
+        "downloadCount": 140,
+        "families": [
+            {
+                "familyNo": "60M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6,
+                "familyDepth": 8.1,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 60,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 16:11:08"
+    },
+    {
+        "floorNo": "ZH-DS-(86M2X7)",
+        "customer": "无",
+        "designYear": 2019,
+        "materialSource": null,
+        "buildingLayout": "点式",
+        "floorArea": 598.48,
+        "width": 37.5,
+        "depth": 21,
+        "roomRate": 70.64,
+        "viewCount": 54,
+        "downloadCount": 142,
+        "families": [
+            {
+                "familyNo": "86M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6.9,
+                "familyDepth": 12.4,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 86,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 16:06:01"
+    },
+    {
+        "floorNo": "SH-ZH-BS-(67M3X2+92M4X2+70M3X2)",
+        "customer": "上海地产",
+        "designYear": 2018,
+        "materialSource": "2018浦东新区南码头社区Z000301单元15街坊15-01地块租赁住房项目",
+        "buildingLayout": "板式",
+        "floorArea": 456.635,
+        "width": 37.8,
+        "depth": 15.5,
+        "roomRate": 72.73,
+        "viewCount": 29,
+        "downloadCount": 103,
+        "families": [
+            {
+                "familyNo": "70M3",
+                "wideCount": "3面宽",
+                "familyWidth": 8.1,
+                "familyDepth": 8,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 70.06,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "92M4",
+                "wideCount": "3面宽",
+                "familyWidth": 10.8,
+                "familyDepth": 7.4,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 92.05,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "67M3",
+                "wideCount": "3面宽",
+                "familyWidth": 8.1,
+                "familyDepth": 8,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 67.01,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 16:04:40"
+    },
+    {
+        "floorNo": "ZH-DS-(80M2X4+62M2X5)",
+        "customer": "无",
+        "designYear": 2019,
+        "materialSource": null,
+        "buildingLayout": "点式",
+        "floorArea": 644.52,
+        "width": 60,
+        "depth": 22.2,
+        "roomRate": 83.18,
+        "viewCount": 47,
+        "downloadCount": 124,
+        "families": [
+            {
+                "familyNo": "62M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6,
+                "familyDepth": 8.6,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 62,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "80M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6,
+                "familyDepth": 10.2,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 80,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-29 16:03:00"
+    },
+    {
+        "floorNo": "ZH-DS-(80M2X2+84M2X5)",
+        "customer": "无",
+        "designYear": 2019,
+        "materialSource": null,
+        "buildingLayout": "点式",
+        "floorArea": 581.83,
+        "width": 34.5,
+        "depth": 20.1,
+        "roomRate": 79.74,
+        "viewCount": 53,
+        "downloadCount": 124,
+        "families": [
+            {
+                "familyNo": "84M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6.9,
+                "familyDepth": 11.7,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 84,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "80M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6.9,
+                "familyDepth": 10.05,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 80,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 15:58:12"
+    },
+    {
+        "floorNo": "ZH-DS-(70M2X2+80M2X3+80M2X2)",
+        "customer": "无",
+        "designYear": 2019,
+        "materialSource": null,
+        "buildingLayout": "点式",
+        "floorArea": 581.83,
+        "width": 34.1,
+        "depth": 18.9,
+        "roomRate": 77.21,
+        "viewCount": 46,
+        "downloadCount": 129,
+        "families": [
+            {
+                "familyNo": "80M2-2",
+                "wideCount": "2面宽",
+                "familyWidth": 6.7,
+                "familyDepth": 12.2,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 80,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "80M2-1",
+                "wideCount": "2面宽",
+                "familyWidth": 6.9,
+                "familyDepth": 10.7,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 80,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "70M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6.7,
+                "familyDepth": 9,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 70,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 15:52:19"
+    },
+    {
+        "floorNo": "ZH-DS-(68M2X8+46M1X4+90M2X4)",
+        "customer": "无",
+        "designYear": 2019,
+        "materialSource": null,
+        "buildingLayout": "点式",
+        "floorArea": 1089.98,
+        "width": 39.9,
+        "depth": 30.2,
+        "roomRate": 69.77,
+        "viewCount": 61,
+        "downloadCount": 131,
+        "families": [
+            {
+                "familyNo": "90M2",
+                "wideCount": "2面宽",
+                "familyWidth": 10.4,
+                "familyDepth": 9,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 90,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "46M1",
+                "wideCount": "2面宽",
+                "familyWidth": 3.6,
+                "familyDepth": 9,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 46,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "68M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6,
+                "familyDepth": 7.9,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 68,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-29 15:41:01"
+    },
+    {
+        "floorNo": "SH-ZH-BS-(35M1X1+31M1X1+39M1X4+40M1X4+39M1X1+46M1.5X1+30M1X1+42M1X5+41M1X5+47M1X1)",
+        "customer": "上海地产",
+        "designYear": 2018,
+        "materialSource": "2018浦东新区南码头社区Z000301单元15街坊15-01地块租赁住房项目",
+        "buildingLayout": "板式",
+        "floorArea": 960.68,
+        "width": 49,
+        "depth": 21.5,
+        "roomRate": 68.85,
+        "viewCount": 32,
+        "downloadCount": 109,
+        "families": [
+            {
+                "familyNo": "47M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.9,
+                "familyDepth": 8.2,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 46.62,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "41M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.5,
+                "familyDepth": 8.2,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 41.47,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "42M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.5,
+                "familyDepth": 8.2,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 41.67,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "30M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.5,
+                "familyDepth": 8.2,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 30.44,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "46M1.5",
+                "wideCount": "1面宽",
+                "familyWidth": 7,
+                "familyDepth": 4.94,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 46.62,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "39M1-1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.2,
+                "familyDepth": 8,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 39.07,
+                "familyFeature": "北厅"
+            },
+            {
+                "familyNo": "40M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.5,
+                "familyDepth": 8,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 40.19,
+                "familyFeature": "北厅"
+            },
+            {
+                "familyNo": "39M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.5,
+                "familyDepth": 8,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 39.91,
+                "familyFeature": "北厅"
+            },
+            {
+                "familyNo": "31M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.5,
+                "familyDepth": 8,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 31.37,
+                "familyFeature": "北厅"
+            },
+            {
+                "familyNo": "35M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.8,
+                "familyDepth": 6.3,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 34.65,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-29 15:40:48"
+    },
+    {
+        "floorNo": "ZJ-ZH-LX-(31M1X15)",
+        "customer": "张江高科",
+        "designYear": 2021,
+        "materialSource": "张江国际医学园B、C地块",
+        "buildingLayout": "板式",
+        "floorArea": 456.98,
+        "width": 39.9,
+        "depth": 19.3,
+        "roomRate": 68.57,
+        "viewCount": 43,
+        "downloadCount": 180,
+        "families": [
+            {
+                "familyNo": "31M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 7.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 30.7,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-29 15:01:06"
+    },
+    {
+        "floorNo": "ZJ-ZH-BS-(32M1X12)",
+        "customer": "张江高科",
+        "designYear": 2021,
+        "materialSource": "张江国际医学园B、C地块",
+        "buildingLayout": "板式",
+        "floorArea": 376.53,
+        "width": 39.9,
+        "depth": 12.8,
+        "roomRate": 66.46,
+        "viewCount": 38,
+        "downloadCount": 121,
+        "families": [
+            {
+                "familyNo": "32M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 7.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 32,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-29 14:56:50"
+    },
+    {
+        "floorNo": "RC-ZH-BS-(69M1X2+49M1X4+64M2X6+50M1X2)",
+        "customer": "融创",
+        "designYear": 2021,
+        "materialSource": "2021上海融创-临港新片区 PDC1-0102单元C2街坊18-08、23-01地块3#保障房",
+        "buildingLayout": "板式",
+        "floorArea": 814.515,
+        "width": 68.6,
+        "depth": 14.65,
+        "roomRate": 74.65,
+        "viewCount": 34,
+        "downloadCount": 110,
+        "families": [
+            {
+                "familyNo": "50M1",
+                "wideCount": "1面宽",
+                "familyWidth": 4.1,
+                "familyDepth": 10.25,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 49.86,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "64M2",
+                "wideCount": "1面宽",
+                "familyWidth": 5.8,
+                "familyDepth": 10.25,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 64.15,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "49M1",
+                "wideCount": "1面宽",
+                "familyWidth": 4.1,
+                "familyDepth": 10.25,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 48.95,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "69M1",
+                "wideCount": "1面宽",
+                "familyWidth": 4.4,
+                "familyDepth": 13.85,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 68.51,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 14:51:11"
+    },
+    {
+        "floorNo": "XH-ZH-UX-(62M2X5+40M2X6+56M2X5+58M2X1+70M3X1)",
+        "customer": "旭辉",
+        "designYear": 2020,
+        "materialSource": "旭辉领寓-闵行区浦江社区35街坊租赁住房",
+        "buildingLayout": "围合式U型",
+        "floorArea": 953.93,
+        "width": 43.8,
+        "depth": 46.95,
+        "roomRate": 79.61,
+        "viewCount": 52,
+        "downloadCount": 129,
+        "families": [
+            {
+                "familyNo": "70M3",
+                "wideCount": "3面宽",
+                "familyWidth": 10.25,
+                "familyDepth": 7.9,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 70,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "58M2",
+                "wideCount": "3面宽",
+                "familyWidth": 6.15,
+                "familyDepth": 9.55,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 58,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "56M2",
+                "wideCount": "3面宽",
+                "familyWidth": 6,
+                "familyDepth": 8.75,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 56,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "40M2",
+                "wideCount": "3面宽",
+                "familyWidth": 5.6,
+                "familyDepth": 6.8,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 40,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "62M2",
+                "wideCount": "3面宽",
+                "familyWidth": 6,
+                "familyDepth": 8.55,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 62,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 14:39:05"
+    },
+    {
+        "floorNo": "GH-ZH-UX-(58M2X9+42M1.5X4+30M1X23+42M2X1)",
+        "customer": "国华集团",
+        "designYear": 2021,
+        "materialSource": "国华集团-上海市国和路580",
+        "buildingLayout": "围合式U型",
+        "floorArea": 1409.91,
+        "width": 68.4,
+        "depth": 27.4,
+        "roomRate": 78.28,
+        "viewCount": 46,
+        "downloadCount": 100,
+        "families": [
+            {
+                "familyNo": "42M2",
+                "wideCount": "2面宽",
+                "familyWidth": 5.1,
+                "familyDepth": 8,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 42,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "30M1",
+                "wideCount": "2面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 8,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 30,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "42M1.5",
+                "wideCount": "2面宽",
+                "familyWidth": 4.5,
+                "familyDepth": 8,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 42,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "58M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6.6,
+                "familyDepth": 8,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 58,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-29 14:35:23"
+    },
+    {
+        "floorNo": "XH-ZH-UX-(34M1X10+30M1X12+25M1X4)",
+        "customer": "旭辉",
+        "designYear": 2020,
+        "materialSource": "旭辉领寓-闵行区浦江社区35街坊租赁住房",
+        "buildingLayout": "围合式U型",
+        "floorArea": 789,
+        "width": 36,
+        "depth": 40.2,
+        "roomRate": 73.02,
+        "viewCount": 41,
+        "downloadCount": 108,
+        "families": [
+            {
+                "familyNo": "25M1",
+                "wideCount": "1面宽",
+                "familyWidth": 2.8,
+                "familyDepth": 6.8,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 25,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "30M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.6,
+                "familyDepth": 6.8,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 30,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "34M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.6,
+                "familyDepth": 7.7,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 34,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-29 14:30:29"
+    },
+    {
+        "floorNo": "LJZ-ZH-LX-(42M1X1+43M2X3+42M2X1+41M2X1+55M1X4+57M2X2+58M2X2+56M2X2)",
+        "customer": "陆家嘴",
+        "designYear": 2016,
+        "materialSource": "2016上海陆家嘴集团前滩57-02地块项目 ",
+        "buildingLayout": "围合式L型",
+        "floorArea": 803.01,
+        "width": 65.3,
+        "depth": 32.6,
+        "roomRate": 79.05,
+        "viewCount": 32,
+        "downloadCount": 117,
+        "families": [
+            {
+                "familyNo": "56M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6,
+                "familyDepth": 8.75,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 55.96,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "58M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6.2,
+                "familyDepth": 8.75,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 57.89,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "57M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6.1,
+                "familyDepth": 8.75,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 56.97,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "55M1",
+                "wideCount": "2面宽",
+                "familyWidth": 3.2,
+                "familyDepth": 13.55,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 54.46,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "41M2",
+                "wideCount": "2面宽",
+                "familyWidth": 5.3,
+                "familyDepth": 5.25,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 40.82,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "42M2",
+                "wideCount": "2面宽",
+                "familyWidth": 5.3,
+                "familyDepth": 5.2,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 41.49,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "43M2",
+                "wideCount": "2面宽",
+                "familyWidth": 4.9,
+                "familyDepth": 8.05,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 42.95,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "42M1",
+                "wideCount": "2面宽",
+                "familyWidth": 3.1,
+                "familyDepth": 11.65,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 42.36,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 14:27:46"
+    },
+    {
+        "floorNo": "DY-ZH-DYS-(70M1.5X2+58M2X9+72M2X1+40M2X3)",
+        "customer": "东苑",
+        "designYear": 2019,
+        "materialSource": "东苑集团上海市颛桥施普乐项目",
+        "buildingLayout": "单元式",
+        "floorArea": 841.93,
+        "width": 68.9,
+        "depth": 16.15,
+        "roomRate": 73.88,
+        "viewCount": 45,
+        "downloadCount": 103,
+        "families": [
+            {
+                "familyNo": "40M2",
+                "wideCount": "2面宽",
+                "familyWidth": 5.3,
+                "familyDepth": 5.7,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 40,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "72M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6.1,
+                "familyDepth": 10.6,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 72,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "58M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6,
+                "familyDepth": 9.05,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 58,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "70M1.5",
+                "wideCount": "2面宽",
+                "familyWidth": 5.45,
+                "familyDepth": 13.05,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 70,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 14:27:31"
+    },
+    {
+        "floorNo": "XH-ZH-LX-(66M2X4+42M2X4+75M3X1+62M2X1+92M3X1)",
+        "customer": "旭辉",
+        "designYear": 2020,
+        "materialSource": "旭辉领寓-闵行区浦江社区35街坊租赁住房",
+        "buildingLayout": "围合式L型",
+        "floorArea": 660.76,
+        "width": 43.25,
+        "depth": 35.6,
+        "roomRate": 74.67,
+        "viewCount": 51,
+        "downloadCount": 130,
+        "families": [
+            {
+                "familyNo": "92M3",
+                "wideCount": "3面宽",
+                "familyWidth": 9,
+                "familyDepth": 9.65,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 92,
+                "familyFeature": "双钥匙房;独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "62M2",
+                "wideCount": "3面宽",
+                "familyWidth": 6.15,
+                "familyDepth": 9.55,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 62,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "75M3",
+                "wideCount": "3面宽",
+                "familyWidth": 8.9,
+                "familyDepth": 6.9,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 75,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "42M2",
+                "wideCount": "3面宽",
+                "familyWidth": 5.6,
+                "familyDepth": 6.8,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 42,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "66M2",
+                "wideCount": "3面宽",
+                "familyWidth": 6,
+                "familyDepth": 9.35,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 66,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-29 14:25:29"
+    },
+    {
+        "floorNo": "DY-ZH-BS-(40M1X8+50M1X2+52M1.5X2)",
+        "customer": "东苑",
+        "designYear": 2019,
+        "materialSource": "东苑集团上海市颛桥施普乐项目",
+        "buildingLayout": "板式",
+        "floorArea": 512.49,
+        "width": 41.7,
+        "depth": 16.75,
+        "roomRate": 72.26,
+        "viewCount": 50,
+        "downloadCount": 105,
+        "families": [
+            {
+                "familyNo": "52M1.5",
+                "wideCount": "1.5面宽",
+                "familyWidth": 4.65,
+                "familyDepth": 9.6,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 52,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "50M1",
+                "wideCount": "1.5面宽",
+                "familyWidth": 4050,
+                "familyDepth": 10950,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 50,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "40M1",
+                "wideCount": "1.5面宽",
+                "familyWidth": 4.2,
+                "familyDepth": 9.3,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 40,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 14:23:05"
+    },
+    {
+        "floorNo": "LJZ-ZH-DS-（142M2X1+148M3X2)",
+        "customer": "陆家嘴",
+        "designYear": 2015,
+        "materialSource": "前滩九宫格41#、42#、47#、53#地块住宅",
+        "buildingLayout": "点式",
+        "floorArea": 420.89,
+        "width": 25.2,
+        "depth": 23,
+        "roomRate": 78.03,
+        "viewCount": 36,
+        "downloadCount": 99,
+        "families": [
+            {
+                "familyNo": "148M3",
+                "wideCount": "3面宽",
+                "familyWidth": 11.1,
+                "familyDepth": 12.4,
+                "roomNum": 3,
+                "bathroomNum": 3,
+                "area": 148,
+                "familyFeature": "端厅;独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "142M2",
+                "wideCount": "3面宽",
+                "familyWidth": 8.4,
+                "familyDepth": 13.9,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 142,
+                "familyFeature": "北厅;独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 14:17:23"
+    },
+    {
+        "floorNo": "LJZ-ZH-DS-（224M5X1+172M2.5X1)",
+        "customer": "陆家嘴",
+        "designYear": 2015,
+        "materialSource": "前滩九宫格41#、42#、47#、53#地块住宅",
+        "buildingLayout": "点式",
+        "floorArea": 375.82,
+        "width": 25.8,
+        "depth": 15.5,
+        "roomRate": 80.13,
+        "viewCount": 41,
+        "downloadCount": 102,
+        "families": [
+            {
+                "familyNo": "172M2.5",
+                "wideCount": "2面宽",
+                "familyWidth": 9,
+                "familyDepth": 15.5,
+                "roomNum": 3,
+                "bathroomNum": 3,
+                "area": 172,
+                "familyFeature": "北厅;独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "224M5",
+                "wideCount": "2面宽",
+                "familyWidth": 16.8,
+                "familyDepth": 15.5,
+                "roomNum": 3,
+                "bathroomNum": 3,
+                "area": 224,
+                "familyFeature": "端厅;独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 14:12:47"
+    },
+    {
+        "floorNo": "LJZ-ZH-DYS-（99M2X4)",
+        "customer": "陆家嘴",
+        "designYear": 2015,
+        "materialSource": "前滩九宫格41#、42#、47#、53#地块住宅",
+        "buildingLayout": "单元式",
+        "floorArea": 377.71,
+        "width": 31.5,
+        "depth": 13,
+        "roomRate": 77.05,
+        "viewCount": 18,
+        "downloadCount": 88,
+        "families": [
+            {
+                "familyNo": "99M2",
+                "wideCount": "2面宽",
+                "familyWidth": 7.8,
+                "familyDepth": 13,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 99,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 14:04:42"
+    },
+    {
+        "floorNo": "LJZ-ZH-DYS-（102M2X2+73M2X2)",
+        "customer": "陆家嘴",
+        "designYear": 2015,
+        "materialSource": "前滩九宫格41#、42#、47#、53#地块住宅",
+        "buildingLayout": "单元式",
+        "floorArea": 350.86,
+        "width": 30,
+        "depth": 12.7,
+        "roomRate": 77.12,
+        "viewCount": 24,
+        "downloadCount": 98,
+        "families": [
+            {
+                "familyNo": "73M2",
+                "wideCount": "2面宽",
+                "familyWidth": 7.5,
+                "familyDepth": 8.1,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 73,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "107M2",
+                "wideCount": "2面宽",
+                "familyWidth": 7.5,
+                "familyDepth": 11.8,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 107,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 14:01:32"
+    },
+    {
+        "floorNo": "LJZ-ZH-BS-（70M2X2+90M2X2)",
+        "customer": "陆家嘴",
+        "designYear": 2015,
+        "materialSource": "前滩九宫格41#、42#、47#、53#地块住宅",
+        "buildingLayout": "板式",
+        "floorArea": 383.83,
+        "width": 36.7,
+        "depth": 12.8,
+        "roomRate": 75.48,
+        "viewCount": 33,
+        "downloadCount": 101,
+        "families": [
+            {
+                "familyNo": "90M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6.8,
+                "familyDepth": 11.4,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 90,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "70M2",
+                "wideCount": "2面宽",
+                "familyWidth": 7.9,
+                "familyDepth": 8.2,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 70,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 13:57:04"
+    },
+    {
+        "floorNo": "XH-ZH-LX-(65M2X4+58M2X3+60M2X1+70M3X1)",
+        "customer": "旭辉",
+        "designYear": 2020,
+        "materialSource": "旭辉领寓-闵行区浦江社区35街坊租赁住房",
+        "buildingLayout": "围合式L型",
+        "floorArea": 560.47,
+        "width": 39.45,
+        "depth": 29.85,
+        "roomRate": 76.67,
+        "viewCount": 40,
+        "downloadCount": 119,
+        "families": [
+            {
+                "familyNo": "70M3",
+                "wideCount": "3面宽",
+                "familyWidth": 10.25,
+                "familyDepth": 7.9,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 70,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "60M2",
+                "wideCount": "3面宽",
+                "familyWidth": 6.15,
+                "familyDepth": 9.55,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 60,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "58M2",
+                "wideCount": "3面宽",
+                "familyWidth": 6,
+                "familyDepth": 8.55,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 58,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "65M2",
+                "wideCount": "3面宽",
+                "familyWidth": 6,
+                "familyDepth": 9.35,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 65,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 11:56:19"
+    },
+    {
+        "floorNo": "LJZ-ZH-DS-（135M2X1+140M3X1+128M3X1)",
+        "customer": "陆家嘴",
+        "designYear": 2015,
+        "materialSource": "前滩九宫格41#、42#、47#、53#地块住宅",
+        "buildingLayout": "点式",
+        "floorArea": 398.68,
+        "width": 23.7,
+        "depth": 22.7,
+        "roomRate": 82.12,
+        "viewCount": 37,
+        "downloadCount": 102,
+        "families": [
+            {
+                "familyNo": "128M3",
+                "wideCount": "3面宽",
+                "familyWidth": 11.1,
+                "familyDepth": 12.4,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 128,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "140M3",
+                "wideCount": "3面宽",
+                "familyWidth": 11.1,
+                "familyDepth": 12.4,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 140,
+                "familyFeature": "端厅;独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "135M2",
+                "wideCount": "3面宽",
+                "familyWidth": 8.4,
+                "familyDepth": 15.7,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 135,
+                "familyFeature": "北厅;独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 11:48:23"
+    },
+    {
+        "floorNo": "LJZ-ZH-BS-(58M1X3+53M2X3+54M2X3+66M2X1)",
+        "customer": "陆家嘴",
+        "designYear": 2016,
+        "materialSource": "2016上海陆家嘴集团前滩57-02地块项目 ",
+        "buildingLayout": "板式",
+        "floorArea": 560.38,
+        "width": 50.4,
+        "depth": 14.85,
+        "roomRate": 75.35,
+        "viewCount": 27,
+        "downloadCount": 104,
+        "families": [
+            {
+                "familyNo": "66M2",
+                "wideCount": "2面宽",
+                "familyWidth": 4.8,
+                "familyDepth": 12.95,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 66.02,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "54M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6,
+                "familyDepth": 8.15,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 54.13,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "53M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6,
+                "familyDepth": 8.15,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 53.71,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "58M1",
+                "wideCount": "2面宽",
+                "familyWidth": 3.2,
+                "familyDepth": 12.95,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 58.06,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 11:38:09"
+    },
+    {
+        "floorNo": "CT-ZH-LX-(24M1X14+28M1X13)",
+        "customer": "上海城投",
+        "designYear": 2019,
+        "materialSource": "上海城投康桥工业区东区PDPO-1402单元E08B-05/E08C-03地块租赁住房项目",
+        "buildingLayout": "围合式L型",
+        "floorArea": 703.61,
+        "width": 55.35,
+        "depth": 21.3,
+        "roomRate": 67.05,
+        "viewCount": 23,
+        "downloadCount": 75,
+        "families": [
+            {
+                "familyNo": "28M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 5.75,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 28,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "24M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 5.75,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 24,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-29 11:24:33"
+    },
+    {
+        "floorNo": "CT-ZH-LX-(58M2X8+88M3X2)",
+        "customer": "上海城投",
+        "designYear": 2019,
+        "materialSource": "上海城投康桥工业区东区PDPO-1402单元E08B-05/E08C-03地块租赁住房项目",
+        "buildingLayout": "围合式L型",
+        "floorArea": 642.03,
+        "width": 53,
+        "depth": 29.3,
+        "roomRate": 70.81,
+        "viewCount": 37,
+        "downloadCount": 89,
+        "families": [
+            {
+                "familyNo": "88M3",
+                "wideCount": "3面宽",
+                "familyWidth": 9.9,
+                "familyDepth": 8.3,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 88,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "58M2",
+                "wideCount": "3面宽",
+                "familyWidth": 6.6,
+                "familyDepth": 7.4,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 58,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 11:16:59"
+    },
+    {
+        "floorNo": "LJZ-ZH-BS-(56M1X3+59M2X5+59M2X1+62M2X1)",
+        "customer": "陆家嘴",
+        "designYear": 2016,
+        "materialSource": "2016上海陆家嘴集团前滩57-02地块项目 ",
+        "buildingLayout": "板式",
+        "floorArea": 578.52,
+        "width": 49.2,
+        "depth": 15.65,
+        "roomRate": 75.58,
+        "viewCount": 27,
+        "downloadCount": 98,
+        "families": [
+            {
+                "familyNo": "62M2",
+                "wideCount": "2面宽",
+                "familyWidth": 5,
+                "familyDepth": 13.5,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 61.62,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "59M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6,
+                "familyDepth": 8.75,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 58.63,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "56M1",
+                "wideCount": "2面宽",
+                "familyWidth": 3.2,
+                "familyDepth": 13.55,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 56.15,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 11:13:38"
+    },
+    {
+        "floorNo": "CT-ZH-LX-(33M1X14+46M1.5X5)",
+        "customer": "上海城投",
+        "designYear": 2019,
+        "materialSource": "城投-浦江镇MHPO-1307单元G03-04地块",
+        "buildingLayout": "围合式L型",
+        "floorArea": 683.38,
+        "width": 56.5,
+        "depth": 24.45,
+        "roomRate": 76.61,
+        "viewCount": 31,
+        "downloadCount": 83,
+        "families": [
+            {
+                "familyNo": "46M1.5",
+                "wideCount": "1.5面宽",
+                "familyWidth": 4.95,
+                "familyDepth": 7.9,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 46,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "33M1",
+                "wideCount": "1.5面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 8.2,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 33,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-29 11:12:10"
+    },
+    {
+        "floorNo": "XH-ZH-LX-(63M2X3+57M2X6+72M3X1+88M3X1)",
+        "customer": "旭辉",
+        "designYear": 2020,
+        "materialSource": "旭辉领寓-闵行区浦江社区35街坊租赁住房",
+        "buildingLayout": "围合式L型",
+        "floorArea": 688.52,
+        "width": 39.05,
+        "depth": 42.9,
+        "roomRate": 78.11,
+        "viewCount": 42,
+        "downloadCount": 110,
+        "families": [
+            {
+                "familyNo": "88M3",
+                "wideCount": "3面宽",
+                "familyWidth": 9,
+                "familyDepth": 9.65,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 88,
+                "familyFeature": "双钥匙房;独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "72M3",
+                "wideCount": "3面宽",
+                "familyWidth": 10.25,
+                "familyDepth": 7.9,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 72,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "57M2",
+                "wideCount": "3面宽",
+                "familyWidth": 6,
+                "familyDepth": 8.55,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 57,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "63M3",
+                "wideCount": "3面宽",
+                "familyWidth": 6,
+                "familyDepth": 9.35,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 63,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-29 11:03:00"
+    },
+    {
+        "floorNo": "LH-ZH-LX-(79M2X1+39M1X1+73M2X1+65M2X7+75M2X13)",
+        "customer": "龙湖",
+        "designYear": 2019,
+        "materialSource": "2019龙湖南京玄武区孝陵卫项目投标",
+        "buildingLayout": "围合式L型",
+        "floorArea": 1613.5,
+        "width": 65.8,
+        "depth": 46.2,
+        "roomRate": 80.25,
+        "viewCount": 36,
+        "downloadCount": 94,
+        "families": [
+            {
+                "familyNo": "75M2",
+                "wideCount": "2面宽",
+                "familyWidth": 7.2,
+                "familyDepth": 7.2,
+                "roomNum": 4,
+                "bathroomNum": 4,
+                "area": 75.37,
+                "familyFeature": "跃层;双钥匙房"
+            },
+            {
+                "familyNo": "65M2",
+                "wideCount": "2面宽",
+                "familyWidth": 7.2,
+                "familyDepth": 7.2,
+                "roomNum": 4,
+                "bathroomNum": 4,
+                "area": 64.6,
+                "familyFeature": "跃层;双钥匙房"
+            },
+            {
+                "familyNo": "73M2",
+                "wideCount": "2面宽",
+                "familyWidth": 4.6,
+                "familyDepth": 8.4,
+                "roomNum": 4,
+                "bathroomNum": 4,
+                "area": 73.05,
+                "familyFeature": "跃层;双钥匙房"
+            },
+            {
+                "familyNo": "39M1",
+                "wideCount": "2面宽",
+                "familyWidth": 4.4,
+                "familyDepth": 7.2,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 39.48,
+                "familyFeature": "跃层;双钥匙房"
+            },
+            {
+                "familyNo": "79M2",
+                "wideCount": "2面宽",
+                "familyWidth": 7.2,
+                "familyDepth": 8.8,
+                "roomNum": 4,
+                "bathroomNum": 4,
+                "area": 78.96,
+                "familyFeature": "跃层;双钥匙房"
+            }
+        ],
+        "updatedAt": "2022-06-29 10:50:25"
+    },
+    {
+        "floorNo": "LH-ZH-BS-(31M1X28+38M1X4+33M1X2)",
+        "customer": "龙湖",
+        "designYear": 2019,
+        "materialSource": "2019龙湖南京玄武区孝陵卫项目投标",
+        "buildingLayout": "板式",
+        "floorArea": 1073.98,
+        "width": 47.6,
+        "depth": 23.4,
+        "roomRate": 74.15,
+        "viewCount": 25,
+        "downloadCount": 88,
+        "families": [
+            {
+                "familyNo": "33M1",
+                "wideCount": "1面宽",
+                "familyWidth": 2.6,
+                "familyDepth": 9.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 33.44,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "38M1",
+                "wideCount": "1面宽",
+                "familyWidth": 2.6,
+                "familyDepth": 10.8,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 37.87,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "31M1",
+                "wideCount": "1面宽",
+                "familyWidth": 2.6,
+                "familyDepth": 8.8,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 30.86,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-29 10:20:19"
+    },
+    {
+        "floorNo": "CT-ZH-LX-(24M1X16+27M1X16)",
+        "customer": "上海城投",
+        "designYear": 2019,
+        "materialSource": "上海城投康桥工业区东区PDPO-1402单元E08B-05/E08C-03地块租赁住房项目",
+        "buildingLayout": "围合式L型",
+        "floorArea": 810.93,
+        "width": 55.4,
+        "depth": 26.4,
+        "roomRate": 69.15,
+        "viewCount": 25,
+        "downloadCount": 76,
+        "families": [
+            {
+                "familyNo": "27M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 5.7,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 27,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "24M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 5.7,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 24,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-29 10:18:31"
+    },
+    {
+        "floorNo": "XH-ZH-LX-(30M1X19)",
+        "customer": "旭辉",
+        "designYear": 2020,
+        "materialSource": "旭辉领寓-闵行区浦江社区35街坊 租赁住房",
+        "buildingLayout": "围合式L型",
+        "floorArea": 571.37,
+        "width": 39.6,
+        "depth": 37.2,
+        "roomRate": 71.29,
+        "viewCount": 26,
+        "downloadCount": 88,
+        "families": [
+            {
+                "familyNo": "30M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.6,
+                "familyDepth": 6.8,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 30,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-28 18:22:14"
+    },
+    {
+        "floorNo": "CT-ZH-LX-(67M2X6+46M1.5X2+70M2X1)",
+        "customer": "上海城投",
+        "designYear": 2019,
+        "materialSource": "城投-浦江镇MHPO-1307单元G03-04地块",
+        "buildingLayout": "围合式L型",
+        "floorArea": 568.19,
+        "width": 46.9,
+        "depth": 19.8,
+        "roomRate": 70.39,
+        "viewCount": 36,
+        "downloadCount": 87,
+        "families": [
+            {
+                "familyNo": "70M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6.6,
+                "familyDepth": 8.2,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 70,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "46M1.5",
+                "wideCount": "2面宽",
+                "familyWidth": 4.95,
+                "familyDepth": 7.9,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 46,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "67M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6.6,
+                "familyDepth": 8.2,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 67,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-28 18:19:41"
+    },
+    {
+        "floorNo": "XB-ZH-UX-(42M1X4+40M1X1+46M1X10+56M1X1+38M1X4+34M1X1+33M1X3)",
+        "customer": "西部集团",
+        "designYear": 2020,
+        "materialSource": "石泉社区W060401单元A17C-01地块租赁住房项目",
+        "buildingLayout": "围合式U型",
+        "floorArea": 1003.08,
+        "width": 43.7,
+        "depth": 46.57,
+        "roomRate": 63.78,
+        "viewCount": 44,
+        "downloadCount": 106,
+        "families": [
+            {
+                "familyNo": "56M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.9,
+                "familyDepth": 9.85,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 56,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "33M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.45,
+                "familyDepth": 6.05,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 33,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "34M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.45,
+                "familyDepth": 6.05,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 34,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "38M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.6,
+                "familyDepth": 7.4,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 38,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "46M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.9,
+                "familyDepth": 8.3,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 46,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "40M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.6,
+                "familyDepth": 7.5,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 40,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "42M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.9,
+                "familyDepth": 7.55,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 42,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-28 18:09:39"
+    },
+    {
+        "floorNo": "CT-ZH-DS-(27M1X18+56M2X2)",
+        "customer": "上海城投",
+        "designYear": 2019,
+        "materialSource": "上海城投康桥工业区东区PDPO-1402单元E08B-05/E08C-03地块租赁住房项目",
+        "buildingLayout": "点式",
+        "floorArea": 601.34,
+        "width": 26.6,
+        "depth": 24.95,
+        "roomRate": 69.37,
+        "viewCount": 55,
+        "downloadCount": 93,
+        "families": [
+            {
+                "familyNo": "56M2",
+                "wideCount": "2面宽",
+                "familyWidth": 4.95,
+                "familyDepth": 8.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 56,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "27M1",
+                "wideCount": "2面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 6.55,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 27,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-28 17:39:22"
+    },
+    {
+        "floorNo": "CT-ZH-DYS-(98M2X2+73M3X2)",
+        "customer": "上海城投",
+        "designYear": 2019,
+        "materialSource": "城投-浦江镇MHPO-1307单元G03-04地块",
+        "buildingLayout": "单元式",
+        "floorArea": 339.71,
+        "width": 32.2,
+        "depth": 12.4,
+        "roomRate": 77.79,
+        "viewCount": 29,
+        "downloadCount": 80,
+        "families": [
+            {
+                "familyNo": "73M3",
+                "wideCount": "3面宽",
+                "familyWidth": 8.7,
+                "familyDepth": 8.55,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 73,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "98M2",
+                "wideCount": "3面宽",
+                "familyWidth": 7.4,
+                "familyDepth": 12.4,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 98,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-28 16:42:28"
+    },
+    {
+        "floorNo": "CT-ZH-LX-(22M1X19+26M1X15)",
+        "customer": "上海城投",
+        "designYear": 2019,
+        "materialSource": "上海城投康桥工业区东区PDPO-1402单元E08B-05/E08C-03地块租赁住房项目",
+        "buildingLayout": "围合式L型",
+        "floorArea": 813.84,
+        "width": 53.2,
+        "depth": 27.35,
+        "roomRate": 68.51,
+        "viewCount": 24,
+        "downloadCount": 74,
+        "families": [
+            {
+                "familyNo": "26M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 5.75,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 26,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "22M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 5.75,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 22,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-28 16:37:56"
+    },
+    {
+        "floorNo": "XB-ZH-LX-(34M1X6+36M1X1+42M1X9+40M1X1)",
+        "customer": "西部集团",
+        "designYear": 2020,
+        "materialSource": "石泉社区W060401单元A17C-01地块租赁住房项目",
+        "buildingLayout": "围合式L型",
+        "floorArea": 656.18,
+        "width": 60.05,
+        "depth": 25.8,
+        "roomRate": 70.68,
+        "viewCount": 30,
+        "downloadCount": 94,
+        "families": [
+            {
+                "familyNo": "40M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.9,
+                "familyDepth": 7.3,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 40,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "42M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.9,
+                "familyDepth": 8.3,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 42,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "36M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.8,
+                "familyDepth": 7.5,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 36,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "34M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.6,
+                "familyDepth": 7.5,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 34,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-28 16:30:26"
+    },
+    {
+        "floorNo": "CT-ZH-LX-(24M1X9+28M1X8)",
+        "customer": "上海城投",
+        "designYear": 2019,
+        "materialSource": "上海城投康桥工业区东区PDPO-1402单元E08B-05/E08C-03地块租赁住房项目",
+        "buildingLayout": "围合式L型",
+        "floorArea": 443.02,
+        "width": 46.25,
+        "depth": 20,
+        "roomRate": 62.98,
+        "viewCount": 26,
+        "downloadCount": 73,
+        "families": [
+            {
+                "familyNo": "28M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 5.75,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 28,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "24M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 5.75,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 24,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-28 16:15:31"
+    },
+    {
+        "floorNo": "XB-ZH-BS-(64M2X9)",
+        "customer": "西部集团",
+        "designYear": 2020,
+        "materialSource": "石泉社区W060401单元A17C-01地块租赁住房项目施工图",
+        "buildingLayout": "板式",
+        "floorArea": 574.49,
+        "width": 56.7,
+        "depth": 15.3,
+        "roomRate": 70.95,
+        "viewCount": 33,
+        "downloadCount": 102,
+        "families": [
+            {
+                "familyNo": "64M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6.3,
+                "familyDepth": 8.3,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 64,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-28 16:13:47"
+    },
+    {
+        "floorNo": "XB-ZH-BS-(42M1X18+33M1X2+30M1X2)",
+        "customer": "西部集团",
+        "designYear": 2020,
+        "materialSource": "石泉社区W060401单元A17C-01地块租赁住房项目施工图",
+        "buildingLayout": "板式",
+        "floorArea": 892,
+        "width": 68.4,
+        "depth": 16.15,
+        "roomRate": 71.1,
+        "viewCount": 32,
+        "downloadCount": 93,
+        "families": [
+            {
+                "familyNo": "30M1",
+                "wideCount": "1面宽",
+                "familyWidth": 6.05,
+                "familyDepth": 3.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 30,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "33M1",
+                "wideCount": "1面宽",
+                "familyWidth": 7.4,
+                "familyDepth": 3.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 33,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "42M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.8,
+                "familyDepth": 8.7,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 42,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-28 16:10:12"
+    },
+    {
+        "floorNo": "XB-ZH-BS-(42M1X14+52M1X2)",
+        "customer": "西部集团",
+        "designYear": 2020,
+        "materialSource": "石泉社区W060401单元A17C-01地块租赁住房项目施工图",
+        "buildingLayout": "板式",
+        "floorArea": 690.3,
+        "width": 60.8,
+        "depth": 16.15,
+        "roomRate": 71.89,
+        "viewCount": 33,
+        "downloadCount": 101,
+        "families": [
+            {
+                "familyNo": "52M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.8,
+                "familyDepth": 10.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 52,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "42M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.8,
+                "familyDepth": 8.7,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 42,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-28 16:03:31"
+    },
+    {
+        "floorNo": "RH-ZH-BS-(78M2X6)",
+        "customer": "仁恒",
+        "designYear": 2019,
+        "materialSource": "浦东新区仁恒唐镇新市镇D-03-05b地块租赁住宅",
+        "buildingLayout": "板式",
+        "floorArea": 496.08,
+        "width": 42,
+        "depth": 16,
+        "roomRate": 65.17,
+        "viewCount": 22,
+        "downloadCount": 90,
+        "families": [
+            {
+                "familyNo": "78M2",
+                "wideCount": "2面宽",
+                "familyWidth": 7,
+                "familyDepth": 9.1,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 78,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-28 15:35:06"
+    },
+    {
+        "floorNo": "CT-ZH-BS-(24M1X13+28M1X13)",
+        "customer": "上海城投",
+        "designYear": 2019,
+        "materialSource": "上海城投康桥工业区东区PDPO-1402单元E08B-05/E08C-03地块租赁住房项目",
+        "buildingLayout": "板式",
+        "floorArea": 679.03,
+        "width": 61.55,
+        "depth": 13.9,
+        "roomRate": 67.02,
+        "viewCount": 25,
+        "downloadCount": 70,
+        "families": [
+            {
+                "familyNo": "28M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 5.65,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 28,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "24M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 5.65,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 24,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-28 15:33:30"
+    },
+    {
+        "floorNo": "CT-ZH-BS-(32M1X8+48M1.5X4+27M1X6+25M1X4)",
+        "customer": "上海城投",
+        "designYear": 2019,
+        "materialSource": "城投-浦江镇MHPO-1307单元G03-04地块",
+        "buildingLayout": "板式",
+        "floorArea": 705.3,
+        "width": 46.4,
+        "depth": 16.7,
+        "roomRate": 74.33,
+        "viewCount": 41,
+        "downloadCount": 84,
+        "families": [
+            {
+                "familyNo": "25M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 5.6,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 25,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "27M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 6.9,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 27,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "48M1.5",
+                "wideCount": "1面宽",
+                "familyWidth": 4.95,
+                "familyDepth": 7.9,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 48,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "32M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 7.9,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 32,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-28 15:28:56"
+    },
+    {
+        "floorNo": "CT-ZH-BS-(95M3X2+62M2X4)",
+        "customer": "上海城投",
+        "designYear": 2019,
+        "materialSource": "上海城投康桥工业区东区PDPO-1402单元E08B-05/E08C-03地块租赁住房项目",
+        "buildingLayout": "板式",
+        "floorArea": 433.19,
+        "width": 46.2,
+        "depth": 12.45,
+        "roomRate": 66.75,
+        "viewCount": 35,
+        "downloadCount": 88,
+        "families": [
+            {
+                "familyNo": "62M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6.6,
+                "familyDepth": 7.4,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 62,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "95M3",
+                "wideCount": "2面宽",
+                "familyWidth": 9.9,
+                "familyDepth": 8.3,
+                "roomNum": 3,
+                "bathroomNum": 1,
+                "area": 95,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-28 15:25:04"
+    },
+    {
+        "floorNo": "RH-ZH-BS-(56M2X8)",
+        "customer": "仁恒",
+        "designYear": 2019,
+        "materialSource": "浦东新区仁恒唐镇新市镇D-03-05b地块租赁住宅",
+        "buildingLayout": "板式",
+        "floorArea": 448.32,
+        "width": 48.9,
+        "depth": 18.8,
+        "roomRate": 71.19,
+        "viewCount": 29,
+        "downloadCount": 97,
+        "families": [
+            {
+                "familyNo": "56M2",
+                "wideCount": "2面宽",
+                "familyWidth": 5.8,
+                "familyDepth": 7.8,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 56,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-28 15:20:46"
+    },
+    {
+        "floorNo": "CHJ-ZH-LX-(46M1X8+40M1X6+42M1X1)",
+        "customer": "漕河泾",
+        "designYear": 2019,
+        "materialSource": "漕河泾北杨人工智能小镇租赁住房项目",
+        "buildingLayout": "围合式L型",
+        "floorArea": 649.7,
+        "width": 48.9,
+        "depth": 31.6,
+        "roomRate": 69.35,
+        "viewCount": 29,
+        "downloadCount": 71,
+        "families": [
+            {
+                "familyNo": "42M1",
+                "wideCount": "1面宽",
+                "familyWidth": 4,
+                "familyDepth": 8.4,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 42,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "40M1",
+                "wideCount": "1面宽",
+                "familyWidth": 4,
+                "familyDepth": 8.3,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 40,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "46M1",
+                "wideCount": "1面宽",
+                "familyWidth": 4,
+                "familyDepth": 9.3,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 46,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-28 15:19:13"
+    },
+    {
+        "floorNo": "RH-ZH-BS-(28M1X18)",
+        "customer": "仁恒",
+        "designYear": 2019,
+        "materialSource": "浦东新区仁恒唐镇新市镇D-03-05b地块租赁住宅",
+        "buildingLayout": "板式",
+        "floorArea": 496.08,
+        "width": 46.9,
+        "depth": 18.6,
+        "roomRate": 65.17,
+        "viewCount": 20,
+        "downloadCount": 81,
+        "families": [
+            {
+                "familyNo": "28M1",
+                "wideCount": "1面宽",
+                "familyWidth": 2.9,
+                "familyDepth": 7.3,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 28,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-28 15:16:08"
+    },
+    {
+        "floorNo": "CHJ-ZH-LX-(34M1X14+24M1X16+28M1X1)",
+        "customer": "漕河泾",
+        "designYear": 2018,
+        "materialSource": "漕河泾北杨人工智能小镇租赁住房项目",
+        "buildingLayout": "围合式L型",
+        "floorArea": 880.18,
+        "width": 46.2,
+        "depth": 30.3,
+        "roomRate": 71.07,
+        "viewCount": 31,
+        "downloadCount": 70,
+        "families": [
+            {
+                "familyNo": "28M1",
+                "wideCount": "1面宽",
+                "familyWidth": 4,
+                "familyDepth": 5.9,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 28,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "24M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 5.9,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 24,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "34M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 8.1,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 34,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-28 15:14:07"
+    },
+    {
+        "floorNo": "LJZ-ZH-LX-(102M2X2+67M2X2+128M3X1)",
+        "customer": "陆家嘴",
+        "designYear": 2015,
+        "materialSource": "前滩九宫格41#、42#、47#、53#地块住宅",
+        "buildingLayout": "围合式L型",
+        "floorArea": 457.86,
+        "width": 24.8,
+        "depth": 27.8,
+        "roomRate": 79.36,
+        "viewCount": 30,
+        "downloadCount": 103,
+        "families": [
+            {
+                "familyNo": "128M3",
+                "wideCount": "3面宽",
+                "familyWidth": 9.9,
+                "familyDepth": 12.9,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 128,
+                "familyFeature": "北厅;独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "67M2",
+                "wideCount": "3面宽",
+                "familyWidth": 7.6,
+                "familyDepth": 8.4,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 67,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "102M2",
+                "wideCount": "3面宽",
+                "familyWidth": 7.3,
+                "familyDepth": 13.3,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 102,
+                "familyFeature": "北厅;独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-28 15:11:57"
+    },
+    {
+        "floorNo": "CHJ-ZH-DYS-（118M4X2+137M4X2)",
+        "customer": "漕河泾",
+        "designYear": 2018,
+        "materialSource": "上海漕河泾开发区浦江高科技园“先租后售”公共租赁住房二期",
+        "buildingLayout": "单元式",
+        "floorArea": 504.17,
+        "width": 54.8,
+        "depth": 11.15,
+        "roomRate": 82.08,
+        "viewCount": 26,
+        "downloadCount": 72,
+        "families": [
+            {
+                "familyNo": "137M4",
+                "wideCount": "4面宽",
+                "familyWidth": 14.1,
+                "familyDepth": 11.15,
+                "roomNum": 4,
+                "bathroomNum": 2,
+                "area": 137,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "118M4",
+                "wideCount": "4面宽",
+                "familyWidth": 10,
+                "familyDepth": 10.35,
+                "roomNum": 4,
+                "bathroomNum": 2,
+                "area": 118,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-28 15:06:45"
+    },
+    {
+        "floorNo": "LJZ-ZH-LX-(100M3X1+67M2X3+87M2X2)",
+        "customer": "陆家嘴",
+        "designYear": 2015,
+        "materialSource": "前滩九宫格41#、42#、47#、53#地块住宅",
+        "buildingLayout": "围合式L型",
+        "floorArea": 460.23,
+        "width": 30.2,
+        "depth": 26.2,
+        "roomRate": 77.74,
+        "viewCount": 37,
+        "downloadCount": 106,
+        "families": [
+            {
+                "familyNo": "87M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6.8,
+                "familyDepth": 11.4,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 87,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "67M2",
+                "wideCount": "2面宽",
+                "familyWidth": 7.6,
+                "familyDepth": 8.2,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 67,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "100M3",
+                "wideCount": "2面宽",
+                "familyWidth": 8.2,
+                "familyDepth": 11.5,
+                "roomNum": 3,
+                "bathroomNum": 1,
+                "area": 100,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-28 15:05:39"
+    },
+    {
+        "floorNo": "CHJ-ZH-DYS-（100M3X2)",
+        "customer": "漕河泾",
+        "designYear": 2018,
+        "materialSource": "上海漕河泾开发区浦江高科技园“先租后售”公共租赁住房二期",
+        "buildingLayout": "单元式",
+        "floorArea": 196.45,
+        "width": 21,
+        "depth": 10.3,
+        "roomRate": 76.51,
+        "viewCount": 27,
+        "downloadCount": 75,
+        "families": [
+            {
+                "familyNo": "100M3",
+                "wideCount": "3面宽",
+                "familyWidth": 10.5,
+                "familyDepth": 10.3,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 100,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-28 15:00:03"
+    },
+    {
+        "floorNo": "LJZ-ZH-DYS-(133M3X2+129M3X2)",
+        "customer": "陆家嘴",
+        "designYear": 2015,
+        "materialSource": "前滩九宫格41#、42#、47#、53#地块住宅",
+        "buildingLayout": "单元式",
+        "floorArea": 513.55,
+        "width": 44.8,
+        "depth": 13.05,
+        "roomRate": 79.86,
+        "viewCount": 18,
+        "downloadCount": 84,
+        "families": [
+            {
+                "familyNo": "133M3",
+                "wideCount": "3面宽",
+                "familyWidth": 11.2,
+                "familyDepth": 13.05,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 133,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "129M3",
+                "wideCount": "3面宽",
+                "familyWidth": 11.2,
+                "familyDepth": 13.05,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 129,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-28 14:34:54"
+    },
+    {
+        "floorNo": "LJZ-ZH-DYS-(184M3X4)",
+        "customer": "陆家嘴",
+        "designYear": 2015,
+        "materialSource": "前滩九宫格41#、42#、47#、53#地块住宅",
+        "buildingLayout": "单元式",
+        "floorArea": 706.06,
+        "width": 43.4,
+        "depth": 17.3,
+        "roomRate": 80.63,
+        "viewCount": 16,
+        "downloadCount": 84,
+        "families": [
+            {
+                "familyNo": "184M3",
+                "wideCount": "3面宽",
+                "familyWidth": 10.8,
+                "familyDepth": 17.3,
+                "roomNum": 3,
+                "bathroomNum": 3,
+                "area": 184,
+                "familyFeature": "北厅;独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-28 14:32:36"
+    },
+    {
+        "floorNo": "CHJ-ZH-DYS-（82M2X3+104M2.5X1)",
+        "customer": "漕河泾",
+        "designYear": 2018,
+        "materialSource": "上海漕河泾开发区浦江高科技园“先租后售”公共租赁住房二期",
+        "buildingLayout": "单元式",
+        "floorArea": 346.77,
+        "width": 28.8,
+        "depth": 16.15,
+        "roomRate": 74.42,
+        "viewCount": 36,
+        "downloadCount": 82,
+        "families": [
+            {
+                "familyNo": "104M2.5",
+                "wideCount": "2面宽",
+                "familyWidth": 8.1,
+                "familyDepth": 11.7,
+                "roomNum": 3,
+                "bathroomNum": 1,
+                "area": 104,
+                "familyFeature": "端厅;独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "82M2",
+                "wideCount": "2面宽",
+                "familyWidth": 6.9,
+                "familyDepth": 11.05,
+                "roomNum": 2,
+                "bathroomNum": 1,
+                "area": 82,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-28 14:22:13"
+    },
+    {
+        "floorNo": "LJZ-ZH-DYS-(137M2.5X2+108M3X1+135M3X1+140M3X1)",
+        "customer": "陆家嘴",
+        "designYear": 2015,
+        "materialSource": "前滩九宫格41#、42#、47#、53#地块住宅",
+        "buildingLayout": "单元式",
+        "floorArea": 637.15,
+        "width": 52.5,
+        "depth": 14.1,
+        "roomRate": 79.74,
+        "viewCount": 16,
+        "downloadCount": 88,
+        "families": [
+            {
+                "familyNo": "140M3",
+                "wideCount": "3面宽",
+                "familyWidth": 11.2,
+                "familyDepth": 13.3,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 140,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "135M3",
+                "wideCount": "3面宽",
+                "familyWidth": 11.2,
+                "familyDepth": 13.3,
+                "roomNum": 3,
+                "bathroomNum": 2,
+                "area": 135,
+                "familyFeature": "独立厨房(通风采光)"
+            },
+            {
+                "familyNo": "108M3",
+                "wideCount": "3面宽",
+                "familyWidth": 9.2,
+                "familyDepth": 10.9,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 108,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-28 14:10:11"
+    },
+    {
+        "floorNo": "CHJ-ZH-DS-(27M1X20+33M1X8)",
+        "customer": "漕河泾",
+        "designYear": 2019,
+        "materialSource": "漕河泾北杨人工智能小镇租赁住房项目",
+        "buildingLayout": "点式",
+        "floorArea": 795.77,
+        "width": 30,
+        "depth": 28,
+        "roomRate": 62.79,
+        "viewCount": 46,
+        "downloadCount": 81,
+        "families": [
+            {
+                "familyNo": "33M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3,
+                "familyDepth": 7.9,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 33,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "27M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3,
+                "familyDepth": 6.2,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 27,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-28 14:07:25"
+    },
+    {
+        "floorNo": "CHJ-ZH-BS-(44M1X6+42M2X1+68M2X2+70M1X1)",
+        "customer": "漕河泾",
+        "designYear": 2019,
+        "materialSource": "漕河泾北杨人工智能小镇租赁住房项目",
+        "buildingLayout": "板式",
+        "floorArea": 507.05,
+        "width": 47.2,
+        "depth": 13.8,
+        "roomRate": 62.53,
+        "viewCount": 34,
+        "downloadCount": 85,
+        "families": [
+            {
+                "familyNo": "70M1",
+                "wideCount": "1面宽",
+                "familyWidth": 4.1,
+                "familyDepth": 11.4,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 70,
+                "familyFeature": "中西厨"
+            },
+            {
+                "familyNo": "68M2",
+                "wideCount": "1面宽",
+                "familyWidth": 6.6,
+                "familyDepth": 5.5,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 68,
+                "familyFeature": "中西厨"
+            },
+            {
+                "familyNo": "42M2",
+                "wideCount": "1面宽",
+                "familyWidth": 4.8,
+                "familyDepth": 5.5,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 42,
+                "familyFeature": "无"
+            },
+            {
+                "familyNo": "44M1",
+                "wideCount": "1面宽",
+                "familyWidth": 3.3,
+                "familyDepth": 9,
+                "roomNum": 1,
+                "bathroomNum": 1,
+                "area": 44,
+                "familyFeature": "无"
+            }
+        ],
+        "updatedAt": "2022-06-28 13:56:24"
+    },
+    {
+        "floorNo": "LJZ-ZH-DYS-(123M2X4)",
+        "customer": "陆家嘴",
+        "designYear": 2015,
+        "materialSource": "前滩九宫格41#、42#、47#、53#地块住宅",
+        "buildingLayout": "单元式",
+        "floorArea": 463.7,
+        "width": 33.2,
+        "depth": 15.4,
+        "roomRate": 75.11,
+        "viewCount": 21,
+        "downloadCount": 83,
+        "families": [
+            {
+                "familyNo": "123M2",
+                "wideCount": "2面宽",
+                "familyWidth": 8.3,
+                "familyDepth": 15.4,
+                "roomNum": 2,
+                "bathroomNum": 2,
+                "area": 123,
+                "familyFeature": "独立厨房(通风采光)"
+            }
+        ],
+        "updatedAt": "2022-06-28 13:38:01"
+    }
+]

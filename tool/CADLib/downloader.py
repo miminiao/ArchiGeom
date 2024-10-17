@@ -9,12 +9,12 @@ class Downloader:
         
         self.type_name=data_type.type_name
         self.id_attr=data_type.id_attr
-        module_path=data_type.__module__.split('.')[0]
+        module_path="/".join(data_type.__module__.split('.')[:-1])
         self.info_path=f"{module_path}/info.json"
         self.data_path=f"{module_path}/data"
         self.failed_ids_path=f"{module_path}/failed_ids.json"
         self.failed_ids=[]
-    def download_item(self,item_id:str,timeout:float)->None:
+    def _download_item(self,item_id:str,timeout:float)->None:
         url="http://47.103.58.154:38405/FileInfo/Download"
         data={
             "fileName":item_id+self.suffix,
@@ -36,7 +36,7 @@ class Downloader:
             info=json.load(f)
         for i,j_obj in enumerate(info):
             obj=self.data_type.from_dict(j_obj)
-            self.download_item(item_id=getattr(obj,self.id_attr),timeout=timeout)
+            self._download_item(item_id=getattr(obj,self.id_attr),timeout=timeout)
             if i==count-1: break
         with open(self.failed_ids_path,"w") as f:
             json.dump(self.failed_ids,f,ensure_ascii=False)
@@ -45,29 +45,40 @@ class Downloader:
 def get_model(data_type:str):
     match data_type:
         case "building":
-            from building.model import Building
+            from tool.CADLib.building.model import Building
             return Building
         case "villa":
-            from villa.model import Villa
+            from tool.CADLib.villa.model import Villa
             return Villa
         case "kitchen":
-            from kitchen.model import Kitchen
+            from tool.CADLib.kitchen.model import Kitchen
             return Kitchen
         case "bathroom":
-            from bathroom.model import Bathroom
+            from tool.CADLib.bathroom.model import Bathroom
             return Bathroom
         case "coretube":
-            from coretube.model import Coretube
+            from tool.CADLib.coretube.model import Coretube
             return Coretube
         case "rental_group":
-            from rental_group.model import RentalGroup
+            from tool.CADLib.rental_group.model import RentalGroup
             return RentalGroup
         case "rental_unit":
-            from rental_unit.model import RentalUnit
+            from tool.CADLib.rental_unit.model import RentalUnit
             return RentalUnit
         case _:
             raise ValueError("Invalid data type")
     
 if __name__=="__main__":
-    downloader=Downloader(data_type=get_model("rental_unit"))
-    downloader.execute()
+    # 素材库
+    # downloader=Downloader(data_type=get_model("rental_unit"))
+    # downloader.execute()
+    
+    # 厨卫
+    downloader=Downloader(data_type=get_model("kitchen"))
+    for i in range(4):
+        for j in range(10):
+            if i==0 and j==0: continue
+            if i==3 and j==3: break
+            downloader._download_item(f"THSTD_KICH_{i}{j}",10)
+        else:continue
+        break

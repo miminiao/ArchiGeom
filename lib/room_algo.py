@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from lib.geom import Node,Edge,Loop,Poly,_draw_polygon
+from lib.geom import Node,Edge,Loop,Polygon,_draw_polygon
 from lib.index import TreeNode
 from lib.utils import Timer, Constant
     
@@ -94,12 +94,12 @@ if 1 and __name__ == "__main__":
 
     # loop组成房间polygon
     cover_tree=make_cover_tree(offset_loops)
-    rooms:list[Poly]=[]
+    rooms:list[Polygon]=[]
     for tree_node in cover_tree:
         if tree_node.obj.area>0:
             new_shell=tree_node.obj
             new_holes=[ch.obj for ch in tree_node.child]
-            rooms.append(Poly(new_shell,new_holes))
+            rooms.append(Polygon(new_shell,new_holes))
 
     with Timer(tag="画图"):
         # 画墙基线

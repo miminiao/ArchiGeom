@@ -2,7 +2,7 @@ import random
 import typing
 import math
 import matplotlib.pyplot as plt
-from lib.geom import Node,LineSeg,Arc,Loop,Poly
+from lib.geom import Node,LineSeg,Arc,Loop,Polygon
 from lib.geom_algo import BreakLineAlgo,MergeLineAlgo,FindOutlineAlgo,FindConnectedGraphAlgo
 from lib.building_element import Wall,Window,Door
 from lib.domain import Domain1d,MultiDomain1d
@@ -254,7 +254,7 @@ def find_butress(wall_outline_loops:list[Loop])->set[LineSeg]:
             pre_LineSeg=outline.LineSegs[i-1]
             succ_LineSeg=outline.LineSegs[(i+1)%len(outline.LineSegs)]
             if LineSeg in butresses and pre_LineSeg in butresses and succ_LineSeg in butresses: # 夹在中间
-                if len(outline.LineSegs)==4 and (LineSeg.length<pre_LineSeg.length or LineSeg.length<succ_LineSeg.length): # 连续4个的情况，去除长的
+                if len(outline.LineSegs)==4 and (LineSeg.length<pre_LineSeg.length or LineSeg.length<succ_LineSeg.length): # 连续4个的情况，去除长的； TODO：都一样长的情况，根据配对关系判断 
                     continue
                 butresses.remove(LineSeg)
         # 连续2个墙垛相邻的情况：比较当前墙垛与另一墙垛的邻边的长度，如果比邻边，把与长的相邻的从墙垛中踢掉

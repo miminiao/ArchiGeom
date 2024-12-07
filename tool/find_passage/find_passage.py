@@ -1,6 +1,6 @@
 import json
 import matplotlib.pyplot as plt
-from lib.geom import Node,Edge,Loop,Poly,_draw_polygon
+from lib.geom import Node,Edge,Loop,Polygon,_draw_polygon
 from lib.linalg import Vec3d
 from lib.utils import Timer, Constant as const
 from shapely import Polygon,MultiPolygon,Point
@@ -111,7 +111,7 @@ if __name__=="__main__":
         poly_dict={}
         for door in doors:
             for loop in loops_offset:
-                pair=nearest_points(Point(pocket_centers[door].x,pocket_centers[door].y),loop)
+                pair=nearest_points(Node(pocket_centers[door].x,pocket_centers[door].y),loop)
                 if pair[0].distance(pair[1])<2:
                     poly_dict[door]=loop
                     break

@@ -1,11 +1,20 @@
-from lib.geom import Geom,Node,LineSeg,Arc,Polyline,Loop,Polygon
+"""Geom<-->json"""
+
+import math
+from lib.geom import Geom,Node,LineSeg,Arc,Polyedge,Loop,shPolygon
 from lib.linalg import Tensor,Vec3d,Vec4d,Mat3d,Mat4d
 from test.CGS.case_model import CGSTestCase
 
 class JsonDumper:
-    default=lambda _:_.__dict__
-    @classmethod
-    def to_cgs(cls,obj:Geom|Tensor)->dict|None:
+    """Geom类的序列化方法"""
+    @staticmethod
+    def default(obj:Geom):
+        ignore_list=obj._dumper_ignore
+        res={"class_name":obj.__class__.__name__}
+        res.update({k:v for k,v in obj.__dict__.items() if k not in ignore_list})
+        return res
+    @staticmethod
+    def to_cgs(obj:Geom|Tensor)->dict|None:
         match obj.__class__.__name__:
             case "Vec3d":
                 return {"type":"vector3",**obj.__dict__}
@@ -35,8 +44,9 @@ class JsonDumper:
                 return obj.__dict__
             
 class JsonLoader:
-    @classmethod
-    def from_cgs(cls,obj:dict)->Geom|Tensor:
+    """Geom类的反序列化方法"""
+    @staticmethod
+    def from_cgs(obj:dict)->Geom|Tensor:
         if "params" in obj and "expected" in obj:
             return CGSTestCase(obj["params"],obj["expected"])
         if "type" in obj:
@@ -55,45 +65,27 @@ class JsonLoader:
                     s=Node.from_vec3d(origin.to_vec3d()+vector*obj["minRange"])
                     e=Node.from_vec3d(origin.to_vec3d()+vector*obj["maxRange"])
                     return LineSeg(s,e)
-    @classmethod
-    def from_cad_obj(cls,obj:dict)->Geom:
-        match obj["object_name"]:
+    @staticmethod
+    def from_cad_obj(obj:dict)->Geom:
+        match obj.get("object_name",None):
             case "point":
-                return Node(obj)
+                return Node(*obj["point"])
             case "line":
-                return Node.from_cad_obj(obj)
+                return LineSeg(obj["start_point"],obj["end_point"])
             case "arc":
-                ...
+                total_angle=obj["end_angle"]-obj["start_angle"]
+                if total_angle<0: total_angle+=math.pi*2
+                return Arc(obj["start_point"],obj["end_point"],math.tan(total_angle/4))
             case "polyline":
-                ...
+                pl_nodes=[(seg["start_point"],seg["bulge"]) for seg in obj["segments"]]
+                if obj["is_closed"]:
+                    # return Loop(pl_nodes)
+                    return Loop.from_nodes([Node(*seg["start_point"]) for seg in obj["segments"]])  # TODO 替换Loop的构造方法
+                else:
+                    return Polyedge(pl_nodes)
             case "hatch":
                 ...
             case "text":
                 ...
-                
+            case None: return obj
             case _: return None
-def cad_polyline_to_loop(j_obj:list)->list[Loop]:
-    loops=[]
-    nodes=[]
-    for obj in j_obj:
-        if obj["object_name"]=="polyline":
-            edges=[]
-            seg_num=len(obj["segments"]) if obj["is_closed"] else len(obj["segments"])-1
-            for i in range(seg_num):
-                seg=obj["segments"][i]
-                next_seg=obj["segments"][(i+1)%len(obj["segments"])]
-                x1,y1,_=seg["start_point"]
-                x2,y2,_=next_seg["start_point"]
-                lw=rw=seg["start_width"]/2
-                bulge=seg["bulge"]
-                s=Node(x1,y1)
-                e=Node(x2,y2)
-                if s.equals(e):continue
-                s=Node.find_or_insert_node(s,nodes,copy=True)
-                e=Node.find_or_insert_node(e,nodes,copy=True)
-                if abs(bulge)<Arc.const.TOL_VAL:
-                    edges.append(LineSeg(s,e))
-                else:
-                    edges.append(Arc(s,e,bulge))
-            loops.append(Loop(edges))
-    return loops

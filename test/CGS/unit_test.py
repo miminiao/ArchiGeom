@@ -1,5 +1,5 @@
 import json
-from lib.geom import Node,LineSeg,Arc,Loop,Polyline,Polygon
+from lib.geom import Node,LineSeg,Arc,Loop,Polyedge,Polygon
 from tool.converter.json_converter import JsonLoader,JsonDumper
 
 f_name="Line2ExtendByDistanceUnit"

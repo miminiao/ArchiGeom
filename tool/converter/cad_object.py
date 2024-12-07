@@ -1,5 +1,5 @@
 from lib.linalg import Tensor,Vec3d,Vec4d,Mat3d,Mat4d
-from lib.geom import Geom,Node,LineSeg,Arc,Polyline,Loop,Polygon
+from lib.geom import Geom,Node,LineSeg,Arc,Polyedge,Loop
 class CADEntity:
     def __init__(self,object_name:str,layer:str,color:int) -> None:
         self.object_name=object_name
@@ -74,10 +74,12 @@ class CADPolyline(CADEntity):
         self.is_closed:bool=ent.Closed
         for i in range(len(ent.Coordinates)//2):
             self.segments.append(CADPolyline._CADPolylineSegment(ent,i))
-    def to_geom(self) -> Polyline|Loop:  # TODO
+    def to_geom(self) -> Polyedge|Loop:
         if self.is_closed:
-            return Loop(...)
-        else: return Polyline(...)
+            # return Loop([(seg.start_point,seg.bulge) for seg in self.segments])
+            return Loop.from_nodes([Node(*seg.start_point) for seg in self.segments])  # TODO 替换Loop的构造方法
+        else: 
+            return Polyedge([(seg.start_point,seg.bulge) for seg in self.segments])
         
 class CADHatch(CADEntity):
     def __init__(self,ent) -> None:

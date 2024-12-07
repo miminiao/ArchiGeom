@@ -2,17 +2,25 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-from copy import copy,deepcopy
+import copy
 from abc import ABC,abstractmethod
+from typing import Generator
 from lib.utils import Timer,Constant
 from lib.linalg import Vec3d,Mat3d
 
-from shapely.geometry import Polygon,Point,LineString
+from shapely.ops import nearest_points
+from shapely.geometry import (
+    Polygon as shPolygon,
+    Point as shPoint, 
+    LineString as shLineString, 
+    box as shBox,
+)
 from shapely import prepare
 
 class Geom(ABC):
     const=Constant.default()
     _const_stack=[const]
+    _dumper_ignore=[]
     def __init__(self) -> None:
         pass
     @classmethod
@@ -47,12 +55,15 @@ class Geom(ABC):
         ...
     
 class Node(Geom):
-    """几何点"""
+    """几何点|拓扑结点"""
+    _dumper_ignore=["edge_out","edge_in"]
     def __init__(self, x:float, y:float, z:float=None) -> None:
         super().__init__()
         self.x=x
         self.y=y
         self.z=z or 0
+        self.edge_out=[]
+        self.edge_in=[]
     def __repr__(self) -> str:
         return f"Node({round(self.x,2)},{round(self.y,2)})"
     def __eq__(self,other:"Node")->bool:
@@ -745,9 +756,63 @@ class Arc(Edge):
         new_s=Node.from_vec3d(self.s.to_vec3d()+vs*dist)
         new_e=Node.from_vec3d(self.e.to_vec3d()+ve*dist)
         return Arc(new_s,new_e,self.bulge)
-class Polyline(Geom):...
-class Loop(Polyline):
-    """环/几何环"""
+class Polyedge(Geom):
+    """多段线"""
+    def __init__(self,pl_nodes:list[tuple[Node,float]],deepcopy:bool=False):
+        """从顶点+凸度构造多段线
+
+        Args:
+            pl_nodes (list[tuple[Node,float]]): (顶点,凸度)，最后一个凸度将被忽略
+            deepcopy (bool, optional): Defaults to False.
+        """
+        self.nodes:list[Node]=[pl_node[0] for pl_node in pl_nodes]
+        if deepcopy: self.nodes=copy.deepcopy(self.nodes)
+        self.bulges:list[int]=[pl_node[1] for pl_node in pl_nodes]
+        # edges不是内蕴属性，应该现场计算比较好
+        # self.edges:list[Edge]=[]
+        # for i in range(len(self.nodes)-1):
+        #     s,e,bulge=self.nodes[i],self.nodes[i+1],pl_nodes[i][1]
+        #     self.edges.append(LineSeg(s,e) if bulge==0 else Arc(s,e,bulge))
+    @classmethod
+    def from_edges(cls,edges:list[LineSeg|Arc],deepcopy:bool=False) -> "Polyedge":
+        """从边构造多段线
+
+        Args:
+            edges (list[LineSeg | Arc]): 要求依次严格首尾相连(s is e)
+            deepcopy (bool, optional): Defaults to False.
+        """
+        for i,edge in enumerate(edges):
+            assert i==0 or edge.s is edges[i-1].e, "Edges not continuous."
+        nodes=[edge.s for edge in edges]+[edges[-1].e]
+        if deepcopy: nodes=copy.deepcopy(nodes)
+        bulges=[edge.bulge if isinstance(edge,Arc) else 0 for edge in edges]+[0]
+        return cls([tup for tup in zip(nodes,bulges)])
+    
+    def get_mbb(self) -> tuple[Node, Node]:
+        return Geom.merge_mbb([self.edge(i).get_mbb() for i in len(self.nodes-2)])
+    
+    def edge(self,index:int)->Edge:
+        """获取第index条边
+
+        Args:
+            index (int): index from (-edge_count) to (edge_count-1), where edge_count=node_count-1
+
+        Returns:
+            Edge: 第index条边(现场计算的一个new instance)
+        """
+        edge_count=len(self.nodes)-1
+        assert -edge_count<=index<edge_count, "Index out of range."
+        if index<0: index+=edge_count
+        s,e,bulge=self.nodes[index],self.nodes[index+1],self.bulges[index]
+        return LineSeg(s,e) if bulge==0 else Arc(s,e,bulge)
+    
+    @property
+    def edges(self)->Generator[Edge,None,None]:
+        for i in len(self.nodes)-2:
+            yield self.edge(i)
+class Loop(Geom):
+    """几何环(Closed PolyEdge)"""
+    _dumper_ignore=["polygon"]
     def __init__(self,edges:list[Edge],update_node:bool=False) -> None:
         super().__init__()
         self.edges=edges
@@ -771,8 +836,8 @@ class Loop(Polyline):
                 else: new_edge=[edge]
                 new_edges.extend(new_edge)
             if has_arc:
-                self.polygon=Polygon(Loop(new_edges).to_array())
-            else: self.polygon=Polygon(self.to_array())
+                self.polygon=shPolygon(Loop(new_edges).to_array())
+            else: self.polygon=shPolygon(self.to_array())
             prepare(self.polygon)
         
     @classmethod
@@ -912,16 +977,16 @@ class Loop(Polyline):
         if len(self.edges)<3 or self.polygon is None:return False
         if abs(self.area)+self.const.TOL_AREA<abs(other.area):return False
         if isinstance(other,Node):
-            return self.polygon.contains(Point(other.to_array()))
+            return self.polygon.contains(shPoint(other.to_array()))
         if isinstance(other,Edge):
-            return self.polygon.contains(LineString(other.to_array()))
+            return self.polygon.contains(shLineString(other.to_array()))
         if isinstance(other,Loop):
             return self.polygon.contains(other.polygon)
     def covers(self,other:Geom)->bool:
         if isinstance(other,Node):
             return self._covers_node(other)
         if isinstance(other,Edge):
-            return self.polygon.covers(LineString(other.to_array()))
+            return self.polygon.covers(shLineString(other.to_array()))
         if isinstance(other,Loop):
             return self._covers_loop(other)
         return False
@@ -930,13 +995,13 @@ class Loop(Polyline):
         # 射线法：计算环穿越射线的次数，偶数在外，奇数在内
         if not isinstance(other,Node): raise TypeError("other must be Node")
 
-        return self.polygon.covers(Point(other.to_array()))
+        return self.polygon.covers(shPoint(other.to_array()))
     def _covers_edge(self,other:Edge)->bool:
         """环覆盖边"""
-        return self.polygon.covers(Point(other.to_array()))
+        return self.polygon.covers(shPoint(other.to_array()))
     def _covers_loop(self,other:"Loop")->bool:
         """环覆盖环"""
-        return self.polygon.covers(LineString(other.to_array()))
+        return self.polygon.covers(shLineString(other.to_array()))
     def fillet(self,radius:float,mode:str="amap",quad_segs:int=16)->"Loop":
         """倒圆角
 
@@ -971,7 +1036,7 @@ class Loop(Polyline):
                 arc=pre_edge.fillet_with(edge,radius)
                 new_nodes+=arc.fit().nodes
         return Loop.from_nodes(new_nodes)
-class Poly(Geom): 
+class Polygon(Geom): 
     """多边形"""
     def __init__(self,exterior:Loop,interiors:list[Loop]=None,simplify=True) -> None:
         super().__init__()        
@@ -983,7 +1048,7 @@ class Poly(Geom):
         if interiors is None: interiors=[]
         for hole in interiors:
             if hole.area>self.const.TOL_AREA:hole.reverse()
-        self.polygon=Polygon(*self.to_array())
+        self.polygon=shPolygon(*self.to_array())
         prepare(self.polygon)
     def get_mbb(self) -> tuple[Node, Node]:
         return self.exterior.get_mbb()
@@ -1005,21 +1070,24 @@ class Poly(Geom):
             hole.simplify()
     def contains(self,other:Geom)->bool:
         if isinstance(other,Node):
-            return self.polygon.contains(Point(other.to_array()))
+            return self.polygon.contains(shPoint(other.to_array()))
         if isinstance(other,Edge):
-            return self.polygon.contains(LineString(other.to_array()))
+            return self.polygon.contains(shLineString(other.to_array()))
         if isinstance(other,Loop):
             return self.polygon.contains(other.polygon)
     def covers(self,other:Geom)->bool:
         if isinstance(other,Node):
-            return self.polygon.covers(Point(other.to_array()))
+            return self.polygon.covers(shPoint(other.to_array()))
         if isinstance(other,Edge):
-            return self.polygon.covers(LineString(other.to_array()))
+            return self.polygon.covers(shLineString(other.to_array()))
         if isinstance(other,Loop):
             return self.polygon.covers(other.polygon)                
-    def offset(self,side:str="left",dist:float=None)->"Poly":
-        return Poly(self.exterior.offset(side,dist)[0],[hole.offset(side,dist)[0] for hole in self.interiors])
-def _draw_polygon(poly:Polygon|Poly,color:tuple[str]=None,**kwargs):
+    def offset(self,side:str="left",dist:float=None)->"Polygon":
+        return Polygon(self.exterior.offset(side,dist)[0],[hole.offset(side,dist)[0] for hole in self.interiors])
+    def closest_point(self,other:Geom)->Node:
+        if isinstance(other,Node):
+            return nearest_points(self.polygon,shPoint(Node.x,Node.y))
+def _draw_polygon(poly:Polygon,color:tuple[str]=None,**kwargs):
     x,y=poly.exterior.xy
     if color is not None: kwargs["color"]=color[0]
     plt.plot(x,y,**kwargs)
@@ -1065,13 +1133,13 @@ if 0 and __name__=="__main__":
     plt.subplot(1,2,1)
     ax = plt.gca()
     ax.set_aspect(1)
-    _draw_polygon(Polygon(pts))
+    _draw_polygon(shPolygon(pts))
 
     plt.subplot(1,2,2)
     ax = plt.gca()
     ax.set_aspect(1)    
     for l in loops_spl:
-        _draw_polygon(Polygon(l.to_array()),color=("C%d"%int(random()*10),"C%d"%int(random()*10)))
+        _draw_polygon(shPolygon(l.to_array()),color=("C%d"%int(random()*10),"C%d"%int(random()*10)))
 
     plt.show()
 
@@ -1091,13 +1159,13 @@ if 0 and __name__=="__main__":
         plt.subplot(2,column_num,i+1)
         ax = plt.gca()
         ax.set_aspect(1)
-        _draw_polygon(Polygon(poly))
+        _draw_polygon(shPolygon(poly))
 
         plt.subplot(2,column_num,i+1+column_num)
         ax = plt.gca()
         ax.set_aspect(1)    
         for j,l in enumerate(loops_spl):
-            _draw_polygon(Polygon(l.to_array()),color=(f"C{j}",f"C{j}"))
+            _draw_polygon(shPolygon(l.to_array()),color=(f"C{j}",f"C{j}"))
 
     plt.show()
 
@@ -1158,12 +1226,12 @@ if 0 and __name__=="__main__":
     plt.subplot(1,2,1)
     ax = plt.gca()
     ax.set_aspect(1)
-    _draw_polygon(Polygon(pts))
+    _draw_polygon(shPolygon(pts))
 
     plt.subplot(1,2,2)
     ax = plt.gca()
     ax.set_aspect(1)    
-    _draw_polygon(Polygon(loop_fillet.to_array()))
+    _draw_polygon(shPolygon(loop_fillet.to_array()))
 
     plt.show()
 
@@ -1217,7 +1285,7 @@ if 0 and __name__=="__main__":
 #%% Loop面积测试
 if 1 and __name__=="__main__":
     import json
-    from tool.dwg_converter.json_parser import cad_polyline_to_loop
+    from tool.converter.json_converter import cad_polyline_to_loop
     with open(f"test/split_loop/case_a.json",'r',encoding="utf8") as f:
         j_obj=json.load(f)
     loops=cad_polyline_to_loop(j_obj)

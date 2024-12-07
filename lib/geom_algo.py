@@ -5,13 +5,12 @@ from typing import Callable
 from abc import ABC,abstractmethod
 from itertools import groupby
 
-from shapely.geometry import Polygon,Point,box
 from shapely.affinity import rotate
 from shapely import prepare
 
 from lib.linalg import Vec3d
 from lib.domain import Domain1d
-from lib.geom import Geom,Node,LineSeg,Arc,Edge,Loop,Poly
+from lib.geom import Geom,Node,LineSeg,Arc,Edge,Loop,Polygon,shPolygon,shPoint,shBox
 from lib.utils import Timer,Constant,ListTool
 from lib.index import STRTree,TreeNode,SegmentTree
 from lib.building_element import Wall
@@ -31,7 +30,7 @@ class GeomAlgo(ABC):
 class MaxRectAlgo(GeomAlgo):
     def __init__(
             self,
-            poly: Poly,
+            poly: Polygon,
             order: int = 1,
             covered_points: list[list[Node]] = None,
             precision: float = -1.0,
@@ -100,7 +99,7 @@ class MaxRectAlgo(GeomAlgo):
     
     @Timer()
     def _cut_bounds(
-        self, poly: Poly, precision: float = -1, max_depth: int = 1
+        self, poly: Polygon, precision: float = -1, max_depth: int = 1
     ) -> tuple[list[float], list[float]]:
         """根据顶点坐标和细分网格，计算xy坐标用于切割BoundingBox
 
@@ -208,15 +207,15 @@ class MaxRectAlgo(GeomAlgo):
         return nodesX, nodesY
 
     @Timer()
-    def _get_01matrix(self, poly: Poly, x: list[float], y: list[float]) -> np.ndarray:
+    def _get_01matrix(self, poly: Polygon, x: list[float], y: list[float]) -> np.ndarray:
         """计算每个cell是否在多边形内。cellInside[0,:]=cellInside[:,0]=cellInside[m,:]=cellInside[:,n]=False"""
-        poly = Polygon(*poly.offset(dist=-self.const.TOL_DIST).to_array())
+        poly = shPolygon(*poly.offset(dist=-self.const.TOL_DIST).to_array())
         prepare(poly)
         m, n = len(x), len(y)
         ptmat = np.zeros((m, n), dtype=bool)
         for i in range(m):
             for j in range(n):
-                ptmat[i, j] = poly.covers(Point(x[i], y[j]))
+                ptmat[i, j] = poly.covers(shPoint(x[i], y[j]))
         mat = np.zeros((m + 1, n + 1), dtype=bool)
         for i in range(1, m):
             for j in range(1, n):
@@ -968,11 +967,12 @@ class MergeWallAlgo(GeomAlgo):
     def get_result(self):
         for i in range(len(self.walls)-1):
             for j in range(i+1,len(self.walls)):
-                if self.walls[i].base
+                if self.walls[i].base:
+                    pass
     def _postprocess(self)->None:
         super()._postprocess()
 
-def _draw_polygon(poly: Polygon | Poly, show:bool=False, *args, **kwargs):
+def _draw_polygon(poly: shPolygon | Polygon, show:bool=False, *args, **kwargs):
     x, y = poly.exterior.xy
     plt.plot(x, y, *args, **kwargs)
     for hole in poly.interiors:
@@ -1044,10 +1044,10 @@ if 0 and __name__ == "__main__":
     HOLE_BOX = 5
     MAX_ROTATION = 90
     while True:
-        rand_poly = box(0, 0, 0, 0)
+        rand_poly = shBox(0, 0, 0, 0)
         for i in range(SHELL_BOX):  # SHELL
             new_box = rotate(
-                box(
+                shBox(
                     random() * SCALE,
                     random() * SCALE,
                     random() * SCALE,
@@ -1058,7 +1058,7 @@ if 0 and __name__ == "__main__":
             rand_poly = rand_poly.union(new_box)
         for i in range(HOLE_BOX):  # HOLES
             new_box = rotate(
-                box(
+                shBox(
                     random() * SCALE,
                     random() * SCALE,
                     random() * SCALE,
@@ -1067,7 +1067,7 @@ if 0 and __name__ == "__main__":
                 random() * MAX_ROTATION,
             )
             rand_poly = rand_poly.difference(new_box)
-        if isinstance(rand_poly, Polygon):
+        if isinstance(rand_poly, shPolygon):
             rand_poly = rand_poly.simplify(tolerance=const.TOL_DIST)
             break
     exterior = Loop.from_nodes([Node(x, y) for x, y in rand_poly.exterior.coords])
@@ -1075,7 +1075,7 @@ if 0 and __name__ == "__main__":
         Loop.from_nodes([Node(x, y) for x, y in hole.coords])
         for hole in rand_poly.interiors
     ]
-    poly = Poly(exterior, interiors)
+    poly = Polygon(exterior, interiors)
 
     # 包含点
     ORDER = 1
@@ -1294,12 +1294,13 @@ if 0 and __name__ == "__main__":
     #     json.dump(lines,f,ensure_ascii=False,default=lambda x:x.__dict__)
     # with open(f"./test/merge_line/case_{CASE_ID}_out.json",'w',encoding="utf8") as f:
     #     json.dump(merged_lines,f,ensure_ascii=False,default=lambda x:x.__dict__)
+
 # %% 合并相交环测试
-if 1 and __name__ == "__main__":
+if 0 and __name__ == "__main__":
     import json
     import matplotlib.pyplot as plt
     from matplotlib.colors import TABLEAU_COLORS
-    from tool.dwg_converter.json_parser import cad_polyline_to_loop
+    from tool.converter.json_converter import cad_polyline_to_loop
     colors=list(TABLEAU_COLORS)
     const=Constant.default()
     # const=Constant("split_loop",tol_area=1e3,tol_dist=1e-2)
@@ -1320,3 +1321,32 @@ if 1 and __name__ == "__main__":
     # 输出标准结果
     # with open(f"test\split_loop\case_{CASE_ID}_out.json",'w',encoding="utf8") as f:
     #     json.dump([loop.area for loop in split_loops],f,ensure_ascii=False)
+
+# %% 找回环测试
+if 1 and __name__ == "__main__":
+    import json
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import TABLEAU_COLORS
+    const=Constant.default()
+    with open("./test/find_loop/case_1.json",'r',encoding="utf8") as f:
+        j_obj=json.load(f)
+    edges:list[Edge]=[]
+    for ent in j_obj:
+        if ent["object_name"]=="line":
+            x1,y1,z1=ent["start_point"]
+            x2,y2,z2=ent["end_point"]
+            s=Node(x1,y1)
+            e=Node(x2,y2)
+            if s.equals(e):continue
+            edges.append(Edge(s,e))
+    edges=BreakLineAlgo([edges]).get_result()[0]
+    con_graph=FindConnectedGraphAlgo(edges).get_result()
+    print(len(con_graph))
+    colors=list(TABLEAU_COLORS)
+    for idx,g in enumerate(con_graph):
+        color=colors[idx % len(colors)]
+        for line in g:
+            plt.plot(*line.to_array().T,color=color)
+    ax = plt.gca()
+    ax.set_aspect(1)
+    plt.show()

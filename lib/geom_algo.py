@@ -5,12 +5,14 @@ from typing import Callable
 from abc import ABC,abstractmethod
 from itertools import groupby
 
-from shapely.affinity import rotate
 from shapely import prepare
 
 from lib.linalg import Vec3d
 from lib.domain import Domain1d
-from lib.geom import Geom,Node,LineSeg,Arc,Edge,Loop,Polygon,shPolygon,shPoint,shBox
+from lib.geom import (
+    Geom,Node,Edge,LineSeg,Arc,Loop,Polygon,
+    shPolygon,shPoint,shBox,
+    )
 from lib.utils import Timer,Constant,ListTool
 from lib.index import STRTree,TreeNode,SegmentTree
 from lib.building_element import Wall
@@ -367,7 +369,7 @@ class MergeLineAlgo(GeomAlgo):
         """后处理"""
         # 按需打断
         if self.preserve_intersections:
-            self.merged_lines=BreakLineAlgo([self.merged_lines],const=self.const).get_result()[0]
+            self.merged_lines=BreakEdgeAlgo([self.merged_lines],const=self.const).get_result()[0]
         Geom.pop_const()
         Domain1d.pop_const()
         Domain1d.pop_compare()
@@ -479,18 +481,18 @@ class MergeLineAlgo(GeomAlgo):
             elif dom.value>0:
                 merged_lines.append(dom.line)
         return merged_lines
-class BreakLineAlgo(GeomAlgo):
-    def __init__(self,line_groups:list[list[Edge]],const:Constant=None) -> None:
+class BreakEdgeAlgo(GeomAlgo):
+    def __init__(self,edge_groups:list[list[Edge]]|list[Edge],const:Constant=None) -> None:
         """线段打断，并保留原先的分组
 
         Args:
-            line_groups (list[list[Edge]]): 若干个分组，每组包含若干条线段.
+            edge_groups (list[list[Edge]]): 若干个分组，每组包含若干条线段.
             const (Constants, optional): 误差控制常量. Defaults to Constants.DEFAULT.
         """
         super().__init__(const=const)
-        self.line_groups=line_groups
-        self.all_lines:list[Edge]=[]
-        self.broken_line_groups:list[list[Edge]]=[]
+        self.edge_groups=edge_groups
+        self.all_edges:list[Edge]=[]
+        self.result_groups:list[list[Edge]]=[]
     def get_result(self)->list[list[Edge]]:
         """获取打断的结果
 
@@ -505,21 +507,21 @@ class BreakLineAlgo(GeomAlgo):
     def _preprocess(self)->None:
         """预处理"""
         super()._preprocess()
-        self.all_lines=[line for group in self.line_groups for line in group]
+        self.all_edges=[edge for group in self.edge_groups for edge in group]
         # 去除0线段
-        self.all_lines=list(filter(lambda line: not line.is_zero(),self.all_lines))
+        self.all_edges=list(filter(lambda line: not line.is_zero(),self.all_edges))
     def _postprocess(self)->None:
         """后处理"""
         super()._postprocess()
     def _get_break_points(self)->dict[Edge:list[Node]]:
         """获取线段上的断点，没有排序，也没有去重"""
-        visited={line:set() for line in self.all_lines} # 记录已经求过交点的线段
-        break_points={line:[line.s,line.e] for line in self.all_lines} # 记录线段上的断点
-        rt=STRTree(self.all_lines)
-        for line in self.all_lines:
+        visited={line:set() for line in self.all_edges} # 记录已经求过交点的线段
+        break_points={line:[line.s,line.e] for line in self.all_edges} # 记录线段上的断点
+        rt=STRTree(self.all_edges)
+        for line in self.all_edges:
             neighbors=rt.query_idx(line.get_mbb(),tol=1.0)
             for other_idx in neighbors:
-                other=self.all_lines[other_idx]
+                other=self.all_edges[other_idx]
                 if other in visited[line]: continue # 这俩已经求过了，就不再算了
                 visited[line].add(other)
                 visited[other].add(line)
@@ -539,7 +541,7 @@ class BreakLineAlgo(GeomAlgo):
     def _rebuild_lines(self,break_points:dict[Edge:list[Node]])->list[list[Edge]]:
         """根据断点重构线段"""
         broken_lines=[]
-        for group in self.line_groups:
+        for group in self.edge_groups:
             new_group=[]
             for line in group:
                 break_points[line].sort(key=lambda p:line.get_point_param(p))
@@ -691,10 +693,10 @@ class FindOutlineAlgo(GeomAlgo):
         pass
 class FindLoopAlgo(GeomAlgo):  #TODO
     def __init__(self,edges:list[Edge],const:Constant=None) -> None:
-        """搜索线段构成的所有封闭区域
+        """搜索曲线构成的所有封闭区域
 
         Args:
-            edges (list[Edge]): 所有线段，无需打断
+            edges (list[Edge]): 所有曲线，无需打断
             const (Constant, optional): 误差控制常量. Defaults to None.
         """
         super().__init__(const=const)
@@ -702,44 +704,46 @@ class FindLoopAlgo(GeomAlgo):  #TODO
         self.loops:list[Loop]=[]
     def _preprocess(self)->None:
         super()._preprocess()
-        self.edges=BreakLineAlgo(self.edges,self.const).get_result()
-
+        # 打断边，并构建双向连接的图结构
+        self.edges=BreakEdgeAlgo([self.edges],self.const).get_result()[0]
+        self.edges=list(filter(lambda edge:not edge.is_zero(),self.edges))
+        self.nodes:list[Node]=[]
+        for edge in self.edges:
+            s=GeomUtil.find_or_insert_node(edge.s,self.nodes)
+            e=GeomUtil.find_or_insert_node(edge.e,self.nodes)
+            GeomUtil.add_edge_to_node_in_order(s,edge)
+            GeomUtil.add_edge_to_node_in_order(e,edge.opposite())
     def get_result(self):
         self._preprocess()
         self.loops=self._find_loop()
         self._postprocess()
     def _postprocess(self)->None:
         super()._postprocess()
-    def _add_edge_in_order(self, edge:"Edge"): 
-        """有序插入：第一关键字角度，第二关键字曲率（左正右负）"""
-        ang=edge.tangent_at(0).angle
-        cur=edge.curvature_at(0)*edge.binormal_at(0).z
-        i=0
-        while i<len(self.edge_out):
-            ang_i=self.edge_out[i].tangent_at(0).angle
-            cur_i=self.edge_out[i].curvature_at(0)*edge.binormal_at(0).z
-            if ang_i+self.const.TOL_ANG<ang: break  # 角度升序
-            if abs(ang_i-ang)<self.const.TOL_ANG and cur_i+self.const.TOL_VAL<cur: break  # 角度相同时按曲率升序
-            i+=1
-        self.edge_out.insert(i,edge)
     def _find_loop(self)->list[Loop]:
         loops:list[Loop] =[]
         visited_edges=set()
-        edge_num=sum([len(node.edge_out) for node in self.nodes]) #算总边数
-        while edge_num>0: #每次循环找一个环，直到所有边都被遍历过
+        edge_num=2*len(self.edges)  # 双向连接
+        while edge_num>0:  # 每次循环找一个环，直到所有边都被遍历过
             new_loop:list[Node]=[]
-            for node in self.nodes: #先随便找一条边作为pre_edge
+            for node in self.nodes:  # 先随便找一条边作为pre_edge
                 if len(node.edge_out)>0:
                     pre_edge=node.edge_out[0]
                     break
-            while True: #以pre_edge.e为当前结点开始找一个环
-                node=pre_edge.e #当前结点
+            while True:  # 以pre_edge.e为当前结点开始找一个环
+                node=pre_edge.e  # 当前结点
                 op=pre_edge.opposite()
-                current_angle=op.tangent_at(0).angle #入边的角度
-                current_curvature=pre_edge.opposite().curvature_at(0)
+                pre_angle=op.tangent_at(0).angle  # 入边的角度
+                pre_radius=pre_edge.opposite().curvature_radius_at(0,signed=True)
                 i=len(node.edge_out)-1
-                while i>=0 and (node.edge_out[i].tangent_at(0).angle+const.TOL_ANG>=current_angle 
-                                or (node.edge_out[i].tangent_at(0).angle-current_angle)<const.TOL_ANG): #按角度找下一条出边 ##########################
+                # 按角度找下一条出边
+                while i>=0:
+                    angle_i=node.edge_out[i].tangent_at(0).angle
+                    radius_i=node.edge_out[i].curvature_radius_at(0,signed=True)
+                    if self.const.lt(angle_i,pre_angle,"TOL_ANGLE"): 
+                        break  # 角度比前一条出边小的第一条边，确保内环优先逆时针方向
+                    if self.const.eq(angle_i,pre_angle,"TOL_ANGLE"):
+                        if radius_i>pre_radius:
+                        break  # 角度相同的，比较曲率半径，
                     i-=1
                 if node.edge_out[i] in visited_edges:  #如果找到了已访问的边就封闭这个环
                     loops.append(Loop(new_loop)) #先将此环加入list
@@ -971,382 +975,25 @@ class MergeWallAlgo(GeomAlgo):
                     pass
     def _postprocess(self)->None:
         super()._postprocess()
-
-def _draw_polygon(poly: shPolygon | Polygon, show:bool=False, *args, **kwargs):
-    x, y = poly.exterior.xy
-    plt.plot(x, y, *args, **kwargs)
-    for hole in poly.interiors:
-        x, y = hole.xy
-        plt.plot(x, y, *args, **kwargs)
-    if show:
-        ax = plt.gca()
-        ax.set_aspect(1)
-        plt.show()
-def _draw_loops(loops:list[Loop],show_node:bool=False,show_text:bool=False,show:bool=False)->None:
-    for i,loop in enumerate(loops):
-        # if abs(loop.area)<const.TOL_AREA: continue
-        color=colors[i % len(colors)]
-        line_style="solid" if loop.area>0 else "dashed"
-        for j,edge in enumerate(loop.edges):
-            if isinstance(edge,LineSeg):
-                plt.plot(*edge.to_array().T,color=color,linestyle=line_style)
-            elif isinstance(edge,Arc):
-                sub_edges=edge.fit()
-                for sub_edge in sub_edges:
-                    plt.plot(sub_edge.to_array()[:,0], sub_edge.to_array()[:,1],color=color,linestyle=line_style)
-            if show_node:
-                plt.scatter(edge.s.x,edge.s.y)
-                if show_text:
-                    plt.text(edge.s.x+1.0*j,edge.s.y+1.0*j,f"{i}.{j}",color="b")
-                    plt.plot([edge.s.x,edge.s.x+1.0*j],[edge.s.y,edge.s.y+1.0*j],alpha=0.1)
-    if show:
-        ax = plt.gca()
-        ax.set_aspect(1)
-        plt.show()
-def _draw_edges(edges:list[Edge],show_node_text:bool=False,show:bool=False)->None:
-    color=colors[i % len(colors)]
-    for j,edge in enumerate(edges):
-        if isinstance(edge,LineSeg):
-            plt.plot(*edge.to_array().T,color=color)
-        elif isinstance(edge,Arc):
-            sub_edges=edge.fit()
-            for sub_edge in sub_edges:
-                plt.plot(sub_edge.to_array()[:,0], sub_edge.to_array()[:,1],color=color)
-        if show_node_text:
-            plt.scatter(edge.s.x,edge.s.y)
-            plt.text(edge.s.x+1.0*j,edge.s.y+1.0*j,j,color="b")
-            plt.plot([edge.s.x,edge.s.x+1.0*j],[edge.s.y,edge.s.y+1.0*j],alpha=0.1)
-            if j==len(edges)-1:
-                plt.scatter(edge.e.x,edge.e.y)
-                plt.text(edge.e.x+1.0*j+1,edge.e.y+1.0*j+1,j+1,color="b")
-                plt.plot([edge.e.x,edge.e.x+1.0*j],[edge.e.y,edge.e.y+1.0*j],alpha=0.1)
-    if show:
-        ax = plt.gca()
-        ax.set_aspect(1)
-        plt.show()
-# %% 最大矩形测试
-if 0 and __name__ == "__main__":
-    from random import random, seed
-    from matplotlib import pyplot as plt
-
-    const=Constant.default()
-
-    fig = plt.figure(figsize=(10, 10))
-    ax = plt.gca()
-    ax.set_aspect(1)
-
-    # 随机多边形
-    
-
-    seed(4)
-    SCALE = 100000.0
-    SHELL_BOX = 50
-    HOLE_BOX = 5
-    MAX_ROTATION = 90
-    while True:
-        rand_poly = shBox(0, 0, 0, 0)
-        for i in range(SHELL_BOX):  # SHELL
-            new_box = rotate(
-                shBox(
-                    random() * SCALE,
-                    random() * SCALE,
-                    random() * SCALE,
-                    random() * SCALE,
-                ),
-                random() * MAX_ROTATION,
-            )
-            rand_poly = rand_poly.union(new_box)
-        for i in range(HOLE_BOX):  # HOLES
-            new_box = rotate(
-                shBox(
-                    random() * SCALE,
-                    random() * SCALE,
-                    random() * SCALE,
-                    random() * SCALE,
-                ),
-                random() * MAX_ROTATION,
-            )
-            rand_poly = rand_poly.difference(new_box)
-        if isinstance(rand_poly, shPolygon):
-            rand_poly = rand_poly.simplify(tolerance=const.TOL_DIST)
-            break
-    exterior = Loop.from_nodes([Node(x, y) for x, y in rand_poly.exterior.coords])
-    interiors = [
-        Loop.from_nodes([Node(x, y) for x, y in hole.coords])
-        for hole in rand_poly.interiors
-    ]
-    poly = Polygon(exterior, interiors)
-
-    # 包含点
-    ORDER = 1
-    POINT_NUM = 2
-    # covered_points = [[Node(random() * SCALE, random() * SCALE) for i in range(POINT_NUM)] for j in range(ORDER)]
-    covered_points = [[Node(60000, 10000), Node(50000, 15000)]]
-
-    # 求最大矩形
-    PRECISION = -1
-    CUT_DEPTH = 1
-
-    ins = MaxRectAlgo(
-        poly=poly,
-        order=ORDER,
-        covered_points=covered_points,
-        precision=PRECISION,
-        cut_depth=CUT_DEPTH,
-    )
-    rects = ins.get_result()
-
-    _draw_polygon(rand_poly, color="r")
-    for i in range(len(rects)):
-        if rects[i] is None:
-            continue
-        # print(i,rects[i].area)
-        x, y = rects[i].xy
-        plt.fill(x, y, color="b", alpha=0.8 - (0.8 / ORDER) * i)
-    for k in range(len(covered_points)):
-        for l in range(len(covered_points[k])):
-            plt.scatter(
-                covered_points[k][l].x,
-                covered_points[k][l].y,
-                color="r",
-                alpha=0.8 - (0.8 / ORDER) * k,
-            )
-    plt.show()
-
-# %% 线段合并测试
-if 0 and __name__ == "__main__":
-    import json
-    import matplotlib.pyplot as plt
-    const=Constant.default()
-    with open("test/line_set/case_1.json",'r',encoding="utf8") as f:
-        j_obj=json.load(f)
-    lines=[]
-    for obj in j_obj:
-        if obj["object_name"]!="line":continue
-        x1,y1,_=obj["start_point"]
-        x2,y2,_=obj["end_point"]
-        s,e=Node(x1,y1),Node(x2,y2)        
-        if s.equals(e):continue
-        lines.append(Edge(s,e))
-
-    print(f"{len(lines)} lines before")
-    merged_lines=MergeLineAlgo(lines,preserve_intersections=False).get_result()
-    print(f"{len(merged_lines)} lines after")
-    
-    # for line in merged_lines:
-    #     plt.plot([line.s.x,line.e.x],[line.s.y,line.e.y])
-    # ax = plt.gca()
-    # ax.set_aspect(1)
-    # plt.show()
-
-# %% 线段打断测试
-if 0 and __name__ == "__main__":
-    import json
-    const=Constant.default()
-    with open("./test/line_set/case_1.json",'r',encoding="utf8") as f:
-        j_obj=json.load(f)
-    print(f"{len(j_obj)} lines before")
-    lines=[]
-    for obj in j_obj:
-        x1,y1,_=obj["start_point"]
-        x2,y2,_=obj["end_point"]
-        s,e=Node(x1,y1),Node(x2,y2)        
-        if s.equals(e):continue
-        lines.append(Edge(s,e))
-    broken_lines=BreakLineAlgo([lines]).get_result()[0]
-    print(f"{len(broken_lines)} lines after")
-
-# %% 外轮廓测试
-if 0 and __name__ == "__main__":
-    import json
-    const=Constant.default()
-    with open("./test/find_outline/case_3.json",'r',encoding="utf8") as f:
-        j_obj=json.load(f)
-    edges:list[Edge]=[]
-    for ent in j_obj:
-        x1,y1,_=ent["start_point"]
-        x2,y2,_=ent["end_point"]
-        s=Node(x1,y1)
-        e=Node(x2,y2)
-        if s.equals(e):continue
-        edges.append(Edge(s,e))
-    outline=FindOutlineAlgo(edges).get_result()
-    print(len(outline.edges),outline.area)
-    plt.plot(*outline.xy)
-    ax = plt.gca()
-    ax.set_aspect(1)
-    plt.show()
-
-# %% 连通图测试
-if 0 and __name__ == "__main__":
-    import json
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import TABLEAU_COLORS
-    const=Constant.default()
-    with open("./test/find_wall/case_13.json",'r',encoding="utf8") as f:
-        j_obj=json.load(f)
-    edges:list[Edge]=[]
-    for ent in j_obj:
-        if ent["object_name"]=="line" and ent["layer"]=="WALL":
-            x1,y1,z1=ent["start_point"]
-            x2,y2,z2=ent["end_point"]
-            s=Node(x1,y1)
-            e=Node(x2,y2)
-            if s.equals(e):continue
-            edges.append(Edge(s,e))
-    edges=BreakLineAlgo([edges]).get_result()[0]
-    con_graph=FindConnectedGraphAlgo(edges).get_result()
-    print(len(con_graph))
-    colors=list(TABLEAU_COLORS)
-    for idx,g in enumerate(con_graph):
-        color=colors[idx % len(colors)]
-        for line in g:
-            plt.plot(*line.to_array().T,color=color)
-    ax = plt.gca()
-    ax.set_aspect(1)
-    plt.show()
-
-# %% 连通图+外轮廓测试
-if 0 and __name__ == "__main__":
-    import json
-    const=Constant.default()
-    with open("./test/find_wall/case_1.json",'r',encoding="utf8") as f:
-        j_obj=json.load(f)
-    edges:list[Edge]=[]
-    for ent in j_obj:
-        if ent["object_name"]=="line" and ent["layer"]=="WALL":
-            x1,y1,z1=ent["start_point"]
-            x2,y2,z2=ent["end_point"]
-            s=Node(x1,y1)
-            e=Node(x2,y2)
-            if s.equals(e):continue
-            edges.append(Edge(s,e))
-    edges=BreakLineAlgo([edges]).get_result()[0]
-    con_graph=FindConnectedGraphAlgo(edges).get_result()
-    outlines=[FindOutlineAlgo(edges).get_result() for edges in con_graph]
-    print(len(outlines))
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import TABLEAU_COLORS
-    colors=list(TABLEAU_COLORS)
-    for idx,g in enumerate(outlines):
-        color=colors[idx % len(colors)]
-        for line in g.edges:
-            plt.plot(*line.to_array().T,color=color)
-    ax = plt.gca()
-    ax.set_aspect(1)
-    plt.show()
-
-# %% 线段合并测试，带优先级比较
-if 0 and __name__ == "__main__":
-    import json,random
-    import matplotlib.pyplot as plt
-    const=Constant.default()
-
-    # with open("./test/merge_line/case_1.json",'r',encoding="utf8") as f:
-    #     j_obj=json.load(f)
-    # edges:list[Edge]=[]
-    # for ent in j_obj:
-    #     if ent["object_name"]=="line" and ent["layer"]=="WALL":
-    #         x1,y1,z1=ent["start_point"]
-    #         x2,y2,z2=ent["end_point"]
-    #         s=Node(x1,y1)
-    #         e=Node(x2,y2)
-    #         if s.equals(e):continue
-    #         edges.append(Edge(s,e))
-
-    lines:list[LineSeg]=[]
-    limits=(0,10000,1000)
-    random.seed(0)
-    for i in range(10):
-        s=Node(random.random()*(limits[1]-limits[0])+limits[0],0)
-        # e=Node(random.random()*(limits[1]-limits[0])+limits[0],0)
-        e=Node(s.x+1000,0)
-        lw=random.random()*limits[2]
-        # s=Node(random.randint(limits[0],limits[1]),0)
-        # e=Node(random.randint(limits[0],limits[1]),0)
-        # lw=random.randint(0,limits[2])
-        lines.append(LineSeg(s,e))
-        lines[-1].lw,lines[-1].rw=lw,0
-
-    plt.subplot(2,1,1)
-    for i,line in enumerate(lines):
-        plt.plot([line.s.x,line.e.x],[line.s.y+line.lw+line.rw,line.e.y+line.lw+line.rw])
-
-    print(f"{len(lines)} lines before")
-    def compare(self,a:Edge,b:Edge): 
-        if a is None: return -1
-        if b is None: return 1
-        if abs(a.lw+a.rw-(b.lw+b.rw))<const.TOL_DIST: return 0
-        elif a.lw+a.rw>b.lw+b.rw: return 1
-        else: return -1
-    merged_lines=MergeLineAlgo(lines,preserve_intersections=False,compare=compare).get_result()
-    print(f"{len(merged_lines)} lines after")
-
-    plt.subplot(2,1,2)
-    for i,line in enumerate(merged_lines):
-        plt.plot([line.s.x,line.e.x],[line.s.y+line.lw+line.rw,line.e.y+line.lw+line.rw])
-
-    plt.show()
-
-    # CASE_ID="6"
-
-    # with open(f"./test/merge_line/case_{CASE_ID}.json",'w',encoding="utf8") as f:
-    #     json.dump(lines,f,ensure_ascii=False,default=lambda x:x.__dict__)
-    # with open(f"./test/merge_line/case_{CASE_ID}_out.json",'w',encoding="utf8") as f:
-    #     json.dump(merged_lines,f,ensure_ascii=False,default=lambda x:x.__dict__)
-
-# %% 合并相交环测试
-if 0 and __name__ == "__main__":
-    import json
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import TABLEAU_COLORS
-    from tool.converter.json_converter import cad_polyline_to_loop
-    colors=list(TABLEAU_COLORS)
-    const=Constant.default()
-    # const=Constant("split_loop",tol_area=1e3,tol_dist=1e-2)
-
-    CASE_ID = "12.2"  ################ TEST #################
-
-    with open(f"test/split_loop/case_{CASE_ID}.json",'r',encoding="utf8") as f:
-        j_obj=json.load(f)
-    loops=cad_polyline_to_loop(j_obj)
-
-    with Timer(tag="split_loop"):
-        split_loops=SplitIntersectedLoopsAlgo(loops,False,False,const=const).get_result()
-    split_loops.sort(key=lambda loop:loop.area)
-
-    print(len(split_loops))
-    _draw_loops(split_loops,show_node=False,show_text=False,show=True)
-
-    # 输出标准结果
-    # with open(f"test\split_loop\case_{CASE_ID}_out.json",'w',encoding="utf8") as f:
-    #     json.dump([loop.area for loop in split_loops],f,ensure_ascii=False)
-
-# %% 找回环测试
-if 1 and __name__ == "__main__":
-    import json
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import TABLEAU_COLORS
-    const=Constant.default()
-    with open("./test/find_loop/case_1.json",'r',encoding="utf8") as f:
-        j_obj=json.load(f)
-    edges:list[Edge]=[]
-    for ent in j_obj:
-        if ent["object_name"]=="line":
-            x1,y1,z1=ent["start_point"]
-            x2,y2,z2=ent["end_point"]
-            s=Node(x1,y1)
-            e=Node(x2,y2)
-            if s.equals(e):continue
-            edges.append(Edge(s,e))
-    edges=BreakLineAlgo([edges]).get_result()[0]
-    con_graph=FindConnectedGraphAlgo(edges).get_result()
-    print(len(con_graph))
-    colors=list(TABLEAU_COLORS)
-    for idx,g in enumerate(con_graph):
-        color=colors[idx % len(colors)]
-        for line in g:
-            plt.plot(*line.to_array().T,color=color)
-    ax = plt.gca()
-    ax.set_aspect(1)
-    plt.show()
+class GeomUtil:
+    """几何工具类"""
+    @staticmethod
+    def find_or_insert_node(target_node:Node,nodes:list[Node],copy=False)->Node:
+        for node in nodes:
+            if target_node.equals(node):
+                return node if not copy else Node(node.x,node.y,node.z)
+        nodes.append(target_node)
+        return target_node
+    @staticmethod
+    def add_edge_to_node_in_order(node:Node, edge:Edge)->None: 
+        """有序插入：第一关键字角度，第二关键字曲率半径（左正右负）"""
+        ang=edge.tangent_at(0).angle
+        radius=edge.curvature_radius_at(0)
+        i=0
+        while i<len(node.edge_out):
+            ang_i=node.edge_out[i].tangent_at(0).angle
+            radius_i=node.edge_out[i].curvature_radius_at(0)
+            if Geom.const.lt(ang_i,ang,"TOL_ANG"): break  # 角度升序
+            if Geom.const.eq(ang_i,ang,"TOL_ANG") and Edge.compare_curvature_by_radius(radius_i,radius)<0: break  # 角度相同时按曲率升序
+            i+=1
+        node.edge_out.insert(i,edge)

@@ -71,13 +71,15 @@ class JsonLoader:
             case "point":
                 return Node(*obj["point"])
             case "line":
-                return LineSeg(obj["start_point"],obj["end_point"])
+                s,e=Node(*obj["start_point"]),Node(*obj["end_point"])
+                return LineSeg(s,e)
             case "arc":
                 total_angle=obj["end_angle"]-obj["start_angle"]
+                s,e=Node(*obj["start_point"]),Node(*obj["end_point"])
                 if total_angle<0: total_angle+=math.pi*2
-                return Arc(obj["start_point"],obj["end_point"],math.tan(total_angle/4))
+                return Arc(s,e,math.tan(total_angle/4))
             case "polyline":
-                pl_nodes=[(seg["start_point"],seg["bulge"]) for seg in obj["segments"]]
+                pl_nodes=[(Node(*seg["start_point"]),seg["bulge"]) for seg in obj["segments"]]
                 if obj["is_closed"]:
                     # return Loop(pl_nodes)
                     return Loop.from_nodes([Node(*seg["start_point"]) for seg in obj["segments"]])  # TODO 替换Loop的构造方法

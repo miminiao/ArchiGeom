@@ -4,7 +4,7 @@ import pytest
 import json
 from lib.utils import Constant; const=Constant.default()
 from lib.geom import Node,Edge,LineSeg,Arc
-from lib.geom_algo import BreakLineAlgo,MergeLineAlgo
+from lib.geom_algo import BreakEdgeAlgo,MergeLineAlgo
 
 @pytest.mark.parametrize('case',[
     {"in":"case_1","out":51768},
@@ -21,7 +21,7 @@ def test_break_line_algo(case):
         s,e=Node(x1,y1),Node(x2,y2)        
         if s.equals(e):continue
         lines.append(LineSeg(s,e))
-    broken_lines=BreakLineAlgo([lines]).get_result()[0]
+    broken_lines=BreakEdgeAlgo([lines]).get_result()[0]
     assert len(broken_lines)>=case["out"]
 
 @pytest.mark.parametrize('case',[

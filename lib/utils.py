@@ -1,3 +1,5 @@
+"""通用工具"""
+
 import json
 from time import time
 from functools import wraps
@@ -72,11 +74,16 @@ class Constant:
     @classmethod
     def default(cls):
         """返回默认的常量配置"""
-        if not hasattr(Constant,"DEFAULT"):
-            Constant.DEFAULT=Constant(tag="default")
-        return Constant.DEFAULT
-    def get_const_config(tag:str)->"Constant":
-        return Constant._instances[tag]
+        if not hasattr(cls,"DEFAULT"):
+            cls.DEFAULT=cls(tag="default")
+        return cls.DEFAULT
+    @classmethod
+    def get_const_config(cls,tag:str)->"Constant":
+        return cls._instances[tag]
+    def comp(self,a:float,b:float,tol_type:str="TOL_DIST"):
+        """比较大小"""
+        return abs(a-b)<getattr(self,tol_type)
+
 class ListTool:
     def sort_and_overkill(a: list[float],const:Constant=None) -> None:
         """排序并去除重复float元素"""

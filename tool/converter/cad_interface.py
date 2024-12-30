@@ -1,7 +1,7 @@
+import pythoncom
 import win32com.client
 import json
 from tool.converter.cad_object import CADEntity,CADBlockDef
-
 def get_cad_objects()->list[CADEntity|CADBlockDef]:
     acad = win32com.client.Dispatch("AutoCAD.Application.23")
     # acad = win32com.client.Dispatch("AutoCAD.Application.20")
@@ -43,3 +43,4 @@ if __name__=="__main__":
 
     with open("./tool/converter/output/output.json",'w',encoding="utf8") as f:
         json.dump(cad_objects,f,ensure_ascii=False,default=dumper)
+

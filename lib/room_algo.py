@@ -1,15 +1,9 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from lib.geom import Node,Edge,Loop,Polygon,_draw_polygon
+from lib.geom import Node,Edge,Loop,Polygon,GeomUtil
 from lib.index import TreeNode
 from lib.utils import Timer, Constant
-    
-def find_or_insert_node(target_node:Node,nodes:list[Node])->Node:
-    for node in nodes:
-        if target_node.equals(node):
-            return node
-    nodes.append(target_node)
-    return target_node
+
 def find_loop(nodes:list[Node])->list[Loop]:
     loops:list[Loop] =[]
     visited_edges=set()
@@ -77,8 +71,8 @@ if 1 and __name__ == "__main__":
                 s=Node(x1,y1)
                 e=Node(x2,y2)
                 if s.equals(e):continue
-                s=find_or_insert_node(s,nodes)
-                e=find_or_insert_node(e,nodes)
+                s=GeomUtil.find_or_insert_node(s,nodes)
+                e=GeomUtil.find_or_insert_node(e,nodes)
                 s.add_edge_in_order(Edge(s,e,lw,rw))
                 e.add_edge_in_order(Edge(e,s,rw,lw))
 

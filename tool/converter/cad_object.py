@@ -213,12 +213,12 @@ class TZWall(CADEntity):
     def get_endpoints(self,ent)->tuple[list[float]]:
         doc=ent.Document
         command_gen=lambda var,pos,num,handle: f'(setvar "{var}" ({num} (vlax-curve-get{pos}Point (handent "{handle}"))))'
-        command="".join(command_gen("userr1","Start","car",ent.Handle),
+        command="".join([command_gen("userr1","Start","car",ent.Handle),
                         command_gen("userr2","Start","cadr",ent.Handle),
                         command_gen("userr3","End","car",ent.Handle),
                         command_gen("userr4","End","cadr",ent.Handle),
                         "(princ) ",
-        )
+                        ])
         doc.SendCommand(command)
         s=[doc.GetVariable('userr1'),doc.GetVariable('userr2'),0]
         e=[doc.GetVariable('userr3'),doc.GetVariable('userr4'),0]

@@ -40,9 +40,8 @@ class Geom(ABC):
             tuple[Node,Node]: 大包围盒.
         """
         if len(mbbs)==0: return None
-        pmin,pmax=Node(),Node()
-        pmin.x,pmin.y=pmin.const.MAX_VAL,pmin.const.MAX_VAL
-        pmax.x,pmax.y=-pmax.const.MAX_VAL,-pmax.const.MAX_VAL
+        pmin=Node(Geom.const.MAX_VAL,Geom.const.MAX_VAL)
+        pmax=Node(-Geom.const.MAX_VAL,-Geom.const.MAX_VAL)
         for mbb in mbbs:
             pmin.x=min(pmin.x,mbb[0].x)
             pmin.y=min(pmin.y,mbb[0].y)
@@ -62,8 +61,8 @@ class Node(Geom):
         self.x=x
         self.y=y
         self.z=z or 0
-        self.edge_out=[]
-        self.edge_in=[]
+        self.edge_out:list[Edge]=[]
+        self.edge_in:list[Edge]=[]
     def __repr__(self) -> str:
         return f"Node({round(self.x,2)},{round(self.y,2)})"
     def __eq__(self,other:"Node")->bool:
@@ -89,13 +88,7 @@ class Node(Geom):
     def is_on_edge(self, edge:"Edge", include_endpoints:bool=True) ->bool:
         """点在曲线上"""
         return edge.is_point_on_edge(self,include_endpoints)
-    @staticmethod
-    def find_or_insert_node(target_node:"Node",nodes:list["Node"],copy=False)->"Node":
-        for node in nodes:
-            if target_node.equals(node):
-                return node if not copy else Node(node.x,node.y,node.z)
-        nodes.append(target_node)
-        return target_node
+
 class Edge(Geom):  
     """边/曲线段"""
     def __init__(self,s:Node,e:Node) -> None:
@@ -103,11 +96,11 @@ class Edge(Geom):
         self.s,self.e=s,e
     @abstractmethod
     def reverse(self) -> None:
-        """反转"""
+        """原地反转。另见Edge.opposite()"""
         ...
     @abstractmethod
     def opposite(self) -> "Edge":
-        """方向相反的边"""
+        """方向相反的边。另见Edge.reverse()"""
         ...
     @property
     @abstractmethod
@@ -136,6 +129,21 @@ class Edge(Geom):
     def binormal_at(self,t:float)->Vec3d:
         """参数t处的单位副法向量"""
         return self.tangent_at(t).cross(self.principal_normal_at(t))
+    @abstractmethod
+    def curvature_radius_at(self,t:float,signed:bool=False)->float:
+        """参数t处的曲率半径
+
+        Args:
+            t (float): 参数
+            signed (bool, optional): 是否区分正负，符号同凸度. Defaults to False.
+
+        Returns:
+            float: 曲率半径
+        """
+        if signed: 
+            return self.curvature_at(0)*self.binormal_at(0).z
+        else:
+            return abs(self.curvature_at(0)*self.binormal_at(0).z)
     @abstractmethod
     def curvature_at(self,t:float)->float: 
         """参数t处的曲率"""
@@ -227,7 +235,7 @@ class Edge(Geom):
             return res
         if (abs(c1.center.dist(c2.center)-(c1.radius+c2.radius))<c1.const.TOL_DIST  # 外切
             or abs(c1.center.dist(c2.center)-abs(c1.radius-c2.radius))<c1.const.TOL_DIST):  # 内切
-            res=[c1._intersection_with_line_segment(LineSeg(c1.center,c2.center))]
+            res=c1._intersection_with_line_segment(LineSeg(c1.center,c2.center))
         else:  #相交
             a,b,c=c1.radius,c2.radius,c1.center.dist(c2.center)
             p=(a+b+c)/2
@@ -397,7 +405,9 @@ class LineSeg(Edge):
         return self.to_vec3d().unit()
     def principal_normal_at(self,t:float)->Vec3d:
         return self.to_vec3d().unit().rotate2d(math.pi/2)
-    def curvature_at(self,t:float)->float: 
+    def curvature_radius_at(self,t:float,signed:bool=False)->float:
+        return float("inf")
+    def curvature_at(self,t:float,signed:bool=False)->float: 
         return 0
     def angle_to(self,other:"LineSeg")->float:
         """求线段到other的旋转角[0,2pi)"""
@@ -685,8 +695,16 @@ class Arc(Edge):
             return self.tangent_at(t).rotate2d(math.pi/2)
         else: 
             return self.tangent_at(t).rotate2d(-math.pi/2)
-    def curvature_at(self,t:float)->float: 
-        return 1/self.radius
+    def curvature_radius_at(self,t:float,signed:bool=False)->float:
+        if signed and self.bulge<0: 
+            return -self.radius
+        else:
+            return self.radius
+    def curvature_at(self,t:float,signed:bool=False)->float: 
+        if signed and self.bulge<0:
+            return -1/self.radius
+        else:
+             return 1/self.radius
     def overlap(self,other:Edge) -> list["Arc"]:
         if not self.is_collinear(other): return [] #不共线则不重叠
         # 先把圆弧的方向都变成逆时针
@@ -773,6 +791,7 @@ class Polyedge(Geom):
         # for i in range(len(self.nodes)-1):
         #     s,e,bulge=self.nodes[i],self.nodes[i+1],pl_nodes[i][1]
         #     self.edges.append(LineSeg(s,e) if bulge==0 else Arc(s,e,bulge))
+    def __len__(self)->int: return len(self.nodes)-1
     @classmethod
     def from_edges(cls,edges:list[LineSeg|Arc],deepcopy:bool=False) -> "Polyedge":
         """从边构造多段线
@@ -795,7 +814,7 @@ class Polyedge(Geom):
         """获取第index条边
 
         Args:
-            index (int): index from (-edge_count) to (edge_count-1), where edge_count=node_count-1
+            index (int): index from (-len) to (len-1), where len=edge_count=node_count-1
 
         Returns:
             Edge: 第index条边(现场计算的一个new instance)
@@ -808,42 +827,20 @@ class Polyedge(Geom):
     
     @property
     def edges(self)->Generator[Edge,None,None]:
-        for i in len(self.nodes)-2:
+        for i in range(len(self.nodes)-2):
             yield self.edge(i)
 class Loop(Geom):
     """几何环(Closed PolyEdge)"""
     _dumper_ignore=["polygon"]
-    def __init__(self,edges:list[Edge],update_node:bool=False) -> None:
+    def __init__(self,edges:list[Edge]) -> None:
         super().__init__()
         self.edges=edges
-        self.update(update_node=update_node)
     def get_mbb(self) -> tuple[Node, Node]:
         return Geom.merge_mbb([node.get_mbb() for node in self.nodes])
-    def update(self,update_node=False):
-        for i in range(len(self.edges)):
-            self.edges[i-1].e=self.edges[i].s
-            if update_node: self.edges[i].s.edge_out=[self.edges[i]]
-        self.area=self.get_area()
-
-        self.polygon=None
-        if abs(self.area)>self.const.TOL_AREA:
-            new_edges=[]
-            has_arc=False
-            for edge in self.edges:
-                if isinstance(edge,Arc) and edge.bulge>self.const.TOL_VAL:
-                    new_edge=edge.fit(min_segs=2)
-                    has_arc=True
-                else: new_edge=[edge]
-                new_edges.extend(new_edge)
-            if has_arc:
-                self.polygon=shPolygon(Loop(new_edges).to_array())
-            else: self.polygon=shPolygon(self.to_array())
-            prepare(self.polygon)
-        
     @classmethod
     def from_array(cls,arr:np.ndarray) -> "Loop":
         if arr.shape[1]==2:
-            return cls([Edge.from_array(np.array([arr[i-1],arr[i]])) for i in range(len(arr))],update_node=True)
+            return cls([Edge.from_array(np.array([arr[i-1],arr[i]])) for i in range(len(arr))])
         else: return None
     @classmethod
     def from_nodes(cls,nodes:list[Node]) -> "Loop":
@@ -852,7 +849,6 @@ class Loop(Geom):
         for i in range(len(nodes)):
             new_edge=LineSeg(nodes[i-1],nodes[i])
             edges.append(new_edge)
-            new_edge.s.edge_out.append(new_edge)
         return Loop(edges)
     def reverse(self) -> None:
         self.edges=self.edges[::-1]
@@ -1087,206 +1083,4 @@ class Polygon(Geom):
     def closest_point(self,other:Geom)->Node:
         if isinstance(other,Node):
             return nearest_points(self.polygon,shPoint(Node.x,Node.y))
-def _draw_polygon(poly:Polygon,color:tuple[str]=None,**kwargs):
-    x,y=poly.exterior.xy
-    if color is not None: kwargs["color"]=color[0]
-    plt.plot(x,y,**kwargs)
-    if color is not None: kwargs["color"]=color[1]
-    for hole in poly.interiors:
-        x,y=hole.xy
-        plt.plot(x,y,**kwargs)   
 
-#%% 自相交测试（手绘）
-if 0 and __name__=="__main__":
-    import tkinter as tk    
-    from random import random
-    def add_points(window,canvas,pts,event):
-        global ended
-        if ended: window.destroy()
-        r=5.0
-        canvas.create_oval(event.x-r/2,event.y-r/2,event.x+r/2,event.y+r/2)
-        if len(pts)>0:
-            canvas.create_line(pts[-1][0],pts[-1][1],event.x,event.y)
-        pts.append([event.x,event.y])
-    def close_polyline(window,canvas,pts,event):
-        global ended
-        if ended: window.destroy()
-        if len(pts)>0:
-            canvas.create_line(pts[-1][0],pts[-1][1],pts[0][0],pts[0][1])
-        ended=True
-
-    pts=[]
-    ended=False
-    h,w=400,400
-    window=tk.Tk()
-    canvas = tk.Canvas(window,bg="#ffffff",height=h,width=w)  
-    canvas.bind("<Button-1>",lambda event:add_points(window,canvas,pts,event))
-    canvas.bind("<Button-3>",lambda event:close_polyline(window,canvas,pts,event))
-    canvas.pack()
-    window.mainloop()
-    pts=np.array([[pt[0],h-pt[1]]for pt in pts])
-    plt.figure()
-    
-    loop=Loop.from_array(pts)
-    loops_spl=loop.split_self_intersection(True)
-    
-    plt.subplot(1,2,1)
-    ax = plt.gca()
-    ax.set_aspect(1)
-    _draw_polygon(shPolygon(pts))
-
-    plt.subplot(1,2,2)
-    ax = plt.gca()
-    ax.set_aspect(1)    
-    for l in loops_spl:
-        _draw_polygon(shPolygon(l.to_array()),color=("C%d"%int(random()*10),"C%d"%int(random()*10)))
-
-    plt.show()
-
-#%% 自相交测试
-if 0 and __name__=="__main__":
-    import json
-    from random import random
-    with open("self_crossing.json") as f:
-        polys=json.load(f)
-    plt.figure()
-    column_num=len(polys)
-    for i,poly in enumerate(polys):    
-        poly=np.array(poly)
-        loop=Loop.from_array(poly)
-        loops_spl=loop.split_self_intersection(positive=True,ensure_valid=False)
-    
-        plt.subplot(2,column_num,i+1)
-        ax = plt.gca()
-        ax.set_aspect(1)
-        _draw_polygon(shPolygon(poly))
-
-        plt.subplot(2,column_num,i+1+column_num)
-        ax = plt.gca()
-        ax.set_aspect(1)    
-        for j,l in enumerate(loops_spl):
-            _draw_polygon(shPolygon(l.to_array()),color=(f"C{j}",f"C{j}"))
-
-    plt.show()
-
-#%% 圆弧mbb测试
-if 0 and __name__=="__main__":
-    # edge2=Edge(Node(-189.1,-219.0),Node(-169.4,-234.9)).opposite()
-    # edge1=Edge(Node(-160.4,-233.5),Node(-139.5,-214.0)).opposite()
-    # plt.plot(edge1.to_array()[:,0], edge1.to_array()[:,1])
-    # plt.plot(edge2.to_array()[:,0], edge2.to_array()[:,1])
-    # arc=edge1.fillet_with(edge2,12)
-    arc=Arc.from_center_radius_angle(Node(0,0),100,0.1,6)
-
-    p1,p2=arc.s,arc.e
-    plt.scatter([p1.x,p2.x,arc.center.x],[p1.y,p2.y,arc.center.y])
-    edges=arc.fit()
-    for edge in edges:
-        plt.plot(edge.to_array()[:,0], edge.to_array()[:,1],c='b')
-    mbb=arc.get_mbb()
-    plt.plot([mbb[0].x,mbb[1].x,mbb[1].x,mbb[0].x,mbb[0].x],
-             [mbb[0].y,mbb[0].y,mbb[1].y,mbb[1].y,mbb[0].y])
-    ax = plt.gca()
-    ax.set_aspect(1) 
-    plt.show()
-
-#%% fillet测试
-if 0 and __name__=="__main__":
-    import tkinter as tk    
-    def add_points(window,canvas,pts,event):
-        global ended
-        if ended: window.destroy()
-        r=5.0
-        canvas.create_oval(event.x-r/2,event.y-r/2,event.x+r/2,event.y+r/2)
-        if len(pts)>0:
-            canvas.create_line(pts[-1][0],pts[-1][1],event.x,event.y)
-        pts.append([event.x,event.y])
-    def close_polyline(window,canvas,pts,event):
-        global ended
-        if ended: window.destroy()
-        if len(pts)>0:
-            canvas.create_line(pts[-1][0],pts[-1][1],pts[0][0],pts[0][1])
-        ended=True
-
-    pts=[]
-    ended=False
-    h,w=600,600
-    window=tk.Tk()
-    canvas = tk.Canvas(window,bg="#ffffff",height=h,width=w)  
-    canvas.bind("<Button-1>",lambda event:add_points(window,canvas,pts,event))
-    canvas.bind("<Button-3>",lambda event:close_polyline(window,canvas,pts,event))
-    canvas.pack()
-    window.mainloop()
-    pts=np.array([[pt[0],h-pt[1]]for pt in pts])
-    plt.figure()
-    
-    loop=Loop.from_array(pts)
-    loop_fillet=loop.fillet(30,mode="relax")
-
-    plt.subplot(1,2,1)
-    ax = plt.gca()
-    ax.set_aspect(1)
-    _draw_polygon(shPolygon(pts))
-
-    plt.subplot(1,2,2)
-    ax = plt.gca()
-    ax.set_aspect(1)    
-    _draw_polygon(shPolygon(loop_fillet.to_array()))
-
-    plt.show()
-
-#%% 圆弧求交测试
-if 0 and __name__=="__main__":
-    arc1=Arc.from_center_radius_angle(Node(0,0),1200,0,math.pi*0.5)
-    arc2=Arc.from_center_radius_angle(Node(1200,400),1000,math.pi*0.5,math.pi*0.5)
-    inter=arc1.intersection(arc2)
-    print(inter)
-    
-    edges=arc1.fit()
-    for edge in edges:
-        plt.plot(edge.to_array()[:,0], edge.to_array()[:,1],c='b')
-    edges=arc2.fit()
-    for edge in edges:
-        plt.plot(edge.to_array()[:,0], edge.to_array()[:,1],c='b')        
-    
-    ax = plt.gca()
-    ax.set_aspect(1) 
-    plt.show()
-
-#%% 椭圆-直线求交测试
-if 0 and __name__=="__main__":
-    s=Vec3d(1000,0)
-    e=Vec3d(0,1500)
-    c=Vec3d(500,300)
-
-    rx,ry=500,250
-    vx=Vec3d(2,0,0).rotate2d(math.pi/4)
-    vy=Vec3d(0,1,0).rotate2d(math.pi/4)
-    vz=Vec3d(0,0,1)
-    from lib.linalg import Mat3d
-    basis=Mat3d.from_column_vecs([vx,vy,vz])
-    basis_inv=basis.invert()
-
-    s2=basis_inv@s
-    e2=basis_inv@e
-    c2=basis_inv@c
-    r2=250
-
-    cir2=Arc.from_center_radius_angle(Node.from_vec3d(c2),r2,0,math.pi)
-    line2=LineSeg(Node.from_vec3d(s2),Node.from_vec3d(e2))
-
-    intersection=Edge.intersection_of_circle_and_line(cir2,line2)
-    print(intersection)
-
-    for pt2 in intersection:
-        pt=basis@(pt2.to_vec3d())
-        print(pt)
-
-#%% Loop面积测试
-if 1 and __name__=="__main__":
-    import json
-    from tool.converter.json_converter import cad_polyline_to_loop
-    with open(f"test/split_loop/case_a.json",'r',encoding="utf8") as f:
-        j_obj=json.load(f)
-    loops=cad_polyline_to_loop(j_obj)
-    print(loops[0].get_area())

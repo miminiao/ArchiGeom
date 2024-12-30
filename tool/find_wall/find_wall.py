@@ -3,7 +3,7 @@ import typing
 import math
 import matplotlib.pyplot as plt
 from lib.geom import Node,LineSeg,Arc,Loop,Polygon
-from lib.geom_algo import BreakLineAlgo,MergeLineAlgo,FindOutlineAlgo,FindConnectedGraphAlgo
+from lib.geom_algo import BreakEdgeAlgo,MergeLineAlgo,FindOutlineAlgo,FindConnectedGraphAlgo
 from lib.building_element import Wall,Window,Door
 from lib.domain import Domain1d,MultiDomain1d
 from lib.utils import Timer, Constant
@@ -461,7 +461,7 @@ if __name__=="__main__":
                                          )
     
     # 在交点处打断看线和门窗线，墙线不动 (OK)
-    watch_lines,opening_lines,_=BreakLineAlgo(line_groups=[watch_lines,opening_lines,wall_lines]).get_result()
+    watch_lines,opening_lines,_=BreakEdgeAlgo(edge_groups=[watch_lines,opening_lines,wall_lines]).get_result()
     rt_watch_opening_lines=STRTree(watch_lines+opening_lines)
 
     # 识别门窗
@@ -479,7 +479,7 @@ if __name__=="__main__":
     # assign_windows_and_doors_to_opening_regions(windows,doors,opening_regions)
 
     # 在交点处打断线 (OK)
-    watch_lines,wall_lines=BreakLineAlgo(line_groups=[watch_lines,wall_lines]).get_result()
+    watch_lines,wall_lines=BreakEdgeAlgo(edge_groups=[watch_lines,wall_lines]).get_result()
 
 ########################################### PLOT BEGIN ###########################################
     # from matplotlib.colors import TABLEAU_COLORS

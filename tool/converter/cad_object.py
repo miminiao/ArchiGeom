@@ -1,3 +1,4 @@
+import math
 from lib.linalg import Tensor,Vec3d,Vec4d,Mat3d,Mat4d
 from lib.geom import Geom,Node,LineSeg,Arc,Polyedge,Loop
 class CADEntity:
@@ -47,18 +48,46 @@ class CADLine(CADEntity):
     def to_geom(self) -> LineSeg:
         return LineSeg(Node(*self.start_point), Node(*self.end_point))
 class CADArc(CADEntity):
-    def __init__(self,ent) -> None:
+    def __init__(self,ent,half_circle=False) -> None:
         super().__init__("arc", ent.Layer, ent.Color)
         self.center:list[float]=ent.Center[:]
+        self.radius:float=ent.Radius
+        self.normal:list[float]=ent.Normal[:]
+        if half_circle: 
+            self.total_angle=math.pi
+            return
         self.start_angle:float=ent.StartAngle
         self.end_angle:float=ent.EndAngle
         self.total_angle:float=ent.TotalAngle
         self.start_point:list[float]=ent.StartPoint[:]
         self.end_point:list[float]=ent.EndPoint[:]
-        self.radius:float=ent.Radius
-        self.normal:list[float]=ent.Normal[:]
+    @classmethod
+    def from_half_circle(cls,ent,is_upper:bool)->list["CADArc"]:
+        arc=cls(ent,half_circle=True)
+        arc.start_angle=0
+        arc.end_angle=math.pi
+        arc.start_point=(arc.center[0]+arc.radius,arc.center[1],arc.center[2])
+        arc.end_point=(arc.center[0]-arc.radius,arc.center[1],arc.center[2])
+        if not is_upper:
+            arc.start_point,arc.end_point=arc.end_point,arc.start_point
+            arc.start_angle,arc.end_angle=arc.end_angle,arc.start_angle
+        return arc
     def to_geom(self) -> Arc:
         return Arc.from_center_radius_angle(Node(*self.center), self.radius, self.start_angle, self.total_angle)
+class CADCircle(CADEntity):
+    def __init__(self,ent) -> None:
+        super().__init__("circle", ent.Layer, ent.Color)
+        self.center:list[float]=ent.Center[:]
+        self.radius:float=ent.Radius
+        self.normal:list[float]=ent.Normal[:]
+    @staticmethod
+    def to_arcs(ent)->list["CADArc"]:
+        upper=CADArc.from_half_circle(ent,True)
+        lower=CADArc.from_half_circle(ent,False)
+        return [upper,lower]
+    def to_geom(self) -> list[Arc]:
+        return [Arc.from_center_radius_angle(Node(*self.center), self.radius, 0, math.pi),
+                Arc.from_center_radius_angle(Node(*self.center), self.radius, math.pi, math.pi*2)]
 class CADPolyline(CADEntity):
     class _CADPolylineSegment:
         def __init__(self,ent,i) -> None:
@@ -174,7 +203,10 @@ class CADBlockDef:
         self.block_name=blk.Name
         self.entities=[]
         for ent in blk:
-            self.entities.append(CADEntity.parse(ent))
+            if (parsed_ent:=CADEntity.parse(ent)) is not None:
+                if isinstance(parsed_ent,list):
+                    self.entities.extend(parsed_ent)
+                else: self.entities.append()
     @classmethod
     def init_doc_block_table(cls,doc_blocks)->dict:
         block_num=doc_blocks.Count
@@ -265,6 +297,7 @@ _ENT_CLASS_MAP = {
     "AcDbPoint": CADPoint,
     "AcDbLine": CADLine,
     "AcDbArc": CADArc,
+    "AcDbCircle": CADCircle.to_arcs,
     "AcDbPolyline": CADPolyline,
     "AcDbHatch": CADHatch,
     "AcDbText" : CADText,

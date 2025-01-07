@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import TABLEAU_COLORS
 from shapely.geometry import Polygon as shPolygon
 from lib.geom import Geom,Node,LineSeg,Arc,Edge,Polyedge,Loop,Polygon
+from typing import Callable
 
 class GeomPlotter(ABC):
     @classmethod
@@ -23,10 +24,11 @@ class GeomPlotter(ABC):
     @abstractmethod
     def _draw_polygon(cls,poly: shPolygon | Polygon, show:bool=False, *args, **kwargs)->None: ...
 
-class MPLPlotterr(GeomPlotter):
+class MPLPlotter(GeomPlotter):
     @classmethod
     def draw_geoms(cls,geoms:list[Geom],show:bool=False,*args,**kwargs)->None:
         draw_method_dict={
+            Node:       cls._draw_node,
             LineSeg:    cls._draw_edge,
             Arc:        cls._draw_edge,
             Polyedge:   cls._draw_polyedge,
@@ -38,6 +40,15 @@ class MPLPlotterr(GeomPlotter):
         for i,geom in enumerate(geoms):
             kwargs["color"]=colors[i % len(colors)]
             draw_method_dict[type(geom)](geom,*args,**kwargs)
+        if show:
+            ax = plt.gca()
+            ax.set_aspect(1)
+            plt.show()
+    @classmethod
+    def _draw_node(cls,node:Node,show:bool=False,node_text:Callable[[Node],str]=None,*args,**kwargs):
+        plt.scatter(node.x,node.y,*args,**kwargs)
+        if node_text is not None:
+            plt.text(node.x,node.y,node_text(node),color="b")
         if show:
             ax = plt.gca()
             ax.set_aspect(1)
@@ -77,7 +88,7 @@ class MPLPlotterr(GeomPlotter):
             plt.show()
     @classmethod
     def _draw_loop(cls,loop:Loop,show_node:bool=False,show_text:bool=False,show:bool=False,*args,**kwargs)->None:
-        line_style="solid" if loop.area>0 else "dashed"
+        line_style="solid" if loop.area()>0 else "dashed"
         for i,edge in enumerate(loop.edges):
             if isinstance(edge,LineSeg):
                 plt.plot(*edge.to_array().T,linestyle=line_style,*args,**kwargs)
@@ -96,9 +107,9 @@ class MPLPlotterr(GeomPlotter):
             plt.show()
     @classmethod
     def _draw_polygon(cls,poly: shPolygon | Polygon, show:bool=False, *args, **kwargs):
-        x, y = poly.exterior.xy
+        x, y = poly.shell.xy
         plt.plot(x, y, *args, **kwargs)
-        for hole in poly.interiors:
+        for hole in poly.holes:
             x, y = hole.xy
             plt.plot(x, y, *args, **kwargs)
 
@@ -124,9 +135,12 @@ class CADPlotter(GeomPlotter):
             ent=draw_method_dict[type(geom)](geom,*args,**kwargs)
             if "color" in kwargs: ent.Color=kwargs["color"]
     @classmethod
-    def _draw_node(cls,node:Node,*args,**kwargs):
+    def _draw_node(cls,node:Node,node_text:Callable[[Node],str]=None,*args,**kwargs):
         point=cls._com_point(node)
         ent=cls.model_space.AddPoint(point)
+        if "color" in kwargs: ent.Color=kwargs["color"]
+        if node_text is not None: 
+            cls._draw_text(node_text(node),node,300)
         return ent
     @classmethod
     def _draw_edge(cls,edge:Edge,*args,**kwargs):
@@ -141,6 +155,8 @@ class CADPlotter(GeomPlotter):
     def _draw_polyedge(cls,polyedge:Polyedge, *args, **kwargs):
         end_points=cls._com_point_list(polyedge.nodes)
         ent=cls.model_space.AddPolyline(end_points)
+        for i,bulge in enumerate(polyedge.bulges):
+            ent.SetBulge(i,bulge)
         show_node_text=kwargs.get("show_node_text",False)
         if show_node_text:
             for i,node in enumerate(polyedge.nodes):
@@ -150,6 +166,8 @@ class CADPlotter(GeomPlotter):
     def _draw_loop(cls,loop:Loop, *args, **kwargs):
         end_points=cls._com_point_list(loop.nodes)
         ent=cls.model_space.AddPolyline(end_points)
+        for i,edge in enumerate(loop.edges):
+            ent.SetBulge(i,edge.bulge if isinstance(edge,Arc) else 0)
         ent.Closed=True
         ent.Color=1 if loop.area>=0 else 2
         show_node_text=kwargs.get("show_node_text",False)

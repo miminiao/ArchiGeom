@@ -3,6 +3,7 @@
 *.dwl2
 *.code-workspace
 output/
+data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

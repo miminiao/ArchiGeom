@@ -1,4 +1,3 @@
-import pythoncom
 import win32com.client
 import json
 from tool.converter.cad_object import CADEntity,CADBlockDef
@@ -20,7 +19,9 @@ def get_cad_objects()->list[CADEntity|CADBlockDef]:
             if object_name:=ent.ObjectName!="":
                 ...  # DEBUG
             if (parsed_ent:=CADEntity.parse(ent)) is not None:
-                res.append(parsed_ent)
+                if isinstance(parsed_ent,list): 
+                    res.extend(parsed_ent)
+                else: res.append(parsed_ent)
             i += 1
         except Exception as e:
             if i>last_exception: 
@@ -41,6 +42,6 @@ if __name__=="__main__":
     # dumper=JsonDumper.to_cgs
     dumper=lambda _:_.__dict__
 
-    with open("./tool/converter/output/output.json",'w',encoding="utf8") as f:
+    with open("./tool/converter/output/case_13.json",'w',encoding="utf8") as f:
         json.dump(cad_objects,f,ensure_ascii=False,default=dumper)
 

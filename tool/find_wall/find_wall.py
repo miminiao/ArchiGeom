@@ -387,7 +387,7 @@ def recognize_windows_and_doors(opening_regions:list[Loop],
         neighbor_lines:list[LineSeg]=rt_watch_opening_lines.query(region.get_mbb())
         for line in neighbor_lines:
             if line.length<const.TOL_DIST: continue
-            mid,_=line.point_at(t=0.5)
+            mid=line.point_at(t=0.5)
             if not region.contains(mid): continue
             for region_bound in region.LineSegs:
                 if mid.is_on_LineSeg(region_bound): 
@@ -401,7 +401,7 @@ def recognize_windows_and_doors(opening_regions:list[Loop],
         min_dist=const.MAX_VAL
         nearest_region=None
         for region in opening_regions:
-            centroid,_=LineSeg(region.nodes[0],region.nodes[2]).point_at(t=0.5)
+            centroid=LineSeg(region.nodes[0],region.nodes[2]).point_at(t=0.5)
             dist=centroid.dist(opening_block.insert_point)
             if dist<min_dist and dist<=opening_block_dist_limit:
                 min_dist=dist

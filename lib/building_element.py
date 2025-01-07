@@ -26,7 +26,7 @@ class Wall(BuildingElement):
     def insert_opening(self,opening:"Opening")->None:
         opening.parent=self
         translation=opening.insert_point.to_vec3d()-self.base.s.to_vec3d()
-        basis=self.base.frame_at(self.base.get_point_param(opening.insert_point))
+        basis=self.base.frame_at(self.base.get_param(opening.insert_point))
         opening.pos_wrt_wall=basis.transpose()@translation
         type_map={Window:self.windows,Door:self.doors,Hole:self.holes}
         type_map[type(opening)].append(opening)
@@ -51,7 +51,7 @@ class Opening(BuildingElement):
         # if self.pos_wrt_wall is None: 
             return self._insert_point
     def start_point(self)->Node:
-        self.parent.base.point_at(self.parent.base.get_point_param(self.insert_point))
+        self.parent.base.point_at(self.parent.base.get_param(self.insert_point))
         return 
 class Door(Opening):
     def __init__(self, parent: Wall, type: str, width: float, insert_point: Node=None, region: Loop=None) -> None:

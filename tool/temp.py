@@ -1,9 +1,3 @@
-def foo():
-    print("starting...")
-    while True:
-        res = yield 4
-        print("res:",res)
-g = foo()
-print(next(g))
-print("*"*20)
-print(next(g))
+import re
+res=re.findall("(?<![A-Z0-9])[1-3]?AC(?![A-Z0-9])","A C")
+print(res)

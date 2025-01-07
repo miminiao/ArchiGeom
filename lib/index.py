@@ -1,51 +1,19 @@
 import math
-
-from lib.geom import Geom,Node
-from lib.domain import Domain1d
 from lib.utils import Constant,ListTool
-
-class TreeNode:
-    """树"""
-    def __init__(self,obj,parent:"TreeNode"=None,child:list["TreeNode"]=None) -> None:
-        self.obj=obj
-        self.parent=parent
-        self.child:list[TreeNode] =child if child is not None else []
-
-    def getRoot(node:"TreeNode")->"TreeNode":
-        while node.parent is not None:
-            node=node.parent
-        return node
-    def get_leaf_nodes(self)->list[Node]:
-        nodes=[]
-        for ch in self.child:
-            if ch is not None:
-                nodes.extend(self.get_leaf_nodes(ch))
-        return nodes
-class UFSNode(TreeNode):
-    """并查集"""
-    def __init__(self, obj, parent: "TreeNode" = None, child: list["TreeNode"] = None) -> None:
-        super().__init__(obj, parent, child)
-    def getRoot(self,node:"UFSNode")->"UFSNode":
-        path=[]
-        while node.parent is not None:
-            path.append(node)
-            node=node.parent
-        for i in path: i.parent=node
-        return node        
-    def add(node:"UFSNode",parent:"UFSNode")->None:
-        node.parent=parent
-        parent.child.append(node)
+from lib.domain import Domain1d
+from lib.geom import Geom,Node
+from lib.basic_structure import TreeNode
 
 class _STRNode(TreeNode):
     """STR树结点"""
-    def __init__(self,index:int,geom:Geom=None,child:list["_STRNode"]=None) -> None:
+    def __init__(self,index:int,geom:"Geom"=None,child:list["_STRNode"]=None) -> None:
         super().__init__(geom,None,child)
         self.index=index
         self.mbb=geom.get_mbb() if index!=-1 else Geom.merge_mbb([ch.mbb for ch in child])
 
 class STRTree:
     """STR树"""
-    def __init__(self, geoms:list[Geom], node_capacity:int=10) -> None:
+    def __init__(self, geoms:list["Geom"], node_capacity:int=10) -> None:
         """以几何图形外包矩形构造一棵STR树
 
         Args:
@@ -81,9 +49,9 @@ class STRTree:
                 self._root=parent_treenodes[0]
                 break
             child_treenodes=parent_treenodes
-    def __getitem__(self,index:int)->Geom:
+    def __getitem__(self,index:int)->"Geom":
         return self.geoms[index]
-    def query_idx(self,extent:tuple[Node,Node],tol:float=0,tree_node:_STRNode=None)-> list[int]:
+    def query_idx(self,extent:tuple["Node","Node"],tol:float=0,tree_node:_STRNode=None)-> list[int]:
         """框选查询
 
         Args:
@@ -104,7 +72,7 @@ class STRTree:
             if (qmin.x<=chmax.x+tol) and (chmin.x<=qmax.x+tol) and (qmin.y<=chmax.y+tol) and (chmin.y<=qmax.y+tol):
                 res=res+self.query_idx(extent,tol,ch)
         return res
-    def query(self,extent:tuple[Node,Node],tol:float=0,tree_node:_STRNode=None) -> list[Geom]:
+    def query(self,extent:tuple["Node","Node"],tol:float=0,tree_node:_STRNode=None) -> list["Geom"]:
         """框选查询
 
         Args:
@@ -211,13 +179,13 @@ if 1 and __name__ == "__main__":
     segtree=SegmentTree(doms)
 
     
-    print(f"{len(merged_lines)} lines after")
+    # print(f"{len(merged_lines)} lines after")
 
-    plt.subplot(2,1,2)
-    for i,dom in enumerate(merged_lines):
-        plt.plot([dom.s.x,dom.e.x],[dom.s.y+dom.lw+dom.rw,dom.e.y+dom.lw+dom.rw])
+    # plt.subplot(2,1,2)
+    # for i,dom in enumerate(merged_lines):
+    #     plt.plot([dom.s.x,dom.e.x],[dom.s.y+dom.lw+dom.rw,dom.e.y+dom.lw+dom.rw])
 
-    plt.show()
+    # plt.show()
 
     # CASE_ID="6"
 

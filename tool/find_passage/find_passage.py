@@ -55,7 +55,7 @@ if __name__=="__main__":
         for door in doors:
             for loop in loops:
                 for edge in loop.edges:
-                    if door.point_at(0.5)[0].is_on_edge(edge):
+                    if door.point_at(0.5).is_on_edge(edge):
                         doors_on_loop[loop].append(door)
         
         # loop组成房间polygon
@@ -122,8 +122,8 @@ if __name__=="__main__":
                     if doors[i] in poly_dict and doors[j] in poly_dict and \
                         poly_dict[doors[i]] is not poly_dict[doors[j]]:
                         # 无法联通的门之间画虚线
-                        plt.plot([doors[i].point_at(0.5)[0].x,doors[j].point_at(0.5)[0].x],
-                                [doors[i].point_at(0.5)[0].y,doors[j].point_at(0.5)[0].y],
+                        plt.plot([doors[i].point_at(0.5).x,doors[j].point_at(0.5).x],
+                                [doors[i].point_at(0.5).y,doors[j].point_at(0.5).y],
                                 'r--') 
 
     plt.show()

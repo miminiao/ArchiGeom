@@ -1,7 +1,7 @@
 import json
-from lib.geom import Geom,Node,Edge,Polyedge,Loop,Polygon
+from lib.geom import Geom,Edge,Polyedge,Loop
 from lib.geom_algo import FindLoopAlgo
-from lib.geom_plotter import MPLPlotterr,CADPlotter
+from lib.geom_plotter import MPLPlotter,CADPlotter
 from tool.converter.json_converter import JsonLoader
 
 def read_geoms()->list[Geom]:

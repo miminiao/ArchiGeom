@@ -40,22 +40,6 @@ def find_loop(nodes:list[Node])->list[Loop]:
                 visited_edges.add(node.edge_out[i]) #标记为已访问
                 pre_edge=node.edge_out[i] #接着找下一条边
     return loops
-def make_cover_tree(loops:list[Loop])->list[TreeNode]:
-    t:list[TreeNode] =[TreeNode(loop) for loop in loops] #把loop都变成TreeNode
-    for i in range(len(t)-1):
-        for j in range(i+1,len(t)):
-            ni,nj=t[i],t[j]
-            ci=ni.obj.contains(nj.obj)
-            cj=nj.obj.contains(ni.obj)
-            if not ci and not cj: continue #没有覆盖关系时，跳过
-            if cj and not ci: #j覆盖i且i不覆盖j（ij不重合）时，ij互换 
-                ni,nj=nj,ni
-            if (nj.parent is None) or (abs(ni.obj.area)<abs(nj.parent.obj.area)): #此时可确保i覆盖j，通过比较面积更新j.parent
-                nj.parent=ni
-    for i in t:
-        if i.parent is not None:
-            i.parent.child.append(i)
-    return t
 
 def get_door_points(nodes:list[Node],door_lines:list[Edge],point_num:int) -> dict[Edge:list[Node]]:
     """返回dict{门线：[门上各点]}"""
@@ -75,7 +59,7 @@ def get_door_points(nodes:list[Node],door_lines:list[Edge],point_num:int) -> dic
                         door_edge=Edge(s,e)  # 真实的开门范围
                         door_points[door_line]=[s]
                         for i in range(1,point_num):
-                            door_point=door_edge.point_at(t=i/(point_num-1))[0]
+                            door_point=door_edge.point_at(t=i/(point_num-1))
                             door_points[door_line].append(door_point)
                     break
             else: continue
@@ -102,7 +86,7 @@ def find_doors(loops:list[Loop],door_lines:list[Edge],door_points:dict[Edge:list
 def get_visibility_graph(room:Polygon,doors_on_loop:dict[Loop:list[Node]]) ->dict[Node:list[Node]]:
     """计算房间内可见性图"""
     nodes=room.nodes()
-    loops=[room.exterior]+room.interiors
+    loops=[room.shell]+room.holes
     # 加入门上的点
     for loop in loops:
         if loop in doors_on_loop:
@@ -190,7 +174,7 @@ if 1 and __name__ == "__main__":
         # 画墙基线
         for loop in loops:
             for edge in loop.edges:
-                other,t=edge.point_at(0.3)
+                other=edge.point_at(0.3)
                 plt.plot([edge.s.x,other.x],[edge.s.y,other.y],color="m")
         # 画房间
         for room in rooms:

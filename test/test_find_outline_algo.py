@@ -28,4 +28,4 @@ def test_find_single_outline(case):
             edges.append(Arc(s,e,ent["bulge"]))
     outline=FindOutlineAlgo(edges).get_result()
     assert len(outline.edges)==case["out"][0]
-    assert abs(outline.get_area()-case["out"][1])<const.TOL_AREA
+    assert abs(outline.area()-case["out"][1])<const.TOL_AREA

@@ -1,7 +1,7 @@
 """Geom<-->json"""
 
 import math
-from lib.geom import Geom,Node,LineSeg,Arc,Polyedge,Loop,shPolygon
+from lib.geom import Geom,Node,LineSeg,Arc,Polyedge,Loop
 from lib.linalg import Tensor,Vec3d,Vec4d,Mat3d,Mat4d
 from test.CGS.case_model import CGSTestCase
 
@@ -78,13 +78,16 @@ class JsonLoader:
                 s,e=Node(*obj["start_point"]),Node(*obj["end_point"])
                 if total_angle<0: total_angle+=math.pi*2
                 return Arc(s,e,math.tan(total_angle/4))
+            case "circle":
+                return [Arc.from_center_radius_angle(Node(*obj["center"]), obj["radius"], 0, math.pi),
+                        Arc.from_center_radius_angle(Node(*obj["center"]), obj["radius"], math.pi, math.pi*2)]
             case "polyline":
-                pl_nodes=[(Node(*seg["start_point"]),seg["bulge"]) for seg in obj["segments"]]
+                nodes=[Node(*seg["start_point"]) for seg in obj["segments"]]
+                bulges=[seg["bulge"] for seg in obj["segments"]]
                 if obj["is_closed"]:
-                    # return Loop(pl_nodes)
-                    return Loop.from_nodes([Node(*seg["start_point"]) for seg in obj["segments"]])  # TODO 替换Loop的构造方法
+                    return Loop(nodes,bulges)
                 else:
-                    return Polyedge(pl_nodes)
+                    return Polyedge(nodes,bulges)
             case "hatch":
                 ...
             case "text":

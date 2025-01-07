@@ -11,11 +11,12 @@ from lib.linalg import Vec3d
 from lib.domain import Domain1d
 from lib.geom import (
     Geom,Node,Edge,LineSeg,Arc,Loop,Polygon,
-    shPolygon,shPoint,shBox,
+    GeomUtil
     )
 from lib.utils import Timer,Constant,ListTool
 from lib.index import STRTree,TreeNode,SegmentTree
 from lib.building_element import Wall
+from lib.geom_plotter import MPLPlotter,CADPlotter
 
 class GeomAlgo(ABC):
     def __init__(self,const:Constant=None) -> None:
@@ -64,7 +65,7 @@ class MaxRectAlgo(GeomAlgo):
             list[Loop]: 第1..order大内接矩形.
         """
         # 1. 根据顶点坐标和精度切分网格，将BoundingBox切割为m*n个cell
-        x, y = self._cut_bounds(poly, self.precision, max_depth=self.cut_depth)
+        x, y = self._cut_bounds(self.poly, self.precision, max_depth=self.cut_depth)
         print("网格数=", len(x), "*", len(y))
 
         # 2. 计算每个cell是否在多边形内
@@ -116,7 +117,7 @@ class MaxRectAlgo(GeomAlgo):
         edges = poly.edges()
         nodes = poly.nodes()
         int_nodes = self._intersection_nodesXY(edges, nodes)  # 用所有顶点xy切割边
-        mbb=poly.exterior.get_mbb()
+        mbb=poly.shell.get_mbb()
         int_gridX, int_gridY = self._intersection_gridXY(
             [mbb[0].x,mbb[0].y,mbb[1].x,mbb[1].y], edges, precision
         )  # 用细分网格xy切割边
@@ -211,13 +212,13 @@ class MaxRectAlgo(GeomAlgo):
     @Timer()
     def _get_01matrix(self, poly: Polygon, x: list[float], y: list[float]) -> np.ndarray:
         """计算每个cell是否在多边形内。cellInside[0,:]=cellInside[:,0]=cellInside[m,:]=cellInside[:,n]=False"""
-        poly = shPolygon(*poly.offset(dist=-self.const.TOL_DIST).to_array())
+        poly = Polygon(*poly.offset(dist=-self.const.TOL_DIST).to_array())
         prepare(poly)
         m, n = len(x), len(y)
         ptmat = np.zeros((m, n), dtype=bool)
         for i in range(m):
             for j in range(n):
-                ptmat[i, j] = poly.covers(shPoint(x[i], y[j]))
+                ptmat[i, j] = poly.covers(Node(x[i], y[j]))
         mat = np.zeros((m + 1, n + 1), dtype=bool)
         for i in range(1, m):
             for j in range(1, n):
@@ -446,7 +447,7 @@ class MergeLineAlgo(GeomAlgo):
             elif r2>r1+self.const.TOL_DIST: # 3.相交且需要延长，先比较优先级
                 match self.compare(lines[i],lines[i-1]):
                     case 0: # 3.1.线段i的优先级和i-1相等，就直接延长线段i-1，并删掉线段i；不影响lines有序性
-                        lines[i-1].s,line[i-1].e=lines[i-1].s,lines[i].e
+                        lines[i-1].s,lines[i-1].e=lines[i-1].s,lines[i].e
                         lines.pop(i)
                     case 1: # 3.2.线段i的优先级较高，就切割线段i-1；不影响lines有序性
                         lines[i-1].s,lines[i-1].e=lines[i-1].s,lines[i].s
@@ -457,7 +458,7 @@ class MergeLineAlgo(GeomAlgo):
                     case -1: # 3.3.线段i的优先级较低，就切割线段i；可能影响lines顺序
                         lines[i].s,lines[i].e=lines[i-1].e,lines[i].e
                         new_pos=i
-                        while new_pos<len(lines)-1 and proj(lines[new_pos].s)>proj(lines[new_pos+1].s)+const.TOL_DIST:  # 重新排序
+                        while new_pos<len(lines)-1 and proj(lines[new_pos].s)>proj(lines[new_pos+1].s)+self.const.TOL_DIST:  # 重新排序
                             lines[new_pos],lines[new_pos+1]=lines[new_pos+1],lines[new_pos]
                             new_pos+=1
                         if new_pos==i: i+=1  # 对顺序没影响的情况
@@ -482,7 +483,7 @@ class MergeLineAlgo(GeomAlgo):
                 merged_lines.append(dom.line)
         return merged_lines
 class BreakEdgeAlgo(GeomAlgo):
-    def __init__(self,edge_groups:list[list[Edge]]|list[Edge],const:Constant=None) -> None:
+    def __init__(self,edge_groups:list[list[Edge]],const:Constant=None) -> None:
         """线段打断，并保留原先的分组
 
         Args:
@@ -490,7 +491,7 @@ class BreakEdgeAlgo(GeomAlgo):
             const (Constants, optional): 误差控制常量. Defaults to Constants.DEFAULT.
         """
         super().__init__(const=const)
-        self.edge_groups=edge_groups
+        self.edge_groups:list[list[Edge]]=edge_groups
         self.all_edges:list[Edge]=[]
         self.result_groups:list[list[Edge]]=[]
     def get_result(self)->list[list[Edge]]:
@@ -538,17 +539,17 @@ class BreakEdgeAlgo(GeomAlgo):
                     break_points[line].extend(intersection)
                     break_points[other].extend(intersection)
         return break_points
-    def _rebuild_lines(self,break_points:dict[Edge:list[Node]])->list[list[Edge]]:
+    def _rebuild_lines(self,break_points:dict[Edge,list[Node]])->list[list[Edge]]:
         """根据断点重构线段"""
         broken_lines=[]
         for group in self.edge_groups:
             new_group=[]
             for line in group:
-                break_points[line].sort(key=lambda p:line.get_point_param(p))
+                break_points[line].sort(key=lambda p:line.get_param(p))
                 pre=break_points[line][0]
                 for p in break_points[line]:
                     if p.equals(pre): continue
-                    new_group.append(line.slice_between_points(pre, p))
+                    new_group.append(line.slice_between_nodes(pre, p))
                     pre=p
             broken_lines.append(new_group)
         return broken_lines
@@ -655,9 +656,9 @@ class FindOutlineAlgo(GeomAlgo):
                 edge=self.edges[i]
                 if not this_node.is_on_edge(edge): continue
                 if not this_node.equals(edge.s):
-                    edges_from_this_node.append(edge.opposite().slice_between_points(this_node,edge.s))
+                    edges_from_this_node.append(edge.opposite().slice_between_nodes(this_node,edge.s))
                 if not this_node.equals(edge.e):
-                    edges_from_this_node.append(edge.slice_between_points(this_node,edge.e))
+                    edges_from_this_node.append(edge.slice_between_nodes(this_node,edge.e))
             # 从pre_edge.opposite出发，对这些连线按角度[0,2pi)逆时针排序
             op=pre_edge.opposite()
             edges_from_this_node.sort(key=lambda edge:op.tangent_at(0).angle_to(edge.tangent_at(0)))
@@ -691,7 +692,7 @@ class FindOutlineAlgo(GeomAlgo):
         return Loop(outline)
     def _postprocess(self) -> None:
         pass
-class FindLoopAlgo(GeomAlgo):  #TODO
+class FindLoopAlgo(GeomAlgo):
     def __init__(self,edges:list[Edge],const:Constant=None) -> None:
         """搜索曲线构成的所有封闭区域
 
@@ -702,6 +703,7 @@ class FindLoopAlgo(GeomAlgo):  #TODO
         super().__init__(const=const)
         self.edges:list[Edge]=edges
         self.loops:list[Loop]=[]
+    @Timer()
     def _preprocess(self)->None:
         super()._preprocess()
         # 打断边，并构建双向连接的图结构
@@ -711,50 +713,58 @@ class FindLoopAlgo(GeomAlgo):  #TODO
         for edge in self.edges:
             s=GeomUtil.find_or_insert_node(edge.s,self.nodes)
             e=GeomUtil.find_or_insert_node(edge.e,self.nodes)
+            edge.s,edge.e=s,e
             GeomUtil.add_edge_to_node_in_order(s,edge)
             GeomUtil.add_edge_to_node_in_order(e,edge.opposite())
     def get_result(self):
         self._preprocess()
         self.loops=self._find_loop()
         self._postprocess()
+        return self.loops
+    @Timer()
     def _postprocess(self)->None:
         super()._postprocess()
+    @Timer()
     def _find_loop(self)->list[Loop]:
+        # 沿逆时针优先的方向，顺着边往下找，
+        # 碰到已找过的边就计为一个环，直到所有边都找完。
         loops:list[Loop] =[]
-        visited_edges=set()
-        edge_num=2*len(self.edges)  # 双向连接
+        edge_stack:list[Edge]=[]  # 当前栈里的边
+        edge_num=2*len(self.edges)
         while edge_num>0:  # 每次循环找一个环，直到所有边都被遍历过
-            new_loop:list[Node]=[]
-            for node in self.nodes:  # 先随便找一条边作为pre_edge
-                if len(node.edge_out)>0:
-                    pre_edge=node.edge_out[0]
-                    break
-            while True:  # 以pre_edge.e为当前结点开始找一个环
-                node=pre_edge.e  # 当前结点
-                op=pre_edge.opposite()
+            if len(edge_stack)==0:  # 栈空了就随便找一条边作为起始
+                for node in self.nodes:
+                    if len(node.edge_out)>0:
+                        edge_stack=[node.edge_out[0]]
+                        break
+            while True:  # 以pre.e为当前结点开始找一个环
+                node=edge_stack[-1].e  # 当前结点
+                op=edge_stack[-1].opposite()
                 pre_angle=op.tangent_at(0).angle  # 入边的角度
-                pre_radius=pre_edge.opposite().curvature_radius_at(0,signed=True)
+                pre_radius=op.radius_at(0,signed=True)  # 入边的半径
                 i=len(node.edge_out)-1
-                # 按角度找下一条出边
+                # 按角度和半径找下一条出边，确保内环优先逆时针方向
                 while i>=0:
                     angle_i=node.edge_out[i].tangent_at(0).angle
-                    radius_i=node.edge_out[i].curvature_radius_at(0,signed=True)
-                    if self.const.lt(angle_i,pre_angle,"TOL_ANGLE"): 
-                        break  # 角度比前一条出边小的第一条边，确保内环优先逆时针方向
-                    if self.const.eq(angle_i,pre_angle,"TOL_ANGLE"):
-                        if radius_i>pre_radius:
-                        break  # 角度相同的，比较曲率半径，
+                    radius_i=node.edge_out[i].radius_at(0,signed=True)
+                    if self.const.comp(angle_i,pre_angle,"TOL_ANG")<0: 
+                        break  # 取角度比前一条出边小的第一条边
+                    if self.const.comp(angle_i,pre_angle,"TOL_ANG")==0:
+                        if Edge.compare_curvature_by_radius(radius_i,pre_radius)<0:
+                            break  # 角度相同的，比较带符号曲率，取曲率比前一条出边小的第一条边
                     i-=1
-                if node.edge_out[i] in visited_edges:  #如果找到了已访问的边就封闭这个环
-                    loops.append(Loop(new_loop)) #先将此环加入list
-                    for i in range(len(new_loop)): #并把环上的边都从邻接表里删掉
-                        new_loop[i].s.edge_out.remove(new_loop[i])
-                    edge_num-=len(new_loop) #从总边数中减去环的边数
+                next_edge=node.edge_out[i]
+                if next_edge in edge_stack:  # 如果找到了已访问的边就封闭这个环
+                    start_idx=edge_stack.index(next_edge)  # 环的起始边
+                    new_loop=edge_stack[start_idx:]
+                    loops.append(Loop.from_edges(new_loop))  # 先将此环加入结果list
+                    edge_stack=edge_stack[:start_idx]  # 剩余的留在栈里继续下一轮
+                    for edge in new_loop:  # 并把环上的边从邻接表和栈里都删掉
+                        edge.s.edge_out.remove(edge)
+                    edge_num-=len(new_loop)  # 从总边数中减去环的边数
                     break
-                else: #如果找到的不是已访问的边
-                    new_loop.append(node.edge_out[i]) #就将此边加入环
-                    visited_edges.add(node.edge_out[i]) #标记为已访问
-                    pre_edge=node.edge_out[i] #接着找下一条边
+                else:  # 如果找到的不是已访问的边，就将此边加入栈，接着找下一条边
+                    edge_stack.append(next_edge)
         return loops
 class FindRoomAlgo(GeomAlgo): #TODO
     def __init__(self,edges:list[Wall],const:Constant=None) -> None:
@@ -765,31 +775,7 @@ class FindRoomAlgo(GeomAlgo): #TODO
         super()._preprocess()
     def _postprocess(self) -> None:
         super()._postprocess()
-    def make_cover_tree(loops:list[Loop])->list[TreeNode]:
-        loops.sort(key=lambda loop:abs(loop.area),reverse=True)  # 按面积排序，确保循环的时候每个TreeNode都有正确的parent
-        t:list[TreeNode] =[TreeNode(loop) for loop in loops] #把loop都变成TreeNode
-        for i in range(len(t)-1):
-            for j in range(i+1,len(t)):
-                ni,nj=t[i],t[j]
-                ci=ni.obj.covers(nj.obj)
-                cj=nj.obj.covers(ni.obj)
-                if not ci and not cj: # 没有覆盖关系时，跳过
-                    continue
-                elif ci and cj:  # 互相覆盖(重合)的时候，取ci.parent的相反方向的环作为外环
-                    if ni.parent is None or ni.parent.obj.area>0:  # ni.parent是内环，就让负的覆盖正的，保证正-负-正的关系
-                        if ni.obj.area>0:
-                            ni,nj=nj,ni
-                    else:  # ni.parent是外环，就让正的覆盖负的，保证负-正-负的关系
-                        if ni.obj.area<0:
-                            ni,nj=nj,ni
-                elif cj and not ci:  # j覆盖i且i不覆盖j（ij不重合）时，ij互换 
-                    ni,nj=nj,ni
-                # 此时确保i覆盖j
-                nj.parent=ni
-        for i in t:
-            if i.parent is not None:
-                i.parent.child.append(i)
-        return t
+
 class SplitIntersectedLoopsAlgo(GeomAlgo):
     """
     多个相交/自相交环的合并算法。
@@ -895,7 +881,7 @@ class SplitIntersectedLoopsAlgo(GeomAlgo):
                     breakpoints[ej].append(pj)
         # 每条边按顺序重排断点
         for edge in self.all_edges:
-            breakpoints[edge].sort(key=lambda node:edge.get_point_param(node))
+            breakpoints[edge].sort(key=lambda node:edge.get_param(node))
             # 加入首尾顶点
             breakpoints[edge].insert(0,edge.s)
             breakpoints[edge].append(edge.e)
@@ -960,7 +946,7 @@ class MergeWallAlgo(GeomAlgo):
         line_walls=filter(lambda wall:isinstance(wall.base,LineSeg),walls)
         walls.sort(key=lambda wall:wall.base.angle)
         current_angle=-self.const.MAX_VAL
-        for line in lines:
+        for line in line_walls:
             if line.angle-current_angle>self.const.TOL_ANG: # !parallel
                 new_group=[line]
                 parallel_groups.append(new_group)
@@ -975,25 +961,5 @@ class MergeWallAlgo(GeomAlgo):
                     pass
     def _postprocess(self)->None:
         super()._postprocess()
-class GeomUtil:
-    """几何工具类"""
-    @staticmethod
-    def find_or_insert_node(target_node:Node,nodes:list[Node],copy=False)->Node:
-        for node in nodes:
-            if target_node.equals(node):
-                return node if not copy else Node(node.x,node.y,node.z)
-        nodes.append(target_node)
-        return target_node
-    @staticmethod
-    def add_edge_to_node_in_order(node:Node, edge:Edge)->None: 
-        """有序插入：第一关键字角度，第二关键字曲率半径（左正右负）"""
-        ang=edge.tangent_at(0).angle
-        radius=edge.curvature_radius_at(0)
-        i=0
-        while i<len(node.edge_out):
-            ang_i=node.edge_out[i].tangent_at(0).angle
-            radius_i=node.edge_out[i].curvature_radius_at(0)
-            if Geom.const.lt(ang_i,ang,"TOL_ANG"): break  # 角度升序
-            if Geom.const.eq(ang_i,ang,"TOL_ANG") and Edge.compare_curvature_by_radius(radius_i,radius)<0: break  # 角度相同时按曲率升序
-            i+=1
-        node.edge_out.insert(i,edge)
+
+

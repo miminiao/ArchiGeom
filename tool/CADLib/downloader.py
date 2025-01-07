@@ -1,8 +1,10 @@
+import importlib.simple
 import requests
 import json
 import asyncio
 
 class Downloader:
+    URL="http://192.168.20.113:38405/FileInfo/Download"
     def __init__(self,data_type:type,suffix:str=".dwg"):
         self.data_type=data_type
         self.suffix=suffix
@@ -15,7 +17,6 @@ class Downloader:
         self.failed_ids_path=f"{module_path}/failed_ids.json"
         self.failed_ids=[]
     def _download_item(self,item_id:str,timeout:float)->None:
-        url="http://47.103.58.154:38405/FileInfo/Download"
         data={
             "fileName":item_id+self.suffix,
             "typeName":self.type_name,
@@ -26,7 +27,7 @@ class Downloader:
             "userinfo":"",
         }
         try:
-            res=requests.post(url=url,data=data,headers=headers,timeout=timeout)
+            res=requests.post(url=self.URL,data=data,headers=headers,timeout=timeout)
             with open(f"{self.data_path}/{item_id}{self.suffix}","wb") as f:
                 f.write(res.content)
         except requests.exceptions.Timeout:
@@ -35,7 +36,8 @@ class Downloader:
         with open(self.info_path,encoding="utf8") as f:
             info=json.load(f)
         for i,j_obj in enumerate(info):
-            obj=self.data_type.from_dict(j_obj)
+            # obj=self.data_type.from_dict(j_obj)
+            obj=self.data_type(**j_obj)
             self._download_item(item_id=getattr(obj,self.id_attr),timeout=timeout)
             if i==count-1: break
         with open(self.failed_ids_path,"w") as f:
@@ -65,20 +67,30 @@ def get_model(data_type:str):
         case "rental_unit":
             from tool.CADLib.rental_unit.model import RentalUnit
             return RentalUnit
+        case "su_railing":
+            from tool.CADLib.su_railing.model import SURailing
+            return SURailing
+        case "su_window":
+            from tool.CADLib.su_window.model import SUWindow
+            return SUWindow        
+        case "su_door":
+            from tool.CADLib.su_door.model import SUDoor
+            return SUDoor   
         case _:
             raise ValueError("Invalid data type")
     
 if __name__=="__main__":
     # 素材库
-    # downloader=Downloader(data_type=get_model("rental_unit"))
-    # downloader.execute()
+    downloader=Downloader(data_type=get_model("su_door"),suffix=".skp")
+    downloader.execute()
     
     # 厨卫
-    downloader=Downloader(data_type=get_model("kitchen"))
-    for i in range(4):
-        for j in range(10):
-            if i==0 and j==0: continue
-            if i==3 and j==3: break
-            downloader._download_item(f"THSTD_KICH_{i}{j}",10)
-        else:continue
-        break
+    # downloader=Downloader(data_type=get_model("kitchen"))
+    # for i in range(4):
+    #     for j in range(10):
+    #         if i==0 and j==0: continue
+    #         if i==3 and j==3: break
+    #         downloader._download_item(f"THSTD_KICH_{i}{j}",10)
+    #     else:continue
+    #     break
+

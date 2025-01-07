@@ -4,49 +4,7 @@ from lib.geom import Node,Edge,Loop,Polygon,GeomUtil
 from lib.index import TreeNode
 from lib.utils import Timer, Constant
 
-def find_loop(nodes:list[Node])->list[Loop]:
-    loops:list[Loop] =[]
-    visited_edges=set()
-    edge_num=sum([len(node.edge_out) for node in nodes]) #算总边数
-    while edge_num>0: #每次循环找一个环，直到所有边都被遍历过
-        new_loop:list[Node]=[]
-        for node in nodes: #先随便找一条边作为pre_edge
-            if len(node.edge_out)>0:
-                pre_edge=node.edge_out[0]
-                break
-        while True: #以pre_edge.e为当前结点开始找一个环
-            node=pre_edge.e #当前结点
-            theta=pre_edge.opposite().angle #入边的角度
-            i=len(node.edge_out)-1
-            while i>=0 and node.edge_out[i].angle+const.TOL_ANG>=theta: #按角度找下一条出边
-                i-=1
-            if node.edge_out[i] in visited_edges:  #如果找到了已访问的边就封闭这个环
-                loops.append(Loop(new_loop)) #先将此环加入list
-                for i in range(len(new_loop)): #并把环上的边都从邻接表里删掉
-                    new_loop[i].s.edge_out.remove(new_loop[i])
-                edge_num-=len(new_loop) #从总边数中减去环的边数
-                break
-            else: #如果找到的不是已访问的边
-                new_loop.append(node.edge_out[i]) #就将此边加入环
-                visited_edges.add(node.edge_out[i]) #标记为已访问
-                pre_edge=node.edge_out[i] #接着找下一条边
-    return loops
-def make_cover_tree(loops:list[Loop])->list[TreeNode]:
-    t:list[TreeNode] =[TreeNode(loop) for loop in loops] #把loop都变成TreeNode
-    for i in range(len(t)-1):
-        for j in range(i+1,len(t)):
-            ni,nj=t[i],t[j]
-            ci=ni.obj.contains(nj.obj)
-            cj=nj.obj.contains(ni.obj)
-            if not ci and not cj: continue #没有覆盖关系时，跳过
-            if cj and not ci: #j覆盖i且i不覆盖j（ij不重合）时，ij互换 
-                ni,nj=nj,ni
-            if (nj.parent is None) or (abs(ni.obj.area)<abs(nj.parent.obj.area)): #此时可确保i覆盖j，通过比较面积更新j.parent
-                nj.parent=ni
-    for i in t:
-        if i.parent is not None:
-            i.parent.child.append(i)
-    return t
+
 
 # %% 测试
 if 1 and __name__ == "__main__":
@@ -99,7 +57,7 @@ if 1 and __name__ == "__main__":
         # 画墙基线
         for loop in loops:
             for edge in loop.edges:
-                other,t=edge.point_at(0.3)
+                other=edge.point_at(0.3)
                 plt.plot([edge.s.x,other.x],[edge.s.y,other.y],color="m")
         # 画房间
         for room in rooms:

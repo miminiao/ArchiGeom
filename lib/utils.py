@@ -82,7 +82,9 @@ class Constant:
         return cls._instances[tag]
     def comp(self,a:float,b:float,tol_type:str="TOL_DIST"):
         """比较大小"""
-        return abs(a-b)<getattr(self,tol_type)
+        if abs(a-b)<getattr(self,tol_type): return 0
+        elif a>b: return 1
+        else: return -1
 
 class ListTool:
     def sort_and_overkill(a: list[float],const:Constant=None) -> None:

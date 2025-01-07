@@ -1,0 +1,191 @@
+[
+    {
+        "partNo": "M-008(双扇平开门两侧固定扇)外侧高差线",
+        "shape": "平开",
+        "property": "可开启扇总宽",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-008(双扇平开门两侧固定扇)内侧高差线",
+        "shape": "平开",
+        "property": "可开启扇总宽",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-008(双扇平开门两侧固定扇)",
+        "shape": "平开",
+        "property": "可开启扇总宽",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-010(双扇墙内推拉门)外侧高差线",
+        "shape": "推拉",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-010(双扇墙内推拉门)内侧高差线",
+        "shape": "推拉",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-010(双扇墙内推拉门)",
+        "shape": "推拉",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-009(单扇墙内推拉门)外侧高差线",
+        "shape": "推拉",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-009(单扇墙内推拉门)内侧高差线",
+        "shape": "推拉",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-009(单扇墙内推拉门)",
+        "shape": "推拉",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-007(四扇推拉门)外侧高差线",
+        "shape": "推拉",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-007(四扇推拉门)内侧高差线",
+        "shape": "推拉",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-007(四扇推拉门)",
+        "shape": "推拉",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-005(三扇推拉门)外侧高差线",
+        "shape": "推拉",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-005(三扇推拉门)内侧高差线",
+        "shape": "推拉",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-005(三扇推拉门)",
+        "shape": "推拉",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-004(双扇推拉门)外侧高差线",
+        "shape": "推拉",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-004(双扇推拉门)内侧高差线",
+        "shape": "推拉",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-004(双扇推拉门)",
+        "shape": "推拉",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-003(子母门平开)外侧高差线",
+        "shape": "平开",
+        "property": "子母门小扇宽",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-003(子母门平开)内侧高差线",
+        "shape": "平开",
+        "property": "子母门小扇宽",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-003(子母门平开)",
+        "shape": "平开",
+        "property": "子母门小扇宽",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-002(双扇平开门)外侧高差线",
+        "shape": "平开",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-002(双扇平开门)内侧高差线",
+        "shape": "平开",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-002(双扇平开门)",
+        "shape": "平开",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-001(单扇平开门)外侧高差线",
+        "shape": "平开",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-001(单扇平开门)内侧高差线",
+        "shape": "平开",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    },
+    {
+        "partNo": "M-001(单扇平开门)",
+        "shape": "平开",
+        "property": "无",
+        "materialSupply": null,
+        "enteredBy": "集团产品部"
+    }
+]

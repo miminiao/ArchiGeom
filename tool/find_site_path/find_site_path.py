@@ -72,23 +72,6 @@ def find_loop(nodes:List[Node])->List[Loop]:
                 node.edge_out[i].is_visited=True #标记为已访问
                 pre_edge=node.edge_out[i] #接着找下一条边
     return loops
-# @Timer(__name__)
-def make_cover_tree(loops:List[Loop])->List[TreeNode]:
-    t:List[TreeNode] =[TreeNode(loop) for loop in loops] #把loop都变成TreeNode
-    for i in range(len(t)-1):
-        for j in range(i+1,len(t)):
-            ni,nj=t[i],t[j]
-            ci=ni.obj.contains(nj.obj)
-            cj=nj.obj.contains(ni.obj)
-            if not ci and not cj: continue #没有覆盖关系时，跳过
-            if cj and not ci: #j覆盖i且i不覆盖j（ij不重合）时，ij互换 
-                ni,nj=nj,ni
-            if (nj.parent is None) or (abs(ni.obj.area)<abs(nj.parent.obj.area)): #此时可确保i覆盖j，通过比较面积更新j.parent
-                nj.parent=ni
-    for i in t:
-        if i.parent is not None:
-            i.parent.child.append(i)
-    return t
 
 if __name__=="__main__":
     nodes=read_excel(FILE_DIR+"\\test_data\\总图划分.xlsx")

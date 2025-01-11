@@ -169,7 +169,7 @@ class CADPlotter(GeomPlotter):
         for i,edge in enumerate(loop.edges):
             ent.SetBulge(i,edge.bulge if isinstance(edge,Arc) else 0)
         ent.Closed=True
-        ent.Color=1 if loop.area>=0 else 2
+        ent.Color=2 if loop.area>=0 else 1
         show_node_text=kwargs.get("show_node_text",False)
         if show_node_text:
             for i,node in enumerate(loop.nodes):

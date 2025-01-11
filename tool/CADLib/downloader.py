@@ -81,7 +81,7 @@ def get_model(data_type:str):
     
 if __name__=="__main__":
     # 素材库
-    downloader=Downloader(data_type=get_model("su_door"),suffix=".skp")
+    downloader=Downloader(data_type=get_model("coretube"),suffix=".dwg")
     downloader.execute()
     
     # 厨卫

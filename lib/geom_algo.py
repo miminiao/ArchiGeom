@@ -484,7 +484,7 @@ class MergeLineAlgo(GeomAlgo):
         return merged_lines
 class BreakEdgeAlgo(GeomAlgo):
     def __init__(self,edge_groups:list[list[Edge]],const:Constant=None) -> None:
-        """线段打断，并保留原先的分组
+        """线段打断，并保留原先的分组. 重叠部分会在端点处打断. 保持原线段的方向. 
 
         Args:
             edge_groups (list[list[Edge]]): 若干个分组，每组包含若干条线段.
@@ -693,21 +693,24 @@ class FindOutlineAlgo(GeomAlgo):
     def _postprocess(self) -> None:
         pass
 class FindLoopAlgo(GeomAlgo):
-    def __init__(self,edges:list[Edge],const:Constant=None) -> None:
+    def __init__(self,edges:list[Edge],directed:bool=False,const:Constant=None) -> None:
         """搜索曲线构成的所有封闭区域
 
         Args:
-            edges (list[Edge]): 所有曲线，无需打断
+            edges (list[Edge]): 所有曲线，无需打断.
+            directed (bool, optional): 输入的边集是否有向. Defaults to False (无向图/双向边).
             const (Constant, optional): 误差控制常量. Defaults to None.
         """
         super().__init__(const=const)
         self.edges:list[Edge]=edges
+        self.directed=directed
         self.loops:list[Loop]=[]
     @Timer()
     def _preprocess(self)->None:
         super()._preprocess()
-        # 打断边，并构建双向连接的图结构
+        # 打断边
         self.edges=BreakEdgeAlgo([self.edges],self.const).get_result()[0]
+        # 构建图结构
         self.edges=list(filter(lambda edge:not edge.is_zero(),self.edges))
         self.nodes:list[Node]=[]
         for edge in self.edges:
@@ -715,8 +718,9 @@ class FindLoopAlgo(GeomAlgo):
             e=GeomUtil.find_or_insert_node(edge.e,self.nodes)
             edge.s,edge.e=s,e
             GeomUtil.add_edge_to_node_in_order(s,edge)
-            GeomUtil.add_edge_to_node_in_order(e,edge.opposite())
-    def get_result(self):
+            if self.directed:  # 双向边（无向图）
+                GeomUtil.add_edge_to_node_in_order(e,edge.opposite())
+    def get_result(self)->list[Loop]:
         self._preprocess()
         self.loops=self._find_loop()
         self._postprocess()
@@ -934,7 +938,9 @@ class MergeWallAlgo(GeomAlgo):
         super().__init__(const=const)
         self.walls=walls
     def _preprocess(self)->None:
-        super()._postprocess()
+        super()._preprocess()
+    def _postprocess(self)->None:
+        super()._postprocess()        
     def _get_parallel_groups(self,walls:list[Wall])->list[list[Wall]]:
         """按平行分组"""
         parallel_groups=[]
@@ -959,7 +965,86 @@ class MergeWallAlgo(GeomAlgo):
             for j in range(i+1,len(self.walls)):
                 if self.walls[i].base:
                     pass
-    def _postprocess(self)->None:
-        super()._postprocess()
 
+class BooleanOperation:
+    @classmethod
+    def _make_cover_tree(cls,loops:list[Loop])->TreeNode[Loop]:
+        """构建覆盖关系树"""
+        loops.sort(key=lambda loop:abs(loop.area),reverse=True)  # 按面积排序，确保循环的时候每个TreeNode都有正确的parent
+        t =[TreeNode(loop) for loop in loops] #把loop都变成TreeNode
+        for i in range(len(t)-1):
+            for j in range(i+1,len(t)):
+                ni,nj=t[i],t[j]
+                ci=ni.obj.covers(nj.obj)
+                cj=nj.obj.covers(ni.obj)
+                if not ci and not cj: # 没有覆盖关系时，跳过
+                    continue
+                elif ci and cj:  # 互相覆盖(重合)的时候，取ni.parent的相反方向的环作为外环
+                    if ni.parent is None or ni.parent.obj.area>0:  # ni.parent是正环，就让负的覆盖正的，保证正-负-正的关系
+                        if ni.obj.area>0 and nj.obj.area<0:
+                            ni.obj,nj.obj=nj.obj,ni.obj
+                    else:  # ni.parent是负环，就让正的覆盖负的，保证负-正-负的关系
+                        if ni.obj.area<0 and nj.obj.area>0:
+                            ni.obj,nj.obj=nj.obj,ni.obj
+                # 已按面积排序，不会出现cj&~ci的情况
+                # 此时确保i覆盖j
+                nj.parent=ni
+        root=TreeNode(None)
+        for i in t:
+            if i.parent is not None:
+                i.parent.child.append(i)
+            else: 
+                i.parent=root
+        return root
+    @classmethod
+    def union(cls, geoms:list[Loop|Polygon],const:Constant)->list[Polygon]:
+        loops=[]
+        for geom in geoms:
+            if isinstance(geom,Loop): 
+                loops.append(geom)
+            if isinstance(geoms,Polygon): 
+                loops.extend(geom.all_loops)
+        return cls._loop_union(loops,const)
+    @classmethod
+    def _loop_union(cls,loops:list[Loop],const:Constant)->list[Polygon]:
+        rebuilt_loops=FindLoopAlgo(loops,directed=True,const=const).get_result()
+        root=cls._make_cover_tree(rebuilt_loops)
+        polygons=[]
+        cls._traverse_loop_tree(
+            root=root,
+            depth=0,
+            condition=lambda depth:depth==1, 
+            out_polygons=polygons,
+        )
+        return polygons
+    @classmethod
+    def _traverse_loop_tree(cls,root:TreeNode[Loop],depth:int,condition:Callable[[int],bool],stack:list[Loop],out_polygons:list[Polygon])->list[Loop]:
+        """遍历Loop的覆盖关系树，按条件返回配对关系.
 
+        Args:
+            root (TreeNode[Loop]): 当前结点.
+            depth (int): 当前结点的深度.
+            out_polygons (list[Polygon]): 配对的Polygon.
+
+        Returns:
+            list[TreeNode]: 未能配对的后代.
+        """
+        pairs=[]
+        for child in root.child:
+            if child.obj.area>0:
+                new_stack=stack[:]+[child.obj]
+                new_depth=depth+1
+            else:
+                new_stack=stack[:]
+                new_depth=depth-1
+                if root.obj.area>0:  
+                    pairs.append(new_stack.pop())  # 直接配对
+                else:
+                    new_stack.append(child.obj)
+            new_pairs=cls._traverse_loop_tree(child,new_depth,condition,new_stack,out_polygons)
+            pairs.extend(new_pairs)
+
+        if condition(depth) and root.obj.area>0:
+            out_polygons.append(Polygon(shell=root.obj, holes=pairs, make_valid=False))
+        
+        return pairs

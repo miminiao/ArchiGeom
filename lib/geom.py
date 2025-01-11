@@ -7,7 +7,7 @@ from abc import ABC,abstractmethod
 from typing import Generator
 from lib.utils import Timer,Constant
 from lib.linalg import Vec3d,Mat3d
-from lib.basic_structure import TreeNode
+# from lib.basic_structure import TreeNode
 
 class Geom(ABC):
     const=Constant.default()
@@ -1123,41 +1123,12 @@ class Loop(Polyedge):
                 arc=pre_edge.fillet_with(edge,radius)
                 new_nodes+=arc.fit().nodes
         return Loop.from_nodes(new_nodes)
-    @classmethod
-    def rebuild(cls,loops:list["Loop"])->list["Loop"]:
-        """重建拓扑关系"""
-        ...
-    @classmethod
-    def make_cover_tree(cls,loops:list["Loop"])->list[TreeNode]:
-        """构建覆盖关系树"""
-        loops.sort(key=lambda loop:abs(loop.area),reverse=True)  # 按面积排序，确保循环的时候每个TreeNode都有正确的parent
-        t:list[TreeNode[Loop]] =[TreeNode(loop) for loop in loops] #把loop都变成TreeNode
-        for i in range(len(t)-1):
-            for j in range(i+1,len(t)):
-                ni,nj=t[i],t[j]
-                ci=ni.obj.covers(nj.obj)
-                cj=nj.obj.covers(ni.obj)
-                if not ci and not cj: # 没有覆盖关系时，跳过
-                    continue
-                elif ci and cj:  # 互相覆盖(重合)的时候，取ci.parent的相反方向的环作为外环
-                    if ni.parent is None or ni.parent.obj.area>0:  # ni.parent是内环，就让负的覆盖正的，保证正-负-正的关系
-                        if ni.obj.area>0:
-                            ni,nj=nj,ni
-                    else:  # ni.parent是外环，就让正的覆盖负的，保证负-正-负的关系
-                        if ni.obj.area<0:
-                            ni,nj=nj,ni
-                elif cj and not ci:  # j覆盖i且i不覆盖j（ij不重合）时，ij互换 
-                    ni,nj=nj,ni
-                # 此时确保i覆盖j
-                nj.parent=ni
-        for i in t:
-            if i.parent is not None:
-                i.parent.child.append(i)
-        return t
+
+
     @classmethod
     def union(cls,loops:list["Loop"])->list["Polygon"]:
         """布尔合并"""
-        ...
+        
 class Polygon(Geom): 
     """多边形"""
     def __init__(self,shell:Loop,holes:list[Loop]=None,deepcopy:bool=False,make_valid:bool=True,prepare:bool=True) -> None:

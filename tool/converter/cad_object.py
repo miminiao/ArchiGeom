@@ -124,6 +124,12 @@ class CADHatch(CADEntity):
             for i in range(ent.NumberOfLoops):
                 self.loops.append(CADPolyline(ent.GetLoopAt(i)[0]))
         else:...  # TODO 用GetLoopAt()拿不到，需要从dxf组码读
+        '''
+        ent.HatchObjectType = 0:Hatch, 1:Gradient
+        ent.HatchStyle = 0:Normal, 1:Outer, 2:Ignore
+        ent.PatternType = 0:UserDefined, 1:PreDefined, 2:CustomDefined
+        '''
+
 class CADText(CADEntity):
     """CAD单/多行文字，天正单行文字"""
     def __init__(self,ent) -> None:

@@ -3,9 +3,7 @@ import numpy as np
 from copy import copy
 from typing import Callable
 from abc import ABC,abstractmethod
-from itertools import groupby
 
-from shapely import prepare
 
 from lib.linalg import Vec3d
 from lib.domain import Domain1d
@@ -15,22 +13,17 @@ from lib.geom import (
     )
 from lib.utils import Timer,Constant,ListTool
 from lib.index import STRTree,TreeNode,SegmentTree
-from lib.building_element import Wall
-from lib.geom_plotter import MPLPlotter,CADPlotter
 
 class GeomAlgo(ABC):
-    def __init__(self,const:Constant=None) -> None:
-        self.const=const or Constant.default()
+    def __init__(self) -> None:
+        self.const=Constant.get()
     @abstractmethod
-    def _preprocess(self)->None:
-        Geom.push_const(self.const)
+    def _preprocess(self)->None: ...
     @abstractmethod
-    def get_result(self):
-        ...
+    def get_result(self): ...
     @abstractmethod
-    def _postprocess(self)->None:
-        Geom.pop_const()
-class MaxRectAlgo(GeomAlgo):
+    def _postprocess(self)->None: ...
+class MaxRectAlgo(GeomAlgo):  # TODO
     def __init__(
             self,
             poly: Polygon,
@@ -56,8 +49,7 @@ class MaxRectAlgo(GeomAlgo):
         self.covered_points=covered_points
         self.precision=precision
         self.cut_depth=cut_depth
-    def _preprocess(self) -> None:
-        pass
+    def _preprocess(self) -> None: ...
     def get_result(self) -> list[Loop]:
         """获取最大矩形
 
@@ -100,7 +92,7 @@ class MaxRectAlgo(GeomAlgo):
 
         return rects
     
-    @Timer()
+    @Timer
     def _cut_bounds(
         self, poly: Polygon, precision: float = -1, max_depth: int = 1
     ) -> tuple[list[float], list[float]]:
@@ -209,11 +201,10 @@ class MaxRectAlgo(GeomAlgo):
                     nodesY.append(new_node)
         return nodesX, nodesY
 
-    @Timer()
+    @Timer
     def _get_01matrix(self, poly: Polygon, x: list[float], y: list[float]) -> np.ndarray:
         """计算每个cell是否在多边形内。cellInside[0,:]=cellInside[:,0]=cellInside[m,:]=cellInside[:,n]=False"""
         poly = Polygon(*poly.offset(dist=-self.const.TOL_DIST).to_array())
-        prepare(poly)
         m, n = len(x), len(y)
         ptmat = np.zeros((m, n), dtype=bool)
         for i in range(m):
@@ -230,7 +221,7 @@ class MaxRectAlgo(GeomAlgo):
                 )
         return mat
 
-    @Timer()
+    @Timer
     def _put_covered_points_into_cells(
         self,
         x: list[float],
@@ -267,7 +258,7 @@ class MaxRectAlgo(GeomAlgo):
                 idx_covered_points[k] = (mini, minj, maxi, maxj)
         return idx_covered_points
 
-    @Timer()
+    @Timer
     def _get_max_submatrix(
         self,
         cell_inside: np.ndarray,
@@ -316,22 +307,20 @@ class MaxRectAlgo(GeomAlgo):
                     maxs = s
                     u0, l0, d0, r0 = ut, lt, dt, rt
         return u0, l0, d0, r0
-    def _postprocess(self) -> None:
-        pass
-class MergeLineAlgo(GeomAlgo):
-    def __init__(self,lines:list[Edge],preserve_intersections:bool=False,compare:Callable[[Edge,Edge],int]=None,const:Constant=None) -> None:
+    def _postprocess(self) -> None: ...
+class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
+    def __init__(self,edges:list[Edge],break_at_intersections:bool=False,compare:Callable[[Edge,Edge],int]=None) -> None:
         """合并重叠的线段
 
         Args:
-            lines (list[Edge]): 待合并的线段.
+            edges (list[Edge]): 待合并的线段.
             preserve_intersection (bool, optional): 是否在交点处打断. Defaults to False.
             compare (Callable[[Edge,Edge],int], optional): 线段的优先级==0(等于)|==1(大于)|==-1(小于); 合并时保留较大的. Defaults to None (==0).
-            const (Constants, optional): 误差控制常量. Defaults to Constants.DEFAULT.
         """
-        super().__init__(const)
-        self.lines=lines
-        self.merged_lines:list[Edge]=[] 
-        self.preserve_intersections=preserve_intersections
+        super().__init__()
+        self.edges=edges[:]
+        self.merged:list[Edge]=[]        
+        self.break_at_intersections=break_at_intersections
         self.compare=compare or (lambda a,b:0)
     def get_result(self)->list[Edge]:
         """获取合并后的线段
@@ -339,78 +328,119 @@ class MergeLineAlgo(GeomAlgo):
         Returns:
             list[Edge]: 合并后的线段.
         """
-        # 1.前处理
         self._preprocess()
+        # 去除0线段
+        self.edges=list(filter(lambda edge: not edge.is_zero(),self.edges))        
+        # 分类
+        lines:list[LineSeg]=[]
+        arcs:list[Arc]=[]
+        for edge in self.edges:
+            if isinstance(edge,LineSeg): lines.append(edge)
+            if isinstance(edge,Arc): arcs.append(edge)        
+        # 直线角度转换到[0,pi)范围内
+        for i,line in enumerate(lines):
+            if (math.pi<=line.angle+self.const.TOL_ANG<math.pi*2):
+                lines[i]=line.opposite()
+            if line.angle+self.const.TOL_ANG>=math.pi*2:
+                line.angle=0            
         # 2.按平行共线分组
-        parallel_groups=self._get_parallel_groups(self.lines)
-        collinear_groups=[]
-        for group in parallel_groups:
-            collinear_groups+=self._get_collinear_groups(group)
+
+        parallel_line_groups=self._group_parallel_lines(lines)
+        parallel_arc_groups=self._group_parallel_arcs(arcs)
+        collinear_line_groups=[]
+        for group in parallel_line_groups:
+            collinear_line_groups+=self._group_collinear_from_parallel_lines(group)
+        collinear_arc_groups=[]
+        for group in parallel_arc_groups:
+            collinear_arc_groups+=self._group_collinear_from_parallel_arcs(group)            
         # 3.合并重叠的线段
-        for i,group in enumerate(collinear_groups):
-            self.merged_lines+=self._merge_collinear_lines(group)
-            # self.merged_lines+=self._merge_collinear_lines_by_segtree(group)
+        for group in collinear_line_groups:
+            self.merged+=self._merge_collinear_edges(group)
         # 4.后处理
         self._postprocess()
-        return self.merged_lines
+        return self.merged
     def _preprocess(self)->None:
         """前处理"""
-        Geom.push_const(self.const)
-        Domain1d.push_const(self.const)
+        super()._preprocess()
         Domain1d.push_compare(self.compare)
-        # 去除0线段
-        self.lines=list(filter(lambda line: not line.is_zero(),self.lines))
-        # 角度转换到[0,pi)范围内
-        for line in self.lines:
-            if (math.pi<=line.angle+self.const.TOL_ANG<math.pi*2):
-                line.reverse()
-            if line.angle+self.const.TOL_ANG>math.pi*2:
-                line.angle=0
     def _postprocess(self)->None:
         """后处理"""
         # 按需打断
-        if self.preserve_intersections:
-            self.merged_lines=BreakEdgeAlgo([self.merged_lines],const=self.const).get_result()[0]
-        Geom.pop_const()
-        Domain1d.pop_const()
+        if self.break_at_intersections:
+            self.merged=BreakEdgeAlgo([self.merged]).get_result()[0]
         Domain1d.pop_compare()
-    def _get_parallel_groups(self,lines:list[Edge]):
-        """按平行线分组"""
-        parallel_groups=[]
-        lines.sort(key=lambda line:line.angle)
+        super()._postprocess()        
+    def _group_parallel_lines(self,lines:list[LineSeg])->list[list[LineSeg]]:  # ✅OK
+        """直线按角度分组"""
+        line_groups=[]
+        lines.sort(key=lambda line:line.angle_of_line)
         current_angle=-self.const.MAX_VAL
         for line in lines:
-            if line.angle-current_angle>self.const.TOL_ANG: # !parallel
+            if line.angle-current_angle>self.const.TOL_ANG:  # !parallel
                 new_group=[line]
-                parallel_groups.append(new_group)
+                line_groups.append(new_group)
                 current_angle=line.angle
             else: 
                 new_group.append(line)
-        return parallel_groups
-    def _get_collinear_groups(self,lines:list[Edge]):
-        """将平行线按共线分组，组内按起点排序"""
+        return line_groups
+    def _group_parallel_arcs(self,arcs:list[Arc])->list[list[Arc]]:  # ✅OK
+        """圆弧按圆心分组"""
+        centers:list[Node]=[]
+        center_dict:dict[Node,list[Arc]]={}
+        for arc in arcs:
+            center=GeomUtil.find_or_insert_node(arc.center,centers)
+            if center not in center_dict: 
+                center_dict[center]=[arc]
+            else:
+                center_dict[center].append(arc)
+        arc_groups=list(center_dict.values())
+        return arc_groups
+    def _group_collinear_from_parallel_lines(self,lines:list[LineSeg]):
+        """将平行直线按共线分组，组内按起点排序"""
         # 找一根最长的，作为方向向量
-        longest_line=max(lines,key=lambda line:line.length)
+        longest_edge=max(lines,key=lambda edge:edge.length)
         # 沿法向量（右转90度）排序
-        unit_vector=longest_line.to_vec3d().unit() #单位向量
-        normal_vector=unit_vector.cross(Vec3d(0,0,1)) #法向量
+        unit_vector=longest_edge.to_vec3d().unit() # 单位向量
+        normal_vector=unit_vector.cross(Vec3d(0,0,1)) # 法向量
+        lines.sort(key=lambda line:line.s.to_vec3d().dot(normal_vector))            
         # 分组
-        collinear_groups:list[list[Edge]]=[]
-        lines.sort(key=lambda line:line.s.to_vec3d().dot(normal_vector))    
+        collinear_groups:list[list[LineSeg]]=[]
         current_dist=-self.const.MAX_VAL
         for line in lines:
-            dist_i=line.s.to_vec3d().dot(normal_vector) # 投影
-            if dist_i-current_dist>self.const.TOL_DIST: # !collinear
+            dist_s=line.s.to_vec3d().dot(normal_vector) # 投影
+            if dist_s-current_dist>self.const.TOL_DIST: # !collinear
                 new_group=[line]
                 collinear_groups.append(new_group)
-                current_dist=dist_i
+                current_dist=dist_s
             else: 
-                new_group.append(line)
+                dist_e=line.e.to_vec3d().dot(normal_vector)
+                if abs(dist_e-current_dist)<self.const.TOL_DIST:  # 端点投影距离也在范围内的才算共线
+                    new_group.append(line)
+                else: 
+                    collinear_groups.append([line])
         # 组内按起点排序
         for group in collinear_groups:
-            group.sort(key=lambda line:line.s.to_vec3d().dot(unit_vector))
+            group.sort(key=lambda line:min(line.s.to_vec3d().dot(unit_vector),line.e.to_vec3d().dot(unit_vector)))
         return collinear_groups
-    def _merge_collinear_lines(self,unmerged_lines:list[Edge]):
+    def _group_collinear_from_parallel_arcs(self,arcs:list[Arc]):
+        """将平行圆弧按共圆分组，组内按逆时针角度排序"""
+        # 按半径排序
+        arcs.sort(key=lambda arc:arc.radius)
+        # 分组
+        collinear_groups:list[list[Arc]]=[]
+        current_radius=0
+        for arc in arcs:
+            if arc.radius-current_radius>self.const.TOL_DIST: # !collinear
+                new_group=[arc]
+                collinear_groups.append(new_group)
+                current_radius=arc.radius
+            else:
+                new_group.append(arc)
+        # 组内按角度逆时针排序
+        for group in collinear_groups:
+            group.sort(key=lambda arc:arc.angles[0] if arc.bulge>0 else arc.angles[1])
+        return collinear_groups
+    def _merge_collinear_edges(self,unmerged_lines:list[Edge]):
         """顺序合并排好序的共线的线段"""
         lines=unmerged_lines.copy()
         # 找一根最长的，作为方向向量
@@ -482,16 +512,15 @@ class MergeLineAlgo(GeomAlgo):
             elif dom.value>0:
                 merged_lines.append(dom.line)
         return merged_lines
-class BreakEdgeAlgo(GeomAlgo):
-    def __init__(self,edge_groups:list[list[Edge]],const:Constant=None) -> None:
+class BreakEdgeAlgo(GeomAlgo):  # ✅
+    def __init__(self,edge_groups:list[list[Edge]]) -> None:
         """线段打断，并保留原先的分组. 重叠部分会在端点处打断. 保持原线段的方向. 
 
         Args:
             edge_groups (list[list[Edge]]): 若干个分组，每组包含若干条线段.
-            const (Constants, optional): 误差控制常量. Defaults to Constants.DEFAULT.
-        """
-        super().__init__(const=const)
-        self.edge_groups:list[list[Edge]]=edge_groups
+        """  
+        super().__init__()
+        self.edge_groups=edge_groups
         self.all_edges:list[Edge]=[]
         self.result_groups:list[list[Edge]]=[]
     def get_result(self)->list[list[Edge]]:
@@ -508,9 +537,9 @@ class BreakEdgeAlgo(GeomAlgo):
     def _preprocess(self)->None:
         """预处理"""
         super()._preprocess()
-        self.all_edges=[edge for group in self.edge_groups for edge in group]
         # 去除0线段
-        self.all_edges=list(filter(lambda line: not line.is_zero(),self.all_edges))
+        self.edge_groups=[[edge for edge in group if not edge.is_zero()] for group in self.edge_groups]
+        self.all_edges=sum(self.edge_groups,[])
     def _postprocess(self)->None:
         """后处理"""
         super()._postprocess()
@@ -549,19 +578,18 @@ class BreakEdgeAlgo(GeomAlgo):
                 pre=break_points[line][0]
                 for p in break_points[line]:
                     if p.equals(pre): continue
-                    new_group.append(line.slice_between_nodes(pre, p))
+                    new_group.append(line.slice_between(pre, p))
                     pre=p
             broken_lines.append(new_group)
         return broken_lines
 class FindConnectedGraphAlgo(GeomAlgo):
-    def __init__(self,lines:list[Edge],const:Constant=None) -> None:
+    def __init__(self,lines:list[Edge]) -> None:
         """求连通图
 
         Args:
             edges (list[Edge]): 所有线段，需要打断.
-            const (Constants, optional): 误差控制常量. Defaults to Constants.DEFAULT.
         """
-        super().__init__(const)
+        super().__init__()
         self.lines=lines
         self.connected_graphs:list[list[Edge]]=[]
     def get_result(self)->list[list[Edge]]:
@@ -609,16 +637,15 @@ class FindConnectedGraphAlgo(GeomAlgo):
         self.lines=list(filter(lambda line: not line.is_zero(),self.lines))
     def _postprocess(self)->None:
         """后处理"""
-        pass
-class FindOutlineAlgo(GeomAlgo):
-    def __init__(self,edges:list[Edge],const:Constant=None) -> None:
+        ...
+class FindOutlineAlgo(GeomAlgo):  # TODO: 圆弧
+    def __init__(self,edges:list[Edge]) -> None:
         """求单个连通图形的外轮廓
 
         Args:
             edges (list[Edge]): 所有线段，无需打断.
-            const (Constants, optional): 误差控制常量. Defaults to Constants.DEFAULT.
         """
-        super().__init__(const)
+        super().__init__()
         self.edges=edges
     def get_result(self)->Loop:
         """获取结果（逆时针）"""
@@ -632,16 +659,16 @@ class FindOutlineAlgo(GeomAlgo):
         # 去除0线段
         self.edges=list(filter(lambda line: not line.is_zero(),self.edges))
     def _find_start_edge(self)->Edge: 
-        """找起始边：先找x最小的点，然后向左出发"""
+        """找起始边：先找x最小的点，然后向右出发"""
         start_edge=min(self.edges,key=lambda edge:edge.get_mbb()[0].x)
         mbb=start_edge.get_mbb()
         left_bound=LineSeg(mbb[0],Node(mbb[0].x,mbb[1].y))
         intersections=start_edge.intersection(left_bound)
-        if len(intersections)==1:
+        if len(intersections)==0:
+            start_node=start_edge.s
+        else:
             start_node=intersections[0]
-        elif len(intersections)>1:
-            start_node=min(intersections,key=lambda p:p.x)
-        return LineSeg(Node(start_node.x+self.const.TOL_DIST*2,start_node.y),start_node)
+        return LineSeg(Node(start_node.x-self.const.TOL_DIST*2,start_node.y),start_node)
     def _find_outline(self,rt_edges:STRTree ,start_edge:Edge)->Loop: 
         """顺着start_edge逆时针找一圈外轮廓"""
         outline:list[Edge]=[]
@@ -649,67 +676,65 @@ class FindOutlineAlgo(GeomAlgo):
         this_node=pre_edge.e
         while True: # 每次循环从pre_edge出发，找下一条边，直到回到起点
             # 搜索与当前出发点临近的边
-            nearest_edges_i=rt_edges.query_idx(this_node.get_mbb(),tol=self.const.TOL_DIST) 
+            nearest_edges=rt_edges.query(this_node.get_mbb(),tol=self.const.TOL_DIST) 
             # 求当前顶点到这些边的端点的连线的集合
-            edges_from_this_node:list[Edge] =[]
-            for i in nearest_edges_i:
-                edge=self.edges[i]
+            for edge in nearest_edges:
                 if not this_node.is_on_edge(edge): continue
                 if not this_node.equals(edge.s):
-                    edges_from_this_node.append(edge.opposite().slice_between_nodes(this_node,edge.s))
+                    GeomUtil.add_edge_to_node_in_order(this_node,edge.opposite().slice_between(this_node,edge.s))
                 if not this_node.equals(edge.e):
-                    edges_from_this_node.append(edge.slice_between_nodes(this_node,edge.e))
-            # 从pre_edge.opposite出发，对这些连线按角度[0,2pi)逆时针排序
-            op=pre_edge.opposite()
-            edges_from_this_node.sort(key=lambda edge:op.tangent_at(0).angle_to(edge.tangent_at(0)))
-            # 从连线集合中找到pre_edge的下一个角度
-            i=0
-            while (i<len(edges_from_this_node) 
-                   and (op.tangent_at(0).angle_to(edges_from_this_node[i].tangent_at(0))<self.const.TOL_ANG 
-                        or op.tangent_at(0).angle_to(edges_from_this_node[i].tangent_at(0))>2*math.pi-self.const.TOL_ANG)):
-                i+=1
-            new_edge=edges_from_this_node[i%len(edges_from_this_node)] # 如果走到死路了（i==l），就倒回去
+                    GeomUtil.add_edge_to_node_in_order(this_node,edge.slice_between(this_node,edge.e))
+            # 从this_node出发，找到pre_edge的下一条边
+            new_edge=GeomUtil.find_next_edge_out(this_node,pre_edge)
             # 求所有与new_edge可能相交的线
             nearest_edges_i=rt_edges.query_idx(new_edge.get_mbb(),tol=self.const.TOL_DIST)
             # 遍历相交的线，取距离最近的一个交点(起点除外)，作为下一个顶点
-            min_dist=new_edge.length
+            min_param_dist=1
             next_node=new_edge.e
             for i in nearest_edges_i:
                 nearest_edge=self.edges[i]
                 intersections=new_edge.intersection(nearest_edge)
                 for p in intersections:
-                    d=this_node.dist(p)
-                    if not p.equals(this_node) and d<min_dist and p.is_on_edge(new_edge): # 不是起点，且距离最近
-                        min_dist=d
+                    d=new_edge.get_param(p)
+                    if not p.equals(this_node) and d<min_param_dist and p.is_on_edge(new_edge): # 不是起点，且距离最近
+                        min_param_dist=d
                         next_node=p
-            new_edge=Edge(this_node,next_node)
-            if len(outline)>0 and new_edge.s.equals(outline[0].s) and new_edge.e.equals(outline[0].e): # 回到起点就结束
+            new_edge=new_edge.slice_between(this_node,next_node)
+            if len(outline)>0 and new_edge.equals(outline[0]): # 回到起点就结束
                 break
             else: # 保存当前边，继续找下一条边
                 outline.append(new_edge)
                 pre_edge=new_edge
-                this_node=next_node            
-        return Loop(outline)
+                this_node=next_node
+        nodes=[edge.s for edge in outline]
+        bulges=[edge.bulge if isinstance(edge,Arc) else 0 for edge in outline ]
+        return Loop(nodes,bulges)
     def _postprocess(self) -> None:
         pass
-class FindLoopAlgo(GeomAlgo):
-    def __init__(self,edges:list[Edge],directed:bool=False,const:Constant=None) -> None:
-        """搜索曲线构成的所有封闭区域
+class FindLoopAlgo(GeomAlgo):  # ✅
+    def __init__(
+        self,
+        edges: list[Edge],
+        directed: bool = False,
+        cancel_out_opposite: bool = False,
+    ) -> None:
+        """重建曲线所围成的区域的几何拓扑.
 
         Args:
             edges (list[Edge]): 所有曲线，无需打断.
-            directed (bool, optional): 输入的边集是否有向. Defaults to False (无向图/双向边).
-            const (Constant, optional): 误差控制常量. Defaults to None.
+            directed (bool, optional): 输入的边集是否有向. Defaults to False (无向图).
+            cancel_out_opposite (bool, optional): 是否去除重合的反向边. Defaults to False. 参数对于无向图(!directed)不生效.
         """
-        super().__init__(const=const)
-        self.edges:list[Edge]=edges
-        self.directed=directed
-        self.loops:list[Loop]=[]
-    @Timer()
+        super().__init__()
+        self.edges = edges
+        self.directed = directed
+        self.cancel_out_opposite = cancel_out_opposite and directed
+        self.loops = []
+    # @Timer
     def _preprocess(self)->None:
         super()._preprocess()
         # 打断边
-        self.edges=BreakEdgeAlgo([self.edges],self.const).get_result()[0]
+        self.edges=BreakEdgeAlgo([self.edges]).get_result()[0]
         # 构建图结构
         self.edges=list(filter(lambda edge:not edge.is_zero(),self.edges))
         self.nodes:list[Node]=[]
@@ -717,24 +742,34 @@ class FindLoopAlgo(GeomAlgo):
             s=GeomUtil.find_or_insert_node(edge.s,self.nodes)
             e=GeomUtil.find_or_insert_node(edge.e,self.nodes)
             edge.s,edge.e=s,e
-            GeomUtil.add_edge_to_node_in_order(s,edge)
-            if self.directed:  # 双向边（无向图）
+            # 处理重合的反向边：有反向边就pop出去；没有就把edge添加进来
+            if (not self.cancel_out_opposite
+                or self.cancel_out_opposite and self._pop_opposite(edge) is None
+            ):
+                GeomUtil.add_edge_to_node_in_order(s,edge)
+            if not self.directed:  # 无向图
                 GeomUtil.add_edge_to_node_in_order(e,edge.opposite())
+        if self.directed:  # 过滤掉被pop出去的边
+            self.edges=sum([node.edge_out for node in self.nodes],[])
+    def _pop_opposite(self,edge:Edge):
+        op=edge.opposite()
+        i=ListTool.find_first(edge.e.edge_out,lambda x:x==op)
+        return edge.e.edge_out.pop(i) if i!=-1 else None
     def get_result(self)->list[Loop]:
         self._preprocess()
         self.loops=self._find_loop()
         self._postprocess()
         return self.loops
-    @Timer()
+    # @Timer
     def _postprocess(self)->None:
         super()._postprocess()
-    @Timer()
+    # @Timer
     def _find_loop(self)->list[Loop]:
         # 沿逆时针优先的方向，顺着边往下找，
         # 碰到已找过的边就计为一个环，直到所有边都找完。
         loops:list[Loop] =[]
         edge_stack:list[Edge]=[]  # 当前栈里的边
-        edge_num=2*len(self.edges)
+        edge_num=len(self.edges) if self.directed else 2*len(self.edges)
         while edge_num>0:  # 每次循环找一个环，直到所有边都被遍历过
             if len(edge_stack)==0:  # 栈空了就随便找一条边作为起始
                 for node in self.nodes:
@@ -743,21 +778,7 @@ class FindLoopAlgo(GeomAlgo):
                         break
             while True:  # 以pre.e为当前结点开始找一个环
                 node=edge_stack[-1].e  # 当前结点
-                op=edge_stack[-1].opposite()
-                pre_angle=op.tangent_at(0).angle  # 入边的角度
-                pre_radius=op.radius_at(0,signed=True)  # 入边的半径
-                i=len(node.edge_out)-1
-                # 按角度和半径找下一条出边，确保内环优先逆时针方向
-                while i>=0:
-                    angle_i=node.edge_out[i].tangent_at(0).angle
-                    radius_i=node.edge_out[i].radius_at(0,signed=True)
-                    if self.const.comp(angle_i,pre_angle,"TOL_ANG")<0: 
-                        break  # 取角度比前一条出边小的第一条边
-                    if self.const.comp(angle_i,pre_angle,"TOL_ANG")==0:
-                        if Edge.compare_curvature_by_radius(radius_i,pre_radius)<0:
-                            break  # 角度相同的，比较带符号曲率，取曲率比前一条出边小的第一条边
-                    i-=1
-                next_edge=node.edge_out[i]
+                next_edge=GeomUtil.find_next_edge_out(node, edge_stack[-1])  # 按角度和半径找下一条出边，确保内环优先逆时针方向
                 if next_edge in edge_stack:  # 如果找到了已访问的边就封闭这个环
                     start_idx=edge_stack.index(next_edge)  # 环的起始边
                     new_loop=edge_stack[start_idx:]
@@ -770,214 +791,97 @@ class FindLoopAlgo(GeomAlgo):
                 else:  # 如果找到的不是已访问的边，就将此边加入栈，接着找下一条边
                     edge_stack.append(next_edge)
         return loops
-class FindRoomAlgo(GeomAlgo): #TODO
-    def __init__(self,edges:list[Wall],const:Constant=None) -> None:
-        self.const=const or Constant.default()
-        self.edges:list[Edge]=edges
-        self.loops:list[Loop]=[]
-    def _preprocess(self) -> None:
-        super()._preprocess()
-    def _postprocess(self) -> None:
-        super()._postprocess()
-
-class SplitIntersectedLoopsAlgo(GeomAlgo):
-    """
-    多个相交/自相交环的合并算法。
-    方法一（当前采用）：在所有交点处交换边的方向。
-    方法二：Winding number algorithm. https://mcmains.me.berkeley.edu/pubs/DAC05OffsetPolygon.pdf
-    方法三：Vatti clipping algorithm. https://github.com/dpuyda/triclipper/blob/master/docs/how_it_works.md
-    """
-    def __init__(self,loops:list[Loop],positive:bool=True,ensure_valid:bool=True,const:Constant=None) -> None:
-        """合并多个相交的环
-
-        Args:
-            loops (list[Loop]): 待合并的环
-            positive (bool, optional): 上层是否为正环. Defaults to True.
-            ensure_valid (bool, optional): 结果是否为正环. Defaults to True.
-            const (Constant, optional): 误差控制常量. Defaults to None.
-        """
-        super().__init__(const=const)
-        self.loops=loops
-        self.positive=positive
-        self.ensure_valid=ensure_valid
-        self.split_loops:list[Loop]=[]
-    """
-    def _get_overlapping_edges_in_loop(self,loop:Loop)->list[Edge]:
-        res=set()
-        for i in range(len(loop.edges)-1):
-            for j in range(i+1,len(loop.edges)):
-                overlap=loop.edges[i].overlap(loop.edges[j])
-                if len(overlap)>0 and not overlap[0].is_zero():
-                    res.add(loop.edges[i])
-                    res.add(loop.edges[j])
-        return list(res)
-    """
-    def _preprocess(self)->None:
-        super()._preprocess()
-        # 所有边集合
-        self.all_edges=[edge for loop in self.loops for edge in loop.edges]
-        # 初始化loop顶点的next_edge和dual_node
-        for loop in self.loops:
-            for i in range(len(loop.edges)):
-                loop.edges[i].s.next_edge=loop.edges[i]
-                loop.edges[i].s.dual_node_on_next_edge=loop.edges[i-1].e
-                loop.edges[i-1].e.next_edge=loop.edges[i]
-                loop.edges[i-1].e.dual_node_on_next_edge=loop.edges[i].s
-    def get_result(self):
-        self._preprocess()
-        # 先在所有的交点处打断，并交换方向
-        breakpoints=self._get_breakpoints()  # 每条边上的断点及其后继边
-        # 然后顺着各点找所有闭合的环
-        self.split_loops=self._find_loops(breakpoints,positive=self.positive,ensure_valid=self.ensure_valid)
-        # （按需要）去除方向不太对劲的环
-        if self.ensure_valid:
-            self.split_loops=self._remove_invalid_loops(self.split_loops)
-        self._postprocess()
-        return self.split_loops
-    def _postprocess(self)->None:
-        # 当前算法存在永远处理不了的情况：内外同向相切的环。此时稍微offset一下由相切转为相交再处理。（当前是否需要待验证 TODO）
-        if (len(self.loops)==len(self.split_loops)==1 and 
-                abs(self.loops[0].area-self.split_loops[0].area)<self.loops[0].length*self.const.TOL_DIST+self.const.TOL_AREA):
-            self.split_loops=self.split_loops[0].offset(dist=self.const.TOL_DIST,split=False)
-        # 经过一次交换处理，自相交的部分可能从一个环上转移到另一个环上。所以需要看看还有没有残留的自相交环，如果有的话需要继续递归处理
-        res=[]
-        for loop in self.split_loops:
-            if loop.has_self_intersection():
-                new_loop=SplitIntersectedLoopsAlgo([loop],self.positive,self.ensure_valid,const=self.const).get_result()
-                res.extend(new_loop)
-            else: res.append(loop)
-        self.split_loops=res
-        self.split_loops=list(filter(lambda loop:abs(loop.area*2/loop.length)>1,self.split_loops)) # 移除过细的环
-        super()._postprocess()
-    def _get_breakpoints(self)->dict[Edge:list[Node]]:
-        """在所有的交点处打断，并交换方向"""
-        breakpoints={edge:[] for edge in self.all_edges}  # 记录每条边上的断点
-        # 枚举不相邻的两条边ei、ej
-        for i in range(len(self.all_edges)-1):
-            ei=self.all_edges[i]
-            for j in range(i+1,len(self.all_edges)):
-                ej=self.all_edges[j]
-                all_pi:list[Node]=[]  # 位于ei上的断点（圆弧相交可能不止一个）
-                if ei.intersects(ej):  # 如果相交，就在交点处打断
-                    new_breakpoints=ei.intersection(ej)
-                    for pi in new_breakpoints:
-                        # 求交的时候每条线段的有效范围是[0,1)->[s,e)；只算头，不算尾巴
-                        if pi.equals(ei.e) or pi.equals(ej.e): continue
-                        all_pi.append(pi)
-                elif len(ei.overlap(ej))>0: # 如果重叠且反向，就在端点处打断；只算头不算尾巴
-                    if ei.is_on_same_direction(ej): continue
-                    if ei.s.is_on_edge(ej) and not ei.s.equals(ej.e):
-                        all_pi.append(copy(ei.s))
-                    if ej.s.is_on_edge(ei) and not ej.s.equals(ei.e):
-                        if not ej.s.equals(ei.s):  # 如果两个头重叠只算一次
-                            all_pi.append(copy(ej.s))
-                # 在交点处交换方向
-                for pi in all_pi:
-                    pj=Node(pi.x,pi.y)  # 位于ej上的断点
-                    # 交换方向
-                    pi.next_edge=self.all_edges[j]
-                    pj.next_edge=self.all_edges[i]
-                    # 互为对偶
-                    pi.dual_node_on_next_edge=pj
-                    pj.dual_node_on_next_edge=pi
-                    # 记录断点
-                    breakpoints[ei].append(pi)
-                    breakpoints[ej].append(pj)
-        # 每条边按顺序重排断点
-        for edge in self.all_edges:
-            breakpoints[edge].sort(key=lambda node:edge.get_param(node))
-            # 加入首尾顶点
-            breakpoints[edge].insert(0,edge.s)
-            breakpoints[edge].append(edge.e)
-        return breakpoints
-    def _find_loops(self,breakpoints:dict[Edge:list[Node]],positive:bool,ensure_valid:bool) -> list[Loop]:
-        """找所有闭合环"""
-        visited_nodes=set()
-        split_loops=[]
-        for some_edge in self.all_edges:
-            for some_point in breakpoints[some_edge]:
-                # 先随便从一个没被访问过的顶点开始
-                if some_point in visited_nodes: continue
-                this_node=some_point
-                new_loop_edges:list[Edge]=[]
-                while True:  # 以this_node为当前顶点开始找一个环
-                    next_edge=this_node.next_edge  # 从this_node出发，应该沿着next_edge这条边走
-                    i=breakpoints[next_edge].index(this_node.dual_node_on_next_edge)  # this_node在被打断的next_edge上的位置，即其对偶点的index
-                    next_node=breakpoints[next_edge][i+1]  # 切换到next_edge上，下一点作为新的顶点
-                    if next_node in visited_nodes:  # 如果找到了已访问的顶点就封闭这个环
-                        new_loop=Loop(new_loop_edges)
-                        if (not ensure_valid or (abs(new_loop.area)>self.const.TOL_AREA) and (new_loop.area>self.const.TOL_AREA or not positive)):  # 如果非0，且面积为正或原本就是一个负环
-                            new_loop.simplify(cull_insig=True)
-                            if len(new_loop.edges)>1:
-                                split_loops.append(new_loop)  # 将环加入list
-                        break
-                    else:  # 如果找到的不是已访问的顶点
-                        edge_slice=next_edge.slice_between_points(this_node,next_node)
-                        if edge_slice is not None: 
-                            new_loop_edges.append(edge_slice)  # 就将此边加入环
-                        visited_nodes.add(next_node)  # 标记为已访问
-                        this_node=next_node  # 接着找下一条边
-        return split_loops
-    def _remove_invalid_loops(self,split_loops:list[Loop])->list[Loop]:
-        """去除被覆盖的同向环"""
-        valid_loops:list[Loop] =[]
-        for l1 in split_loops:
-            for l2 in split_loops:
-                if (l1 is l2) or (l1.area>0)!=(l2.area>0) :continue
-                if l2.covers(l1): break
-            else: valid_loops.append(l1)
-        return valid_loops
-class MergeWallAlgo(GeomAlgo):
-    def __init__(self,walls:list[Wall],const:Constant=None) -> None:
-        """合并平行且有重叠的墙
-
-        Args:
-            walls (list[Wall]): 任意一组待合并的墙.
-            const (Constant, optional): 误差控制常量. Defaults to None.
-        """
-        super().__init__(const=const)
-        self.walls=walls
-    def _preprocess(self)->None:
-        super()._preprocess()
-    def _postprocess(self)->None:
-        super()._postprocess()        
-    def _get_parallel_groups(self,walls:list[Wall])->list[list[Wall]]:
-        """按平行分组"""
-        parallel_groups=[]
-        # 圆弧墙分组
-        arc_walls=filter(lambda wall:isinstance(wall.base,Arc),walls)
-        arc_groups=groupby(arc_walls,key=lambda wall:wall.base.center)
-        parallel_groups.extend()
-        # 直墙分组
-        line_walls=filter(lambda wall:isinstance(wall.base,LineSeg),walls)
-        walls.sort(key=lambda wall:wall.base.angle)
-        current_angle=-self.const.MAX_VAL
-        for line in line_walls:
-            if line.angle-current_angle>self.const.TOL_ANG: # !parallel
-                new_group=[line]
-                parallel_groups.append(new_group)
-                current_angle=line.angle
-            else: 
-                new_group.append(line)
-        return parallel_groups
-    def get_result(self):
-        for i in range(len(self.walls)-1):
-            for j in range(i+1,len(self.walls)):
-                if self.walls[i].base:
-                    pass
 
 class BooleanOperation:
+    """多边形布尔运算"""
     @classmethod
-    def _make_cover_tree(cls,loops:list[Loop])->TreeNode[Loop]:
-        """构建覆盖关系树"""
+    def union(cls,geoms:list[Polygon])->list[Polygon]:
+        """布尔并
+
+        Args:
+            geoms (list[Polygon]): 要求并的多边形.
+
+        Returns:
+            list[Polygon]: 并集.
+        """
+        # 正负配对，只取最外层的
+        all_loops=sum([list(geom.all_loops) for geom in geoms],[])   
+        cond=lambda depth:depth==1
+        return cls._pair_loops(all_loops,condition=cond)
+    @classmethod
+    def intersection(cls,geoms:list[Polygon])->list[Polygon]:
+        """布尔交
+
+        Args:
+            geoms (list[Polygon]): 要求交的多边形.
+
+        Returns:
+            list[Polygon]: 交集.
+        """
+        # 正负配对，只取第N层的
+        all_loops=sum([list(geom.all_loops) for geom in geoms],[])
+        cond=lambda depth:depth==len(geoms)
+        return cls._pair_loops(all_loops,condition=cond)
+    @classmethod
+    def difference(cls,subjects:list[Polygon],objects:list[Polygon])->list[Polygon]:
+        """布尔差 (subjects - objects)
+
+        Args:
+            subjects (list[Polygon]): 被减去的多边形.
+            objects (list[Polygon]): 减去的多边形.
+
+        Returns:
+            list[Polygon]: 差集
+        """
+        # 反转objects的方向，然后求并
+        subject_loops=sum([list(geom.all_loops) for geom in subjects],[])
+        object_loops=sum([list(geom.all_loops) for geom in objects],[])
+        reversed_loops=[loop.reversed() for loop in object_loops]
+        cond=lambda depth:depth==1
+        return cls._pair_loops(subject_loops+reversed_loops,condition=cond)
+    
+    @classmethod
+    def _pair_loops(cls,loops:list[Loop],condition:Callable[[int],bool]=None)->list[Polygon]:
+        """重建所有环的拓扑，并按条件组合成Polygon
+
+        Args:
+            loops (list[Loop]): 待重建的环.
+            condition (Callable[[int],bool]): 组合成多边形的条件. Defaults to (int)->True.
+
+        Returns:
+            list[Polygon]: 配对的环组成的多边形.
+        """
+        condition=condition or (lambda _:True)
+        all_edges=sum([list(loop.edges) for loop in loops],[])
+        rebuilt_loops=FindLoopAlgo(all_edges,directed=True,cancel_out_opposite=True).get_result()
+        root=cls._build_loop_tree(rebuilt_loops)
+        polygons=[]
+        cls._traverse_loop_tree(
+            root=root,
+            depth=0,
+            condition=condition,
+            stack=[],
+            out_polygons=polygons,
+        )
+        return polygons
+    @classmethod
+    def _build_loop_tree(cls,loops:list[Loop])->TreeNode[Loop]:
+        """根据覆盖关系构建树
+
+        Args:
+            loops (list[Loop]): 要求不得self-cross，也不能互相cross；否则需要先执行FindLoopAlgo.
+
+        Returns:
+            TreeNode[Loop]: 虚拟的树根，root.obj=None.
+        """
         loops.sort(key=lambda loop:abs(loop.area),reverse=True)  # 按面积排序，确保循环的时候每个TreeNode都有正确的parent
-        t =[TreeNode(loop) for loop in loops] #把loop都变成TreeNode
+        t =[TreeNode(loop) for loop in loops]  # 把loop都变成TreeNode
         for i in range(len(t)-1):
             for j in range(i+1,len(t)):
                 ni,nj=t[i],t[j]
                 ci=ni.obj.covers(nj.obj)
                 cj=nj.obj.covers(ni.obj)
-                if not ci and not cj: # 没有覆盖关系时，跳过
+                if not ci and not cj:  # 没有覆盖关系时，跳过
                     continue
                 elif ci and cj:  # 互相覆盖(重合)的时候，取ni.parent的相反方向的环作为外环
                     if ni.parent is None or ni.parent.obj.area>0:  # ni.parent是正环，就让负的覆盖正的，保证正-负-正的关系
@@ -995,56 +899,36 @@ class BooleanOperation:
                 i.parent.child.append(i)
             else: 
                 i.parent=root
-        return root
+                root.child.append(i)
+        return root            
     @classmethod
-    def union(cls, geoms:list[Loop|Polygon],const:Constant)->list[Polygon]:
-        loops=[]
-        for geom in geoms:
-            if isinstance(geom,Loop): 
-                loops.append(geom)
-            if isinstance(geoms,Polygon): 
-                loops.extend(geom.all_loops)
-        return cls._loop_union(loops,const)
-    @classmethod
-    def _loop_union(cls,loops:list[Loop],const:Constant)->list[Polygon]:
-        rebuilt_loops=FindLoopAlgo(loops,directed=True,const=const).get_result()
-        root=cls._make_cover_tree(rebuilt_loops)
-        polygons=[]
-        cls._traverse_loop_tree(
-            root=root,
-            depth=0,
-            condition=lambda depth:depth==1, 
-            out_polygons=polygons,
-        )
-        return polygons
-    @classmethod
-    def _traverse_loop_tree(cls,root:TreeNode[Loop],depth:int,condition:Callable[[int],bool],stack:list[Loop],out_polygons:list[Polygon])->list[Loop]:
+    def _traverse_loop_tree(cls,root:TreeNode[Loop],depth:int,condition:Callable[[int],bool],stack:list[TreeNode],out_polygons:list[Polygon])->list[Loop]:
         """遍历Loop的覆盖关系树，按条件返回配对关系.
 
         Args:
             root (TreeNode[Loop]): 当前结点.
             depth (int): 当前结点的深度.
+            condition (Callable[[int],bool]): _description_
+            stack (list[TreeNode]): _description_
             out_polygons (list[Polygon]): 配对的Polygon.
 
         Returns:
-            list[TreeNode]: 未能配对的后代.
+            list[TreeNode]: 配对的后代.
         """
-        pairs=[]
+        root.holes=[]
         for child in root.child:
             if child.obj.area>0:
-                new_stack=stack[:]+[child.obj]
+                new_stack=stack[:]+[child]
                 new_depth=depth+1
             else:
                 new_stack=stack[:]
                 new_depth=depth-1
-                if root.obj.area>0:  
-                    pairs.append(new_stack.pop())  # 直接配对
+                if len(stack)>0 and stack[-1].obj.area>0:  
+                    shell=new_stack.pop()
+                    shell.holes.append(child.obj)  # 直接配对
                 else:
-                    new_stack.append(child.obj)
-            new_pairs=cls._traverse_loop_tree(child,new_depth,condition,new_stack,out_polygons)
-            pairs.extend(new_pairs)
+                    new_stack.append(child)
+            cls._traverse_loop_tree(child,new_depth,condition,new_stack,out_polygons)
 
-        if condition(depth) and root.obj.area>0:
-            out_polygons.append(Polygon(shell=root.obj, holes=pairs, make_valid=False))
-        
-        return pairs
+        if condition(depth) and root.obj is not None and root.obj.area>0:
+            out_polygons.append(Polygon(shell=root.obj, holes=root.holes, make_valid=False))

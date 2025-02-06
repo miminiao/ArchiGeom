@@ -6,16 +6,16 @@ from lib.geom import Geom,Node
 
 class TreeNode[T]:
     """树"""
-    def __init__(self,obj:T,parent:"TreeNode"[T]=None,child:list["TreeNode"[T]]=None) -> None:
+    def __init__(self,obj:T,parent:"TreeNode[T]"=None,child:list["TreeNode[T]"]=None) -> None:
         self.obj:T=obj
-        self.parent:"TreeNode"[T]=parent
-        self.child:list["TreeNode"[T]] =child[:] if child is not None else []
+        self.parent:"TreeNode[T]"=parent
+        self.child:list["TreeNode[T]"] =child[:] if child is not None else []
 
-    def getRoot(node:"TreeNode"[T])->"TreeNode"[T]:
+    def getRoot(node:"TreeNode[T]")->"TreeNode[T]":
         while node.parent is not None:
             node=node.parent
         return node
-    def get_leaf_nodes(self)->list["TreeNode"[T]]:
+    def get_leaf_nodes(self)->list["TreeNode[T]"]:
         nodes=[]
         for ch in self.child:
             if ch is not None:
@@ -24,33 +24,33 @@ class TreeNode[T]:
     
 class UFSNode[T](TreeNode):
     """并查集"""
-    def __init__(self, obj:T, parent: "UFSNode"[T] = None, child: list["UFSNode"[T]] = None) -> None:
+    def __init__(self, obj:T, parent: "UFSNode[T]" = None, child: list["UFSNode[T]"] = None) -> None:
         super().__init__(obj, parent, child)
-    def getRoot(self,node:"UFSNode"[T])->"UFSNode"[T]:
+    def getRoot(self,node:"UFSNode[T]")->"UFSNode[T]":
         path=[]
         while node.parent is not None:
             path.append(node)
             node=node.parent
         for i in path: i.parent=node
         return node        
-    def add(node:"UFSNode"[T],parent:"UFSNode"[T])->None:
+    def add(node:"UFSNode[T]",parent:"UFSNode[T]")->None:
         node.parent=parent
         parent.child.append(node)
 
-class _STRNode(TreeNode):
+class _STRNode[T:Geom](TreeNode):
     """STR树结点"""
-    def __init__(self,index:int,geom:"Geom"=None,child:list["_STRNode"]=None) -> None:
+    def __init__(self,index:int,geom:T=None,child:list["_STRNode[T]"]=None) -> None:
         super().__init__(geom,None,child)
         self.index=index
         self.mbb=geom.get_mbb() if index!=-1 else Geom.merge_mbb([ch.mbb for ch in child])
 
-class STRTree:
+class STRTree[T:Geom]:
     """STR树"""
-    def __init__(self, geoms:list["Geom"], node_capacity:int=10) -> None:
+    def __init__(self, geoms:list[T], node_capacity:int=10) -> None:
         """以几何图形外包矩形构造一棵STR树
 
         Args:
-            geoms (list[Geom]): 几何图形
+            geoms (list[T:Geom]): 几何图形
             node_capacity (int, optional): 划分子结点的数量. Defaults to 10.
         """
         self.geoms=geoms
@@ -82,9 +82,9 @@ class STRTree:
                 self._root=parent_treenodes[0]
                 break
             child_treenodes=parent_treenodes
-    def __getitem__(self,index:int)->"Geom":
+    def __getitem__(self,index:int)->T:
         return self.geoms[index]
-    def query_idx(self,extent:tuple["Node","Node"],tol:float=0,tree_node:_STRNode=None)-> list[int]:
+    def query_idx(self,extent:tuple[Node,Node],tol:float=0,tree_node:_STRNode=None)-> list[int]:
         """框选查询
 
         Args:
@@ -105,7 +105,7 @@ class STRTree:
             if (qmin.x<=chmax.x+tol) and (chmin.x<=qmax.x+tol) and (qmin.y<=chmax.y+tol) and (chmin.y<=qmax.y+tol):
                 res=res+self.query_idx(extent,tol,ch)
         return res
-    def query(self,extent:tuple["Node","Node"],tol:float=0,tree_node:_STRNode=None) -> list["Geom"]:
+    def query(self,extent:tuple[Node,Node],tol:float=0,tree_node:_STRNode=None) -> list[T]:
         """框选查询
 
         Args:
@@ -114,7 +114,7 @@ class STRTree:
             tree_node (_STRNode, optional): 开始查询的结点. Defaults to None->self._root.
 
         Returns:
-            list[Geom]: 查询到的几何图形.
+            list[T:Geom]: 查询到的几何图形.
         """
         return [self[i] for i in self.query_idx(extent,tol,tree_node)]
 

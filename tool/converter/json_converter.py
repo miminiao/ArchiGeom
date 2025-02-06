@@ -1,9 +1,9 @@
 """Geom<-->json"""
 
 import math
-from lib.geom import Geom,Node,LineSeg,Arc,Polyedge,Loop
+from lib.geom import Geom,Node,LineSeg,Arc,Polyedge,Loop,Polygon
 from lib.linalg import Tensor,Vec3d,Vec4d,Mat3d,Mat4d
-from test.CGS.case_model import CGSTestCase
+from tests.CGS.case_model import CGSTestCase
 
 class JsonDumper:
     """Geom类的序列化方法"""
@@ -94,3 +94,19 @@ class JsonLoader:
                 ...
             case None: return obj
             case _: return None
+    @staticmethod
+    def default(obj:dict)->Geom:
+        match obj.get("class_name",None):
+            case "Node":
+                return Node(obj["x"],obj["y"],obj["z"])
+            case "LineSeg":
+                return LineSeg(obj["s"],obj["e"])
+            case "Arc":
+                return Arc(obj["s"],obj["e"],obj["bulge"])
+            case "Polyedge":
+                return Polyedge(obj["nodes"],obj["bulges"])
+            case "Loop":
+                return Loop(obj["nodes"],obj["bulges"])
+            case "Polygon":
+                return Polygon(obj["shell"],obj["holes"])
+            case None: return obj

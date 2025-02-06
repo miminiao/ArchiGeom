@@ -3,19 +3,13 @@ from abc import ABC,abstractmethod
 from lib.utils import Constant
 
 class Domain[T](ABC):
-    const=Constant.default()
-    _const_stack=[const]
+    """区间基类."""
     compare=lambda x,y:0
     _compare_stack=[compare]
-    def __init__(self) -> None:
-        pass
-    @classmethod
-    def push_const(cls,const:Constant)->None:
-        cls._const_stack.append(cls.const)
-        cls.const=const
-    @classmethod
-    def pop_const(cls)->Constant:
-        return cls._const_stack.pop()
+    def __init__(self) -> None: ...
+    @property
+    def const(self)->Constant:
+        return Constant.get()
     @classmethod
     def push_compare(cls,compare:Callable[[T,T],int]=None)->None:
         """定义当前上下文的compare函数
@@ -31,7 +25,7 @@ class Domain[T](ABC):
     
 class Domain1d[T](Domain):
     def __init__(self,l:float,r:float,value:T) -> None:
-        """描述一个带有附加值的一维区间
+        """描述一个带有附加值的一维区间.
 
         Args:
             l (float): 区间下限
@@ -47,7 +41,8 @@ class Domain1d[T](Domain):
     def __eq__(self,other:"Domain1d")->bool:
         if not isinstance(other,Domain1d): return False
         if self.is_empty() and other.is_empty():return True
-        return abs(self.l-other.l)<self.const.TOL_DIST and abs(self.r-other.r)<self.const.TOL_DIST and self.compare(self.value,other.value)==0
+        tol_comp=self.const.get_comp_func()
+        return tol_comp(self.l,other.l)==0 and tol_comp(self.r,other.r)==0 and self.compare(self.value,other.value)==0
     def __add__(self,other:"Domain1d| MultiDomain1d")->"Domain1d | MultiDomain1d":
         """区间合并"""
         if isinstance(other,MultiDomain1d):
@@ -100,14 +95,18 @@ class Domain1d[T](Domain):
             case -1: return Domain1d(max(self.l,other.l),min(self.r,other.r),other.value) 
     def is_overlap(self,other:"Domain1d | MultiDomain1d",include_endpoints:bool=True)->bool:
         """判断区间是否重叠，当include_endpoints时允许端点重叠"""
-        if isinstance(other,MultiDomain1d): 
+        if isinstance(other,MultiDomain1d):
             return other.is_overlap(self)
         if self.is_empty() or other.is_empty(): return False
-        tol=self.const.TOL_DIST if not include_endpoints else -self.const.TOL_DIST
-        return self.r>other.l+tol and other.r>self.l+tol
+        tol_comp=self.const.get_comp_func()
+        if include_endpoints:
+            return tol_comp(self.r,other.l)>=0 and tol_comp(other.r,self.l)>=0
+        else:
+            return tol_comp(self.r,other.l)==1 and tol_comp(other.r,self.l)==1
     def is_empty(self)->bool:
         """判断区间是否为空，l==r的情况也返回True"""
-        return self.l+self.const.TOL_DIST>=self.r
+        tol_comp=self.const.get_comp_func()
+        return tol_comp(self.l,self.r)>=0
     def copy(self,value:T=None)->"Domain1d":
         """返回与当前区间相同、高度为h的区间"""
         return Domain1d(self.l,self.r,value or self.value)

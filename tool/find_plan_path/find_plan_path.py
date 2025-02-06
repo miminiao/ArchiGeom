@@ -105,17 +105,17 @@ def shortest_path(vis_graph:dict[Node:set[Node]],source:Node) -> tuple[dict[Node
         d: 各节点最短路径长度
         pre: 各节点最短路径上的前驱节点
     """
-    d={node:const.MAX_VAL for node in vis_graph}
+    d={node:const._MAX_VAL for node in vis_graph}
     d[source]=0
     pre={}
     safe_set=set()
     for i in range(len(vis_graph)-1):
-        min_d=const.MAX_VAL
+        min_d=const._MAX_VAL
         for node in vis_graph:
             if node not in safe_set and d[node]<min_d:
                 min_d=d[node]
                 safe_node=node
-        if min_d==const.MAX_VAL:
+        if min_d==const._MAX_VAL:
             break
         safe_set.add(safe_node)
         for node in vis_graph[safe_node]:

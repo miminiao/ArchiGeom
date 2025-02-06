@@ -3,15 +3,9 @@ from lib.utils import Constant
 import numpy as np
 class Tensor:
     dim:tuple[int,...]
-    const=Constant.default()
-    _const_stack=[const]
-    @classmethod
-    def push_const(cls,const:Constant)->None:
-        cls._const_stack.append(cls.const)
-        cls.const=const
-    @classmethod
-    def pop_const(cls)->Constant:
-        return cls._const_stack.pop()
+    @property
+    def const(self)->Constant:
+        return Constant.get()
 class Vector(Tensor):...
 class Vec3d(Vector):
     dim=(3,1)
@@ -55,12 +49,12 @@ class Vec3d(Vector):
         else: return self.length<self.const.TOL_DIST
     @property
     def angle(self)->float:
-        """角度范围[0,2pi)"""
+        """角度范围[0,2pi), 含误差"""
         if self.length<self.const.TOL_VAL: return 0
         cosX=self.x/self.length
         cosY=self.y/self.length 
         angle=math.acos(cosX) if cosY>=0 else 2*math.pi-math.acos(cosX)
-        if math.pi*2-angle<=self.const.TOL_ANG: angle=0
+        if 2*math.pi-angle<self.const.TOL_ANG: angle-=2*math.pi
         return angle
     def unit(self)->"Vec3d":
         return self/self.length

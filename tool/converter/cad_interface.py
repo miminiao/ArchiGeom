@@ -42,6 +42,5 @@ if __name__=="__main__":
     # dumper=JsonDumper.to_cgs
     dumper=lambda _:_.__dict__
 
-    with open("./tool/converter/output/case_1.json",'w',encoding="utf8") as f:
+    with open("./tool/converter/output/case_10.json",'w',encoding="utf8") as f:
         json.dump(cad_objects,f,ensure_ascii=False,default=dumper)
-

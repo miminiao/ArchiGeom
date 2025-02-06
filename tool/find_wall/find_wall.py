@@ -3,7 +3,7 @@ import typing
 import math
 import matplotlib.pyplot as plt
 from lib.geom import Node,LineSeg,Arc,Loop,Polygon
-from lib.geom_algo import BreakEdgeAlgo,MergeLineAlgo,FindOutlineAlgo,FindConnectedGraphAlgo
+from lib.geom_algo import BreakEdgeAlgo,MergeEdgeAlgo,FindOutlineAlgo,FindConnectedGraphAlgo
 from lib.building_element import Wall,Window,Door
 from lib.domain import Domain1d,MultiDomain1d
 from lib.utils import Timer, Constant
@@ -121,7 +121,7 @@ def group_lines_by_angle(lines:list[LineSeg])->tuple[list[list[LineSeg]],list[Ve
     unit_vectors:list[Vec3d]=[]
     normal_vectors:list[Vec3d]=[]
     lines.sort(key=lambda line:line.angle_of_line)
-    current_angle=-const.MAX_VAL
+    current_angle=-const._MAX_VAL
     for line in lines:
         if line.angle_of_line-current_angle>const.TOL_ANG:
             new_group=[line]
@@ -150,7 +150,7 @@ def find_walls_from_parallel_lines(line_group:list[LineSeg],wall_width_limit:flo
     # 查找所有与当前line_i距离<=dist_limit且有重叠部分的平行线line_j，有多层重叠时取距离最近的一段组成墙，墙中线=重叠部分的中线
     walls:list[Wall]=[]
     for line in line_group:
-        line.upper_domain=Domain1d(line.s.to_vec3d().dot(unit_vector),line.e.to_vec3d().dot(unit_vector),const.MAX_VAL)
+        line.upper_domain=Domain1d(line.s.to_vec3d().dot(unit_vector),line.e.to_vec3d().dot(unit_vector),const._MAX_VAL)
         line.lower_domain=line.upper_domain.copy()
     for i,line_i in enumerate(line_group):
         dist_i=line_i.s.to_vec3d().dot(normal_vector)
@@ -197,14 +197,14 @@ def get_walls_from_domain(line:Wall)->list[Wall]:
         line.upper_domain=MultiDomain1d([line.upper_domain])
     unit_vector=line.to_vec3d().unit()
     for sub_dom in line.upper_domain.items:
-        if sub_dom.value==const.MAX_VAL or sub_dom.value<const.TOL_DIST: continue
+        if sub_dom.value==const._MAX_VAL or sub_dom.value<const.TOL_DIST: continue
         s_pos=line.s.to_vec3d().dot(unit_vector)
         s_vector=line.s.to_vec3d()+unit_vector*(sub_dom.l-s_pos)
         e_vector=line.s.to_vec3d()+unit_vector*(sub_dom.r-s_pos)
         new_baseline=LineSeg(Node(s_vector.x,s_vector.y),Node(e_vector.x,e_vector.y)).offset(sub_dom.value/2)
         new_wall=Wall(new_baseline.s,new_baseline.e,lw=sub_dom.value/2,rw=sub_dom.value/2)
-        new_wall.upper_domain=sub_dom.copy(value=const.MAX_VAL)
-        new_wall.lower_domain=sub_dom.copy(value=const.MAX_VAL)
+        new_wall.upper_domain=sub_dom.copy(value=const._MAX_VAL)
+        new_wall.lower_domain=sub_dom.copy(value=const._MAX_VAL)
         new_wall.domain=sub_dom.copy(value=0)
         new_wall.linked_lines=[]
         for l in new_wall.linked_lines:
@@ -246,8 +246,8 @@ def find_butress(wall_outline_loops:list[Loop])->set[LineSeg]:
                 continue
             pre_LineSeg=outline.LineSegs[i-1]
             succ_LineSeg=outline.LineSegs[(i+1)%len(outline.LineSegs)]
-            if (abs(pre_LineSeg.to_vec3d().unit().cross(LineSeg.to_vec3d().unit()).z-1)<const.TOL_DIST2 
-                and abs(LineSeg.to_vec3d().unit().cross(succ_LineSeg.to_vec3d().unit()).z-1)<const.TOL_DIST2): # 2次90度左转
+            if (abs(pre_LineSeg.to_vec3d().unit().cross(LineSeg.to_vec3d().unit()).z-1)<const.TOL_VAL
+                and abs(LineSeg.to_vec3d().unit().cross(succ_LineSeg.to_vec3d().unit()).z-1)<const.TOL_VAL): # 2次90度左转
                 butresses.add(LineSeg)
         # 连续3个墙垛相邻的情况，去除夹在中间的那个
         for i,LineSeg in enumerate(outline.LineSegs):
@@ -398,7 +398,7 @@ def recognize_windows_and_doors(opening_regions:list[Loop],
     # 将门窗块分配到距离最近的墙洞区域，但距离必须<=控制值
     # 如果最后有门窗块没有被分配，就原地创建一片墙，把门窗挂在上面
     for opening_block in doors+windows:
-        min_dist=const.MAX_VAL
+        min_dist=const._MAX_VAL
         nearest_region=None
         for region in opening_regions:
             centroid=LineSeg(region.nodes[0],region.nodes[2]).point_at(t=0.5)
@@ -435,7 +435,7 @@ if __name__=="__main__":
     wall_lines,watch_lines,opening_lines,window_blocks,door_blocks,block_defs=parse_data(j_data)
 
     # 合并看线（仅看线，不混合墙线，忽略交点） (OK)
-    watch_lines=MergeLineAlgo(watch_lines,preserve_intersections=False).get_result()
+    watch_lines=MergeEdgeAlgo(watch_lines,break_at_intersections=False).get_result()
 
     # 区分看线当中的窗和栏杆，当做门窗处理 (OK)
     watch_lines,new_opening_lines=remove_watch_window_and_railing(watch_lines,
@@ -445,7 +445,7 @@ if __name__=="__main__":
     opening_lines.extend(new_opening_lines)
 
     # 合并墙线（仅墙线，不混合看线，在交点处打断） (OK)
-    wall_lines=MergeLineAlgo(wall_lines,preserve_intersections=True).get_result()
+    wall_lines=MergeEdgeAlgo(wall_lines,break_at_intersections=True).get_result()
     
     # 求墙线外轮廓 (OK)
     connected_graph=FindConnectedGraphAlgo(wall_lines).get_result()

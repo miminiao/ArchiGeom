@@ -562,7 +562,11 @@ class Arc(Edge):
     def __hash__(self) ->int:
         return id(self)
     def equals(self,other:"Arc")->bool:
-        return isinstance(other,Arc) and self.s==other.s and self.e==other.e and self.bulge==other.bulge
+        return isinstance(other,Arc) and self.s==other.s and self.e==other.e and abs(self.bow_height-other.bow_height)<self.const.TOL_DIST
+    @property
+    def bow_height(self)->float:
+        """弓高，分正负"""
+        return self.s.dist(self.e)/2*self.bulge
     @classmethod
     def from_center_radius_angle(cls,center_point:Node,radius:float,start_angle:float,total_angle:float)->"Arc":
         """从圆心、半径、起始角度、总角度构造圆弧
@@ -802,6 +806,23 @@ class Arc(Edge):
         new_s=Node.from_vec3d(self.s.to_vec3d()+vs*dist)
         new_e=Node.from_vec3d(self.e.to_vec3d()+ve*dist)
         return Arc(new_s,new_e,self.bulge)
+class Circle(Arc):
+    """圆周"""
+    def __init__(self,center:Node,radius:float) -> None:
+        self.center=center
+        self.radius=radius
+        self.s=Node(center.x+radius,center.y)
+        self.e=self.s
+        self.bulge=float("inf")
+        self.angles=(0,math.pi*2)
+    def __repr__(self) -> str:
+        return f"Arc({self.center},{self.radius})"
+    def __eq__(self,other):
+        return self.equals(other)
+    def __hash__(self) ->int:
+        return id(self)
+    def equals(self,other:"Circle")->bool:
+        return isinstance(other,Circle) and self.center.dist(other.center)+abs(self.radius-other.radius)<self.const.TOL_DIST
 class Polyedge(Geom):
     """多段线"""
     def __init__(self,nodes:list[Node],bulges:list[float]=None,deepcopy:bool=False):

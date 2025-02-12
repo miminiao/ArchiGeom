@@ -1,9 +1,11 @@
 """通用工具类"""
 
 import json
+import pathlib
 import math
-from time import time
+from time import time,sleep
 from typing import Any,Callable,Self
+from functools import wraps
 
 # -----------------------------------------------------------------------------
 
@@ -131,7 +133,7 @@ class Constant:
         return cls._stack.pop()
     @classmethod
     def _init_default(cls)-> Self:
-        with open("env.json",'r') as f:
+        with open(pathlib.Path(__file__).parent.parent/"env.json",'r') as f:
             js=json.load(f)["CONSTANTS"]
         args=[float(js[name]) for name in cls._arg_names]
         cls._DEFAULT=cls(*args,tag="DEFAULT")
@@ -184,3 +186,39 @@ class ListTool:
         for i,item in enumerate(a):
             if cond(item): return i
         return -1
+
+class StopRetry(BaseException):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+        self.cause=args[0]
+
+def retry(max_times:int=10,interval:float=0):
+    """Decorator: 失败后重试, 超过上限抛出错误.
+
+    Example:
+    >>> @retry()
+    >>> def foo(): raise RuntimeError("bar")
+    ...
+    RuntimeError: bar
+
+    Args:
+        max_times (int, optional): 最大次数. Defaults to 10.
+        interval (float, optional): 间隔等待时间/秒. Defaults to 0.
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args,**kwargs):
+            retry_count=0
+            while retry_count<max_times:
+                try:
+                    return func(*args,**kwargs)
+                except StopRetry as e:
+                    raise e.cause
+                except Exception as e:
+                    print(e.__class__.__name__,":",e,". Retrying...")
+                    last_err=e
+                    retry_count+=1
+                    if interval>0: sleep(interval)
+            raise last_err
+        return wrapper
+    return decorator

@@ -59,19 +59,19 @@ class STRTree[T:Geom]:
         while True: #每次循环自底向上构建一层树结构
             child_num=len(child_treenodes) #子结点的数量
             parent_num=math.ceil(child_num/node_capacity) #父结点的数量
-            order=math.ceil(parent_num**0.5) #划分儿子结点的行列数
-            col_cap=math.ceil(child_num/order) #每列的儿子节点数
-            #儿子按x排序后划分成order列
+            slice_num=math.ceil(parent_num**0.5) #划分儿子结点的行列数
+            col_cap=math.ceil(child_num/slice_num) #每列的儿子节点数
+            #儿子按x排序后划分成slice_num列
             child_treenodes.sort(key=lambda treenode: treenode.mbb[0].x)
             parent_treenodes=[]
-            for i in range(order):
+            for i in range(slice_num):
                 l,r=col_cap*i, col_cap*(i+1)
                 if l>=child_num:break
                 col=child_treenodes[l:r] if r<=child_num else child_treenodes[l:]
-                #每一列的儿子按y排序后划分成order个tile
-                tile_cap=math.ceil(len(col)/order)
+                #每一列的儿子按y排序后划分成slice_num个tile
+                tile_cap=math.ceil(len(col)/slice_num)
                 col.sort(key=lambda node: node.mbb[0].y)
-                for j in range(order):
+                for j in range(slice_num):
                     b,t=tile_cap*j,tile_cap*(j+1)
                     if b>=len(col): break
                     tile=col[b:t] if t<=len(col) else col[b:]

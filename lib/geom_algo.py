@@ -330,21 +330,14 @@ class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
         """
         self._preprocess()
         # 去除0线段
-        self.edges=list(filter(lambda edge: not edge.is_zero(),self.edges))        
+        self.edges=list(filter(lambda edge: not edge.is_zero(),self.edges))
         # 分类
         lines:list[LineSeg]=[]
         arcs:list[Arc]=[]
         for edge in self.edges:
             if isinstance(edge,LineSeg): lines.append(edge)
-            if isinstance(edge,Arc): arcs.append(edge)        
-        # 直线角度转换到[0,pi)范围内
-        for i,line in enumerate(lines):
-            if (math.pi<=line.angle+self.const.TOL_ANG<math.pi*2):
-                lines[i]=line.opposite()
-            if line.angle+self.const.TOL_ANG>=math.pi*2:
-                line.angle=0            
-        # 2.按平行共线分组
-
+            if isinstance(edge,Arc): arcs.append(edge)
+        # 按平行共线分组
         parallel_line_groups=self._group_parallel_lines(lines)
         parallel_arc_groups=self._group_parallel_arcs(arcs)
         collinear_line_groups=[]
@@ -371,9 +364,14 @@ class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
         Domain1d.pop_compare()
         super()._postprocess()        
     def _group_parallel_lines(self,lines:list[LineSeg])->list[list[LineSeg]]:  # ✅OK
-        """直线按角度分组"""
+        """线段按角度分组"""
+        # 先将线段角度转换到[0,pi)范围内
+        for i,line in enumerate(lines):
+            if (math.pi<=line.angle+self.const.TOL_ANG<math.pi*2):
+                lines[i]=line.opposite()        
+        # 角度在误差范围内的分为一组
         line_groups=[]
-        lines.sort(key=lambda line:line.angle_of_line)
+        lines.sort(key=lambda line:line.angle)
         current_angle=-self.const.MAX_VAL
         for line in lines:
             if line.angle-current_angle>self.const.TOL_ANG:  # !parallel
@@ -385,6 +383,7 @@ class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
         return line_groups
     def _group_parallel_arcs(self,arcs:list[Arc])->list[list[Arc]]:  # ✅OK
         """圆弧按圆心分组"""
+        # 角度在误差范围内的分为一组        
         centers:list[Node]=[]
         center_dict:dict[Node,list[Arc]]={}
         for arc in arcs:
@@ -420,10 +419,10 @@ class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
                     collinear_groups.append([line])
         # 组内按起点排序
         for group in collinear_groups:
-            group.sort(key=lambda line:min(line.s.to_vec3d().dot(unit_vector),line.e.to_vec3d().dot(unit_vector)))
+            group.sort(key=lambda line:line.s.to_vec3d().dot(unit_vector))
         return collinear_groups
     def _group_collinear_from_parallel_arcs(self,arcs:list[Arc]):
-        """将平行圆弧按共圆分组，组内按逆时针角度排序"""
+        """将平行圆弧按共圆分组，组内按起点角度逆时针角度排序"""
         # 按半径排序
         arcs.sort(key=lambda arc:arc.radius)
         # 分组
@@ -438,7 +437,11 @@ class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
                 new_group.append(arc)
         # 组内按角度逆时针排序
         for group in collinear_groups:
-            group.sort(key=lambda arc:arc.angles[0] if arc.bulge>0 else arc.angles[1])
+            # 将圆弧转为逆时针方向
+            for i,arc in enumerate(group):
+                if arc.bulge<0:
+                    group[i]=arc.opposite()
+            group.sort(key=lambda arc:arc.angles[0])
         return collinear_groups
     def _merge_collinear_edges(self,unmerged_lines:list[Edge]):
         """顺序合并排好序的共线的线段"""

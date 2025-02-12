@@ -50,7 +50,7 @@ if 0 and __name__=="__main__":
     vz=Vec3d(0,0,1)
     from lib.linalg import Mat3d
     basis=Mat3d.from_column_vecs([vx,vy,vz])
-    basis_inv=basis.invert()
+    basis_inv=basis.inverse()
 
     s2=basis_inv@s
     e2=basis_inv@e

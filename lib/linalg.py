@@ -78,6 +78,8 @@ class Vec4d(Vector):
     dim=(4,1)
     def __init__(self,x:float,y:float,z:float,w:float=1) -> None:
         self.x,self.y,self.z,self.w=x,y,z,w
+    def __repr__(self) -> str:
+        return f"Vec4d({self.x},{self.y},{self.z},{self.w})"        
     @classmethod
     def X(cls)->"Vec4d": return cls(1,0,0,0)
     @classmethod
@@ -88,6 +90,8 @@ class Vec4d(Vector):
     def W(cls)->"Vec4d": return cls(0,0,0,1)            
     def to_list(self)->list[float]:
         return [self.x,self.y,self.z,self.w]
+    def to_array(self)->np.ndarray:
+        return np.array([self.x,self.y,self.z,self.w]).T    
 class Matrix(Tensor):
     def __init__(self,mat:list[list[float]]) -> None:
         assert len(mat)==self.dim[0] and all([len(row)==self.dim[1] for row in mat])
@@ -99,6 +103,8 @@ class Matrix(Tensor):
         elif isinstance(index,tuple):
             if index[0]>=self.dim[0] or index[0]<-self.dim[0] or index[1]>=self.dim[1] or index[1]<-self.dim[1]: raise IndexError
             return self.mat[index]
+    def to_array(self)->np.ndarray:
+        return np.array(self.mat)
 class Mat3d(Matrix):
     dim=(3,3)
     def __init__(self,mat:list[list[float]]) -> None:
@@ -111,7 +117,7 @@ class Mat3d(Matrix):
         return cls([vec.to_list() for vec in rows])
     def determinant(self)->float:
         return np.linalg.det(self.mat)
-    def invert(self)->"Mat3d":
+    def inverse(self)->"Mat3d":
         return Mat3d(list(np.linalg.inv(self.mat)))
     def transpose(self)->"Mat3d":
         return Mat3d(list(self.mat.T))
@@ -133,6 +139,15 @@ class Mat4d(Matrix):
     @classmethod
     def from_column_vecs(cls,columns:list[Vec4d])->"Mat4d":
         return cls([[columns[j][i] for j in range(cls.dim[1])] for i in range(cls.dim[0])])    
+    def __matmul__(self,other):
+        if isinstance(other,Vec4d):
+            return Vec4d(*(self.mat@other.to_array()))
+        elif isinstance(other,Mat4d):
+            return Mat4d(list(self.mat@other.mat))
+    def __mul__(self,other:int|float):
+        return Mat4d(list(self.mat*other))    
+    def inverse(self)->"Mat4d":
+        return Mat4d(list(np.linalg.inv(self.mat)))
 if __name__=="__main__":
     a=[[0,1,2],[3,4,5],[6,7,8]]
     m=Mat3d(a)

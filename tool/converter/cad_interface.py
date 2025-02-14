@@ -62,6 +62,6 @@ if __name__=="__main__":
     # doc=CADInterface(r"C:\Users\Administrator\Desktop\a.dwg")
     doc=CADInterface()
     cad_objects=doc.get_cad_objects()
-    doc.close()
+    # doc.close()
     with open("./tool/converter/output/case_1.json",'w',encoding="utf8") as f:
         json.dump(cad_objects,f,ensure_ascii=False,default=dumper)

@@ -7,15 +7,15 @@ from lib.building_element import BuildingElement
 from lib.utils import retry
 
 @runtime_checkable
-class IsGeom(Protocol):
+class SupportToGeom(Protocol):
     def to_geom(self)->Geom: ...
 
 @runtime_checkable
-class IsTensor(Protocol):
+class SupportToTensor(Protocol):
     def to_tensor(self)->Tensor: ...
 
 @runtime_checkable
-class IsBuildingElement(Protocol):
+class SupportToBuildingElement(Protocol):
     def to_building_element(self)->BuildingElement:...
 
 class CADEntity(ABC):
@@ -207,20 +207,32 @@ class CADBlockRef(CADEntity):
                 self.is_clipped=True
                 spatial_filter=d.item("SPATIAL")
                 point_num=CADEntity.get_dxf_data(spatial_filter,70,int)
-                self.clip_boundary=[]
+                clip_boundary=[]
                 for i in range(point_num):
                     coords=CADEntity.get_dxf_data(spatial_filter,10,list[float],i)
-                    self.clip_boundary.append(coords)
-                self.mat_create_inv=[0]*12
+                    clip_boundary.append(coords)
+                tmp=[0]*12
                 for i in range(12):
-                    self.mat_create_inv[i]=CADEntity.get_dxf_data(spatial_filter,40,float,i)
-                self.mat_world2clip=[0]*12
+                    tmp[i]=CADEntity.get_dxf_data(spatial_filter,40,float,i)
+                mat_created_inv=Mat4d([tmp[:4],tmp[4:8],tmp[8:12],[0,0,0,1]])
                 for i in range(i):
-                    self.mat_world2clip[i]=CADEntity.get_dxf_data(spatial_filter,40,float,i+12)
+                    tmp[i]=CADEntity.get_dxf_data(spatial_filter,40,float,i+12)
+                mat_world2clip=Mat4d([tmp[:4],tmp[4:8],tmp[8:12],[0,0,0,1]])
+                self.clip_boundary=self._get_real_clip_boundary(clip_boundary,mat_world2clip,mat_created_inv)
                 self.clip_reverted=CADEntity.get_dxf_data(spatial_filter,70,int)==1
                 break
         else: self.is_clipped=False
         CADBlockDef.parse(self.block_name)
+    def _get_real_clip_boundary(self,clip_boundary:list[list[float]],mat_world2clip:Mat4d,mat_created_inv:Mat4d)->list[list[float]]:
+        """计算块剪切的真实范围"""
+        real_boundary=[]
+        for p in clip_boundary:
+            v=Vec4d(*p)
+            v_created_global=mat_world2clip.inverse()@v
+            v_now_local=v_created_local=mat_created_inv@v_created_global
+            v_now_global=self.mat4d@v_now_local
+            real_boundary.append([v_now_global.x,v_now_global.y,v_now_global.z])
+        return real_boundary
     @property
     def basis3d(self)->Mat3d:
         vz=Vec3d(*self.normal)

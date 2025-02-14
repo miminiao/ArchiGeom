@@ -100,7 +100,7 @@ def get_visibility_graph(room:Polygon,doors_on_loop:dict[Loop:list[Node]]) ->dic
                 vis_graph[nodes[i]].add(nodes[j])
                 vis_graph[nodes[j]].add(nodes[i])
     return vis_graph
-def shortest_path(vis_graph:dict[Node:set[Node]],source:Node) -> tuple[dict[Node:float],dict[Node:Node]]:
+def shortest_path(vis_graph:dict[Node,list[Node]],source:Node) -> tuple[dict[Node,float],dict[Node,Node]]:
     """dijkstra
         d: 各节点最短路径长度
         pre: 各节点最短路径上的前驱节点

@@ -412,7 +412,7 @@ class LineSeg(Edge):
         if self.is_zero() or other.is_zero(): return True  # 零线段和所有人都同向
         return (self.is_parallel(other)
                 and self.to_vec3d().dot(other.to_vec3d())>self.const.TOL_VAL)
-    def point_at(self,t:float=None,x:float=None,y:float=None,cut:bool=False,out_t:list=None) -> tuple[Node,float]: 
+    def point_at(self,t:float=None,x:float=None,y:float=None,cut:bool=False,out_t:list=None) -> Node: 
         """求线段所在直线上的点，并返回参数t∈[0,1]
         优先级t>x>y，cut==True时在线段端点t==0/1处截断
         """
@@ -1098,15 +1098,32 @@ class Loop(Polyedge):
     def _covers_node(self,other:Node,count_mode:str="or")->bool:  # ok
         """环覆盖点"""
         return self._relation_with_node(other,count_mode) is not Geom.GeomRelation.Outside
-    def _relation_with_edge(self,other:Edge,count_mode:str="or")->set[Geom.GeomRelation]:
-        res=set()
-        # 求交，在所有交点(包括重叠端点)处打断edge，判断每一段与loop的关系
+    def clips_edge(self,other:Edge,keep:list[Geom.GeomRelation]=None,count_mode:str="or")->list[Edge]:
+        """用环剪切边.
+
+        Args:
+            other (Edge): 被剪切的边.
+            keep (list[Geom.GeomRelation], optional): 保留哪些. Defaults to [Geom.GeomRelation.Inside].
+            count_mode (str="or"|"xor", optional): 环内外的判断规则. Defaults to "or".
+
+        Returns:
+            list[Edge]: 保留的部分.
+        """
+        keep=keep or [Geom.GeomRelation.Inside]
+        segs=self._cuts_edge(other,count_mode=count_mode)
+        return sum([segs[rel] for rel in keep],[])
+    def _cuts_edge(self,other:Edge,count_mode:str="or")->dict[Geom.GeomRelation,list[Edge]]:
+        segs={Geom.GeomRelation.Inside:[],
+              Geom.GeomRelation.Outside:[],
+              Geom.GeomRelation.OnBoundary:[],
+              Geom.GeomRelation.Intersect:[]}
         break_points=[]
         for edge in self.edges:
             if edge.s.is_on_edge(other): break_points.append(edge.s)
             elif edge.e.is_on_edge(other): break_points.append(edge.e)
             else: break_points+=other.intersection(edge)
-        if len(break_points)>0: res.add(Geom.GeomRelation.Intersect)
+        if len(break_points)>0: 
+            segs[Geom.GeomRelation.Intersect].append(other)
         break_points+=[other.s,other.e]
         break_points.sort(key=lambda p:other.get_param(p))
         s=break_points[0]
@@ -1115,15 +1132,20 @@ class Loop(Polyedge):
             seg=other.slice_between(s,e)
             mid=seg.point_at(0.5)
             rel=self._relation_with_node(mid,count_mode)
-            if rel is not Geom.GeomRelation.OnBoundary: res.add(rel)
+            if rel is not Geom.GeomRelation.OnBoundary: segs[rel].append(seg)
             else:  # 中点在环上时补充判断起终点，防止出现中点在误差范围内而端点不在的情况
                 rel_s=self._relation_with_node(s,count_mode)
-                if rel_s is not Geom.GeomRelation.OnBoundary: res.add(rel_s)
+                if rel_s is not Geom.GeomRelation.OnBoundary: segs[rel_s].append(seg)
                 else:
                     rel_e=self._relation_with_node(e,count_mode)
-                    if rel_e is not Geom.GeomRelation.OnBoundary: res.add(rel_e)
-                    else: res.add(rel)
+                    if rel_e is not Geom.GeomRelation.OnBoundary: segs[rel_e].append(seg)
+                    else: segs[rel].append(seg)
             s=e
+        return segs
+    def _relation_with_edge(self,other:Edge,count_mode:str="or")->set[Geom.GeomRelation]:
+        res=set()
+        segs=self._cuts_edge(other,count_mode=count_mode)
+        res=set([rel for rel in segs if len(segs[rel])>0])
         return res
     def _covers_edge(self,other:Edge,count_mode:str="or")->bool:  # ok
         """环覆盖边"""
@@ -1244,7 +1266,21 @@ class Polygon(Geom):
     def union_with(self,other:"Polygon")->list["Polygon"]:
         from lib.geom_algo import BooleanOperation
         return BooleanOperation.union([self,other])
+    def clips_edge(self,other:Edge,keep:list[Geom.GeomRelation]=None)->list[Edge]:
+        """用环剪切边.
 
+        Args:
+            other (Edge): 被剪切的边.
+            keep (list[Geom.GeomRelation], optional): 保留哪些. Defaults to [Geom.GeomRelation.Inside].
+
+        Returns:
+            list[Edge]: 保留的部分.
+        """
+        keep=keep or [Geom.GeomRelation.Inside]
+        segs=self.shell.clips_edge(other,keep=keep)
+        for seg in segs:
+            
+        return sum([segs[rel] for rel in keep],[])
 class GeomUtil:
     """几何工具类"""
     @staticmethod

@@ -3,7 +3,7 @@ import typing
 import math
 import matplotlib.pyplot as plt
 from lib.geom import Node,LineSeg,Arc,Loop,Polygon
-from lib.geom_algo import BreakEdgeAlgo,MergeEdgeAlgo,FindOutlineAlgo,FindConnectedGraphAlgo
+from lib.geom_algo import BreakEdgeAlgo, MergeEdgeAlgo,FindOutlineAlgo,FindConnectedGraphAlgo
 from lib.building_element import Wall,Window,Door
 from lib.domain import Domain1d,MultiDomain1d
 from lib.utils import Timer, Constant

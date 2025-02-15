@@ -128,7 +128,7 @@ class CADPlotter(GeomPlotter):
         cls._model_space= doc.ModelSpace
         cls._blocks=doc.Blocks
     @classmethod
-    def draw_geoms(cls,geoms:list[Geom],*args,**kwargs)->None:
+    def draw_geoms(cls,geoms:Geom|list[Geom],*args,**kwargs)->None:
         draw_method_dict={
             Node:       cls._draw_node,
             LineSeg:    cls._draw_edge,
@@ -138,6 +138,7 @@ class CADPlotter(GeomPlotter):
             Polygon:    cls._draw_polygon,
         }
         cls._get_current_doc()
+        if isinstance(geoms,Geom): geoms=[geoms]
         for i,geom in enumerate(geoms):
             ent=draw_method_dict[type(geom)](cls._model_space,geom,*args,**kwargs)
             if "color" in kwargs: ent.Color=kwargs["color"]

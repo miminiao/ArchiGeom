@@ -8,6 +8,13 @@ from typing import Generator
 from lib.utils import Timer,Constant
 from lib.linalg import Vec3d,Mat3d,Tensor
 
+class GeomRelation(Enum):
+    """几何对象other和self的关系"""
+    Inside=1  # other与self的内部有交集
+    Outside=2  # other与self的外部有交集
+    OnBoundary=3  # other与self的边界有重叠
+    Intersect=4  # other与self的边界有交点
+    
 class Geom(ABC):
     _dumper_ignore=[]
     def __init__(self) -> None: ...
@@ -34,13 +41,6 @@ class Geom(ABC):
             pmax.y=max(pmax.y,mbb[1].y)
         return (pmin,pmax)
     
-    class GeomRelation(Enum):
-        """几何对象B和A的关系"""
-        Inside=1  # B与A的内部有交集
-        Outside=2  # B与A的外部有交集
-        OnBoundary=3  # B与A的边界有重叠
-        Intersect=4  # B与A的边界有交点
-
     @staticmethod
     def mbb_relation(a:tuple["Node","Node"],b:tuple["Node","Node"])->list[GeomRelation]:
         rel=[]
@@ -48,11 +48,11 @@ class Geom(ABC):
         if (comp(b[0].x,a[1].x)<0 and comp(b[0].y,a[1].y)<0 and
             comp(b[1].x,a[0].x)>0 and comp(b[1].y,a[0].y)>0
         ): 
-            rel.append(Geom.GeomRelation.Inside)
+            rel.append(GeomRelation.Inside)
         if (comp(b[0].x,a[0].x)<0 or comp(b[0].y,a[0].y)<0 or
             comp(b[1].x,a[1].x)>0 or comp(b[1].y,a[1].y)>0
         ): 
-            rel.append(Geom.GeomRelation.Outside)
+            rel.append(GeomRelation.Outside)
         return rel
     @abstractmethod
     def get_mbb(self)->tuple["Node","Node"]:
@@ -237,7 +237,7 @@ class Edge(Geom):
     @staticmethod
     def intersection_of_circles(arc1:"Arc",arc2:"Arc")->list[Node]:
         """两个圆弧所在的圆周求交，不含重合"""
-        assert isinstance(arc1,Arc) and isinstance(arc2,Arc), TypeError
+        if not isinstance(arc1,Arc) and isinstance(arc2,Arc): raise TypeError()
         c1,r1=arc1.center,arc1.radius
         c2,r2=arc2.center,arc2.radius
         dst=c1.dist(c2)  # 圆心距
@@ -834,7 +834,8 @@ class Polyedge(Geom):
             deepcopy (bool, optional): Defaults to False.
         """
         bulges=bulges or [0]*len(nodes)
-        assert len(nodes)>=2 and len(nodes)==len(bulges), "Node/bulge numbers not matching."
+        if not (len(nodes)>=2 and len(nodes)==len(bulges)): 
+            raise ValueError("Node/bulge numbers not matching.")
         self.nodes:list[Node]=nodes[:] if not deepcopy else copy.deepcopy(self.nodes)
         self.bulges:list[int]=bulges[:]
         # edges不是内蕴属性，应该现场计算比较好
@@ -860,7 +861,7 @@ class Polyedge(Geom):
             deepcopy (bool, optional): Defaults to False.
         """
         for i in edges:
-            assert i==0 or edges[i].s is edges[i-1].e, "Edges not continuous."
+            if not (i==0 or edges[i].s is edges[i-1].e): raise ValueError("Edges not continuous.")
         nodes=[edge.s for edge in edges]+[edges[-1].e]
         if deepcopy: nodes=copy.deepcopy(nodes)
         bulges=[edge.bulge if isinstance(edge,Arc) else 0 for edge in edges]+[0]
@@ -886,7 +887,7 @@ class Polyedge(Geom):
         Returns:
             Edge: 第index条边(现场计算的一个new instance)
         """
-        assert -len(self)<=index<len(self), "Index out of range."
+        if not (-len(self)<=index<len(self)): raise IndexError("Index out of range.")
         if index<0: index+=len(self)
         s,e,bulge=self.nodes[index],self.nodes[(index+1)%len(self.nodes)],self.bulges[index]
         return LineSeg(s,e) if bulge==0 else Arc(s,e,bulge)
@@ -918,11 +919,13 @@ class Loop(Polyedge):
             deepcopy (bool, optional): Defaults to False.
         """
         for i in range(len(edges)):
-            assert edges[i].s is edges[i-1].e, "Edges not continuous."
+            if edges[i].s is not edges[i-1].e: raise ValueError("Edges not continuous.")
         nodes=[edge.s for edge in edges]
         if deepcopy: nodes=copy.deepcopy(nodes)
         bulges=[edge.bulge if isinstance(edge,Arc) else 0 for edge in edges]
         return cls(nodes,bulges)
+    def is_identical(self,other:"Loop")->bool:
+        return abs(self.area-other.area)<self.const.TOL_AREA and self.covers(other) and other.covers(self)
     def reverse(self) -> None:
         self.nodes.reverse()
         self.nodes=self.nodes[-1:]+self.nodes[:-1]  # 保持起点不变
@@ -1034,8 +1037,8 @@ class Loop(Polyedge):
         return False
     def covers(self,other:Geom,count_mode:str="or")->bool:  # ok
         """环覆盖其他对象"""
-        assert count_mode=="or" or count_mode=="xor", "Invalid count mode."
-        if Geom.GeomRelation.Outside in Geom.mbb_relation(self.get_mbb(),other.get_mbb()):  # 包围盒不包含则不包含
+        if not (count_mode=="or" or count_mode=="xor"): raise ValueError("Invalid count mode.")
+        if GeomRelation.Outside in Geom.mbb_relation(self.get_mbb(),other.get_mbb()):  # 包围盒不包含则不包含
             return False
         if isinstance(other,Node):
             return self._covers_node(other,count_mode)
@@ -1048,7 +1051,7 @@ class Loop(Polyedge):
         return False
     def contains(self,other:Geom,count_mode:str="or")->bool:  # ok
         """环包含其他对象"""
-        assert count_mode=="or" or count_mode=="xor", "Invalid count mode."
+        if not (count_mode=="or" or count_mode=="xor"): raise ValueError("Invalid count mode.")
         if isinstance(other,Node):
             return self._contains_node(other,count_mode)
         if isinstance(other,Edge):
@@ -1058,12 +1061,12 @@ class Loop(Polyedge):
         if isinstance(other,Polygon):
             return self._contains_polygon(other,count_mode)
         return False    
-    def _relation_with_node(self,other:Node,count_mode:str="or")->Geom.GeomRelation:
+    def _relation_with_node(self,other:Node,count_mode:str="or")->GeomRelation:
         """判断点和环的关系"""
         # 先判断是否在边界上
         for edge in self.edges:
             if edge.touches_node(other):
-                return Geom.GeomRelation.OnBoundary
+                return GeomRelation.OnBoundary
         # 判断内外：射线法，计算环“真实”穿越射线的次数
         # 向上：+1；向下：-1；向上+终点 或 向下+起点：不计
         # 对于"xor"模式：偶数在外，奇数在内；对于"or"模式，0在外，非0在内
@@ -1087,43 +1090,43 @@ class Loop(Polyedge):
                 elif tangent.y<0: is_down=True
                 if is_up and t!=1: cross_count+=1
                 if is_down and t!=0: cross_count-=1
-        if count_mode=="or": return Geom.GeomRelation.Inside if cross_count!=0 else Geom.GeomRelation.Outside
-        if count_mode=="xor": return Geom.GeomRelation.Inside if cross_count%2==1 else Geom.GeomRelation.Outside
+        if count_mode=="or": return GeomRelation.Inside if cross_count!=0 else GeomRelation.Outside
+        if count_mode=="xor": return GeomRelation.Inside if cross_count%2==1 else GeomRelation.Outside
     def _touches_node(self,other:Node)->bool:  # ok
         """点在环的边界上"""
-        return self._relation_with_node(other) is Geom.GeomRelation.OnBoundary
+        return self._relation_with_node(other) is GeomRelation.OnBoundary
     def _contains_node(self,other:Node,count_mode:str="or")->bool:  # ok
         """环包含点"""
-        return self._relation_with_node(other,count_mode) is Geom.GeomRelation.Inside
+        return self._relation_with_node(other,count_mode) is GeomRelation.Inside
     def _covers_node(self,other:Node,count_mode:str="or")->bool:  # ok
         """环覆盖点"""
-        return self._relation_with_node(other,count_mode) is not Geom.GeomRelation.Outside
-    def clips_edge(self,other:Edge,keep:list[Geom.GeomRelation]=None,count_mode:str="or")->list[Edge]:
+        return self._relation_with_node(other,count_mode) is not GeomRelation.Outside
+    def clips_edge(self,other:Edge,keep:list[GeomRelation]=None,count_mode:str="or")->list[Edge]:
         """用环剪切边.
 
         Args:
             other (Edge): 被剪切的边.
-            keep (list[Geom.GeomRelation], optional): 保留哪些. Defaults to [Geom.GeomRelation.Inside].
+            keep (list[GeomRelation], optional): 保留哪些. Defaults to [GeomRelation.Inside].
             count_mode (str="or"|"xor", optional): 环内外的判断规则. Defaults to "or".
 
         Returns:
             list[Edge]: 保留的部分.
         """
-        keep=keep or [Geom.GeomRelation.Inside]
+        keep=keep or [GeomRelation.Inside]
         segs=self._cuts_edge(other,count_mode=count_mode)
         return sum([segs[rel] for rel in keep],[])
-    def _cuts_edge(self,other:Edge,count_mode:str="or")->dict[Geom.GeomRelation,list[Edge]]:
-        segs={Geom.GeomRelation.Inside:[],
-              Geom.GeomRelation.Outside:[],
-              Geom.GeomRelation.OnBoundary:[],
-              Geom.GeomRelation.Intersect:[]}
+    def _cuts_edge(self,other:Edge,count_mode:str="or")->dict[GeomRelation,list[Edge]]:
+        segs={GeomRelation.Inside:[],
+              GeomRelation.Outside:[],
+              GeomRelation.OnBoundary:[],
+              GeomRelation.Intersect:[]}
         break_points=[]
         for edge in self.edges:
             if edge.s.is_on_edge(other): break_points.append(edge.s)
             elif edge.e.is_on_edge(other): break_points.append(edge.e)
             else: break_points+=other.intersection(edge)
         if len(break_points)>0: 
-            segs[Geom.GeomRelation.Intersect].append(other)
+            segs[GeomRelation.Intersect].append(other)
         break_points+=[other.s,other.e]
         break_points.sort(key=lambda p:other.get_param(p))
         s=break_points[0]
@@ -1132,17 +1135,17 @@ class Loop(Polyedge):
             seg=other.slice_between(s,e)
             mid=seg.point_at(0.5)
             rel=self._relation_with_node(mid,count_mode)
-            if rel is not Geom.GeomRelation.OnBoundary: segs[rel].append(seg)
+            if rel is not GeomRelation.OnBoundary: segs[rel].append(seg)
             else:  # 中点在环上时补充判断起终点，防止出现中点在误差范围内而端点不在的情况
                 rel_s=self._relation_with_node(s,count_mode)
-                if rel_s is not Geom.GeomRelation.OnBoundary: segs[rel_s].append(seg)
+                if rel_s is not GeomRelation.OnBoundary: segs[rel_s].append(seg)
                 else:
                     rel_e=self._relation_with_node(e,count_mode)
-                    if rel_e is not Geom.GeomRelation.OnBoundary: segs[rel_e].append(seg)
+                    if rel_e is not GeomRelation.OnBoundary: segs[rel_e].append(seg)
                     else: segs[rel].append(seg)
             s=e
         return segs
-    def _relation_with_edge(self,other:Edge,count_mode:str="or")->set[Geom.GeomRelation]:
+    def _relation_with_edge(self,other:Edge,count_mode:str="or")->set[GeomRelation]:
         res=set()
         segs=self._cuts_edge(other,count_mode=count_mode)
         res=set([rel for rel in segs if len(segs[rel])>0])
@@ -1150,11 +1153,11 @@ class Loop(Polyedge):
     def _covers_edge(self,other:Edge,count_mode:str="or")->bool:  # ok
         """环覆盖边"""
         rel=self._relation_with_edge(other,count_mode)
-        return Geom.GeomRelation.Outside not in rel
+        return GeomRelation.Outside not in rel
     def _contains_edge(self,other:Edge,count_mode:str="or")->bool:  # ok
         """环包含边"""
         rel=self._relation_with_edge(other,count_mode)
-        return Geom.GeomRelation.Inside in rel and len(rel)==1
+        return GeomRelation.Inside in rel and len(rel)==1
     def _covers_polyedge(self,other:Polyedge,count_mode:str="or")->bool:  # ok
         """环覆盖多段线/环"""
         for edge in other.edges:
@@ -1211,7 +1214,7 @@ class Polygon(Geom):
     def __init__(self,shell:Loop,holes:list[Loop]=None,deepcopy:bool=False,make_valid:bool=True,prepare:bool=True) -> None:
         super().__init__()
         holes=holes or []
-        assert isinstance(shell,Loop) and all([isinstance(hole,Loop) for hole in holes]), "Wrong type."
+        if not (isinstance(shell,Loop) and all([isinstance(hole,Loop) for hole in holes])): raise TypeError()
         self.shell=shell if not deepcopy else copy.deepcopy(shell)
         self.holes=holes[:] if not deepcopy else copy.deepcopy(holes)
         if make_valid: 
@@ -1244,8 +1247,27 @@ class Polygon(Geom):
     @property
     def area(self)->float:  # ok
         return sum([ring.area for ring in self.all_loops])
-    def covers(self,other:Geom)->bool:  # ok
-        return self.shell.covers(other) and all([not hole.contains(other) for hole in self.holes])
+    def is_identical(self,other:"Polygon")->bool:
+        if not (len(self.holes)==len(other.holes) and
+                self.shell.is_identical(other.shell)):
+            return False
+        for i in self.holes:
+            for j in other.holes:
+                if i.is_identical(j): break
+            else: return False
+        return True
+    def covers(self,other:Geom)->bool: 
+        """多边形包含其他对象. 注意：Polygon包含Loop的意思是包含边而非区域，要判断区域需构造Polygon"""
+        if isinstance(other,Node):
+            return self.shell.covers(other) and all([not hole.contains(other) for hole in self.holes])
+        if isinstance(other,Edge):
+            return self.shell.covers(other) and all([GeomRelation.Inside not in hole._relation_with_edge(other) for hole in self.holes])
+        if isinstance(other,Polyedge):
+            return all([self.covers(edge) for edge in other.edges])
+        if isinstance(other,Polygon):
+            from lib.geom_algo import BooleanOperation
+            u=BooleanOperation.union([self,other])
+            return len(u)==1 and self.is_identical(u[0])
     def offset(self,dist:float)->list["Polygon"]:
         shells=self.shell.offset(dist)
         holes=[]
@@ -1263,24 +1285,35 @@ class Polygon(Geom):
                     if (d:=p.dist(other))<min_dist:
                         res,min_dist=p,d
             return res
-    def union_with(self,other:"Polygon")->list["Polygon"]:
-        from lib.geom_algo import BooleanOperation
-        return BooleanOperation.union([self,other])
-    def clips_edge(self,other:Edge,keep:list[Geom.GeomRelation]=None)->list[Edge]:
-        """用环剪切边.
+    def clips_edge(self,other:Edge,keep:list[GeomRelation]=None)->list[Edge]:
+        """用多边形剪切边.
 
         Args:
             other (Edge): 被剪切的边.
-            keep (list[Geom.GeomRelation], optional): 保留哪些. Defaults to [Geom.GeomRelation.Inside].
+            keep (list[GeomRelation], optional): 保留哪些. Defaults to [GeomRelation.Inside].
 
         Returns:
             list[Edge]: 保留的部分.
         """
-        keep=keep or [Geom.GeomRelation.Inside]
-        segs=self.shell.clips_edge(other,keep=keep)
-        for seg in segs:
-            
-        return sum([segs[rel] for rel in keep],[])
+        keep=keep or [GeomRelation.Inside]
+
+        shell_cuts=self.shell._cuts_edge(other)
+        res={GeomRelation.Inside:[],
+             GeomRelation.Outside:shell_cuts[GeomRelation.Outside],
+             GeomRelation.OnBoundary:shell_cuts[GeomRelation.OnBoundary],
+        }
+        in_between=shell_cuts[GeomRelation.Inside]
+        for hole in self.holes:
+            outside_hole=[]
+            for seg in in_between:
+                hole_cuts=hole._cuts_edge(seg)
+                res[GeomRelation.Outside]+=hole_cuts[GeomRelation.Inside]
+                res[GeomRelation.OnBoundary]+=hole_cuts[GeomRelation.OnBoundary]
+                outside_hole+=hole_cuts[GeomRelation.Outside]
+            in_between=outside_hole
+        res[GeomRelation.Inside]=in_between
+        return sum([res[rel] for rel in keep],[])
+
 class GeomUtil:
     """几何工具类"""
     @staticmethod

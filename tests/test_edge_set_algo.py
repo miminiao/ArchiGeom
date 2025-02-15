@@ -3,7 +3,7 @@
 import pytest
 from lib.utils import Constant
 from lib.geom import Node,Edge,LineSeg,Arc
-from lib.geom_algo import BreakEdgeAlgo,MergeEdgeAlgo,FindOutlineAlgo
+from lib.geom_algo import BreakEdgeAlgo, MergeEdgeAlgo,FindOutlineAlgo
 from lib.geom_plotter import CADPlotter
 from tests.utils import set_root_dir,read_case,write_stdout
 from lib.index import STRTree

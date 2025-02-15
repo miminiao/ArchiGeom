@@ -1,18 +1,19 @@
+from abc import ABC, abstractmethod
 import math
 import numpy as np
 from copy import copy
 from typing import Callable
-from abc import ABC,abstractmethod
 
 
 from lib.linalg import Vec3d
 from lib.domain import Domain1d
 from lib.geom import (
-    Geom,Node,Edge,LineSeg,Arc,Loop,Polygon,
+    Node,Edge,LineSeg,Arc,Loop,Polygon,
     GeomUtil
     )
 from lib.utils import Timer,Constant,ListTool
-from lib.index import STRTree,TreeNode,SegmentTree
+from lib.index import STRTree,SegmentTree, TreeNode
+
 
 class GeomAlgo(ABC):
     def __init__(self) -> None:
@@ -23,6 +24,7 @@ class GeomAlgo(ABC):
     def get_result(self): ...
     @abstractmethod
     def _postprocess(self)->None: ...
+
 class MaxRectAlgo(GeomAlgo):  # TODO
     def __init__(
             self,
@@ -308,6 +310,78 @@ class MaxRectAlgo(GeomAlgo):  # TODO
                     u0, l0, d0, r0 = ut, lt, dt, rt
         return u0, l0, d0, r0
     def _postprocess(self) -> None: ...
+
+
+class BreakEdgeAlgo(GeomAlgo):  # ✅
+    def __init__(self,edge_groups:list[list[Edge]]) -> None:
+        """线段打断，并保留原先的分组. 重叠部分会在端点处打断. 保持原线段的方向. 
+
+        Args:
+            edge_groups (list[list[Edge]]): 若干个分组，每组包含若干条线段.
+        """
+        super().__init__()
+        self.edge_groups=edge_groups
+        self.all_edges:list[Edge]=[]
+        self.result_groups:list[list[Edge]]=[]
+    def get_result(self)->list[list[Edge]]:
+        """获取打断的结果
+
+        Returns
+        list[list[Edge]]: 若干个分组，每组包含若干条线段，和打断前的分组一致.
+        """
+        self._preprocess()
+        break_points=self._get_break_points()
+        self.broken_lines=self._rebuild_lines(break_points)
+        self._postprocess()
+        return self.broken_lines
+    def _preprocess(self)->None:
+        """预处理"""
+        super()._preprocess()
+        # 去除0线段
+        self.edge_groups=[[edge for edge in group if not edge.is_zero()] for group in self.edge_groups]
+        self.all_edges=sum(self.edge_groups,[])
+    def _postprocess(self)->None:
+        """后处理"""
+        super()._postprocess()
+    def _get_break_points(self)->dict[Edge:list[Node]]:
+        """获取线段上的断点，没有排序，也没有去重"""
+        visited={line:set() for line in self.all_edges} # 记录已经求过交点的线段
+        break_points={line:[line.s,line.e] for line in self.all_edges} # 记录线段上的断点
+        rt=STRTree(self.all_edges)
+        for line in self.all_edges:
+            neighbors=rt.query_idx(line.get_mbb(),tol=1.0)
+            for other_idx in neighbors:
+                other=self.all_edges[other_idx]
+                if other in visited[line]: continue # 这俩已经求过了，就不再算了
+                visited[line].add(other)
+                visited[other].add(line)
+                # 共线且有重叠的情况
+                if line.is_collinear(other):
+                    overlap=line.overlap(other)
+                    for edge in overlap:
+                        if edge.is_zero(): continue
+                        break_points[line].extend([edge.s,edge.e])
+                        break_points[other].extend([edge.s,edge.e])
+                # 相交的情况
+                if line.intersects(other):
+                    intersection=line.intersection(other)
+                    break_points[line].extend(intersection)
+                    break_points[other].extend(intersection)
+        return break_points
+    def _rebuild_lines(self,break_points:dict[Edge,list[Node]])->list[list[Edge]]:
+        """根据断点重构线段"""
+        broken_lines=[]
+        for group in self.edge_groups:
+            new_group=[]
+            for line in group:
+                break_points[line].sort(key=lambda p:line.get_param(p))
+                pre=break_points[line][0]
+                for p in break_points[line]:
+                    if p.equals(pre): continue
+                    new_group.append(line.slice_between(pre, p))
+                    pre=p
+            broken_lines.append(new_group)
+        return broken_lines
 class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
     def __init__(self,edges:list[Edge],break_at_intersections:bool=False,compare:Callable[[Edge,Edge],int]=None) -> None:
         """合并重叠的线段
@@ -515,76 +589,6 @@ class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
             elif dom.value>0:
                 merged_lines.append(dom.line)
         return merged_lines
-class BreakEdgeAlgo(GeomAlgo):  # ✅
-    def __init__(self,edge_groups:list[list[Edge]]) -> None:
-        """线段打断，并保留原先的分组. 重叠部分会在端点处打断. 保持原线段的方向. 
-
-        Args:
-            edge_groups (list[list[Edge]]): 若干个分组，每组包含若干条线段.
-        """  
-        super().__init__()
-        self.edge_groups=edge_groups
-        self.all_edges:list[Edge]=[]
-        self.result_groups:list[list[Edge]]=[]
-    def get_result(self)->list[list[Edge]]:
-        """获取打断的结果
-
-        Returns
-        list[list[Edge]]: 若干个分组，每组包含若干条线段，和打断前的分组一致.
-        """
-        self._preprocess()
-        break_points=self._get_break_points()
-        self.broken_lines=self._rebuild_lines(break_points)
-        self._postprocess()
-        return self.broken_lines
-    def _preprocess(self)->None:
-        """预处理"""
-        super()._preprocess()
-        # 去除0线段
-        self.edge_groups=[[edge for edge in group if not edge.is_zero()] for group in self.edge_groups]
-        self.all_edges=sum(self.edge_groups,[])
-    def _postprocess(self)->None:
-        """后处理"""
-        super()._postprocess()
-    def _get_break_points(self)->dict[Edge:list[Node]]:
-        """获取线段上的断点，没有排序，也没有去重"""
-        visited={line:set() for line in self.all_edges} # 记录已经求过交点的线段
-        break_points={line:[line.s,line.e] for line in self.all_edges} # 记录线段上的断点
-        rt=STRTree(self.all_edges)
-        for line in self.all_edges:
-            neighbors=rt.query_idx(line.get_mbb(),tol=1.0)
-            for other_idx in neighbors:
-                other=self.all_edges[other_idx]
-                if other in visited[line]: continue # 这俩已经求过了，就不再算了
-                visited[line].add(other)
-                visited[other].add(line)
-                # 共线且有重叠的情况
-                if line.is_collinear(other):
-                    overlap=line.overlap(other)
-                    for edge in overlap:
-                        if edge.is_zero(): continue
-                        break_points[line].extend([edge.s,edge.e])
-                        break_points[other].extend([edge.s,edge.e])
-                # 相交的情况
-                if line.intersects(other):
-                    intersection=line.intersection(other)
-                    break_points[line].extend(intersection)
-                    break_points[other].extend(intersection)
-        return break_points
-    def _rebuild_lines(self,break_points:dict[Edge,list[Node]])->list[list[Edge]]:
-        """根据断点重构线段"""
-        broken_lines=[]
-        for group in self.edge_groups:
-            new_group=[]
-            for line in group:
-                break_points[line].sort(key=lambda p:line.get_param(p))
-                pre=break_points[line][0]
-                for p in break_points[line]:
-                    if p.equals(pre): continue
-                    new_group.append(line.slice_between(pre, p))
-                    pre=p
-            broken_lines.append(new_group)
-        return broken_lines
 class FindConnectedGraphAlgo(GeomAlgo):
     def __init__(self,lines:list[Edge]) -> None:
         """求连通图
@@ -714,6 +718,8 @@ class FindOutlineAlgo(GeomAlgo):  # TODO: 圆弧
         return Loop(nodes,bulges)
     def _postprocess(self) -> None:
         pass
+
+
 class FindLoopAlgo(GeomAlgo):  # ✅
     def __init__(
         self,
@@ -795,6 +801,7 @@ class FindLoopAlgo(GeomAlgo):  # ✅
                     edge_stack.append(next_edge)
         return loops
 
+
 class BooleanOperation:
     """多边形布尔运算"""
     @classmethod
@@ -808,7 +815,7 @@ class BooleanOperation:
             list[Polygon]: 并集.
         """
         # 正负配对，只取最外层的
-        all_loops=sum([list(geom.all_loops) for geom in geoms],[])   
+        all_loops=sum([list(geom.all_loops) for geom in geoms],[])
         cond=lambda depth:depth==1
         return cls._pair_loops(all_loops,condition=cond)
     @classmethod
@@ -842,7 +849,7 @@ class BooleanOperation:
         reversed_loops=[loop.reversed() for loop in object_loops]
         cond=lambda depth:depth==1
         return cls._pair_loops(subject_loops+reversed_loops,condition=cond)
-    
+
     @classmethod
     def _pair_loops(cls,loops:list[Loop],condition:Callable[[int],bool]=None)->list[Polygon]:
         """重建所有环的拓扑，并按条件组合成Polygon
@@ -900,10 +907,10 @@ class BooleanOperation:
         for i in t:
             if i.parent is not None:
                 i.parent.child.append(i)
-            else: 
+            else:
                 i.parent=root
                 root.child.append(i)
-        return root            
+        return root
     @classmethod
     def _traverse_loop_tree(cls,root:TreeNode[Loop],depth:int,condition:Callable[[int],bool],stack:list[TreeNode],out_polygons:list[Polygon])->list[Loop]:
         """遍历Loop的覆盖关系树，按条件返回配对关系.
@@ -926,7 +933,7 @@ class BooleanOperation:
             else:
                 new_stack=stack[:]
                 new_depth=depth-1
-                if len(stack)>0 and stack[-1].obj.area>0:  
+                if len(stack)>0 and stack[-1].obj.area>0:
                     shell=new_stack.pop()
                     shell.holes.append(child.obj)  # 直接配对
                 else:
@@ -935,3 +942,6 @@ class BooleanOperation:
 
         if condition(depth) and root.obj is not None and root.obj.area>0:
             out_polygons.append(Polygon(shell=root.obj, holes=root.holes, make_valid=False))
+
+
+

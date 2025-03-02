@@ -144,7 +144,7 @@ class CADPlotter(GeomPlotter):
             if "color" in kwargs: ent.Color=kwargs["color"]
     @classmethod
     def _draw_node(cls,current_space,node:Node,node_text:Callable[[Node],str]=None,*args,**kwargs):
-        point=cls._com_point(node)
+        point=cls._point_to_com(node)
         ent=current_space.AddPoint(point)
         if "color" in kwargs: ent.Color=kwargs["color"]
         if node_text is not None: 
@@ -153,26 +153,26 @@ class CADPlotter(GeomPlotter):
     @classmethod
     def _draw_edge(cls,current_space,edge:Edge,*args,**kwargs):
         if isinstance(edge,LineSeg):
-            s,e = cls._com_point(edge.s), cls._com_point(edge.e)
+            s,e = cls._point_to_com(edge.s), cls._point_to_com(edge.e)
             ent=current_space.AddLine(s, e)
         elif isinstance(edge,Arc):
-            center=cls._com_point(edge.center)
+            center=cls._point_to_com(edge.center)
             ent=current_space.AddArc(center,edge.radius,*edge.angles)
         return ent
     @classmethod
     def _draw_polyedge(cls,current_space,polyedge:Polyedge, *args, **kwargs):
-        end_points=cls._com_point_list(polyedge.nodes)
+        end_points=cls._point_list_to_com(polyedge.nodes)
         ent=current_space.AddPolyline(end_points)
         for i,bulge in enumerate(polyedge.bulges):
             ent.SetBulge(i,bulge)
         show_node_text=kwargs.get("show_node_text",False)
         if show_node_text:
             for i,node in enumerate(polyedge.nodes):
-                current_space.AddText(f"{i}",cls._com_point(node),250)
+                current_space.AddText(f"{i}",cls._point_to_com(node),250)
         return ent
     @classmethod
     def _draw_loop(cls,current_space,loop:Loop, *args, **kwargs):
-        end_points=cls._com_point_list(loop.nodes)
+        end_points=cls._point_list_to_com(loop.nodes)
         ent=current_space.AddPolyline(end_points)
         for i,edge in enumerate(loop.edges):
             ent.SetBulge(i,edge.bulge if isinstance(edge,Arc) else 0)
@@ -185,7 +185,7 @@ class CADPlotter(GeomPlotter):
         return ent
     @classmethod
     def _draw_polygon(cls,current_space,polygon:Polygon, fill:bool=True, fill_opacity:int=80, *args, **kwargs):
-        base_point=cls._com_point(Node(0,0,0))
+        base_point=cls._point_to_com(Node(0,0,0))
         block_name=f"Polygon_{time()}"
         new_block=cls._blocks.Add(base_point,block_name)
         outer=cls._draw_loop(new_block,polygon.shell)
@@ -194,26 +194,26 @@ class CADPlotter(GeomPlotter):
             inners.append(cls._draw_loop(new_block,loop))
         if fill:
             hatch=new_block.AddHatch(1,"SOLID",True,0)
-            hatch.AppendOuterLoop(cls._com_list([outer]))
+            hatch.AppendOuterLoop(cls._obj_list_to_com([outer]))
             for inner in inners:
-                hatch.AppendInnerLoop(cls._com_list([inner]))
+                hatch.AppendInnerLoop(cls._obj_list_to_com([inner]))
             hatch.EntityTransparency=fill_opacity
-        insertion_point=cls._com_point(Node(0,0,0))
+        insertion_point=cls._point_to_com(Node(0,0,0))
         ent=current_space.InsertBlock(insertion_point,block_name,1,1,1,0)
         return ent
     @classmethod
     def _draw_text(cls,current_space,text:str,pos:Node,height:float=250,*args,**kwargs):
-        point=cls._com_point(pos)
+        point=cls._point_to_com(pos)
         ent=current_space.AddText(text,point,height)
         return ent
     @staticmethod
-    def _com_point(node:Node)->win32com.client.VARIANT:
+    def _point_to_com(node:Node)->win32com.client.VARIANT:
         return win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_R8, [node.x, node.y, node.z])
     @staticmethod
-    def _com_point_list(nodes:list[Node])->win32com.client.VARIANT:
+    def _point_list_to_com(nodes:list[Node])->win32com.client.VARIANT:
         coords=[]
         for node in nodes: coords.extend([node.x,node.y,node.z])
         return win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_R8, coords)
     @staticmethod
-    def _com_list(objs:list)->win32com.client.VARIANT:
+    def _obj_list_to_com(objs:list)->win32com.client.VARIANT:
         return win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_DISPATCH, objs)

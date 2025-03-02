@@ -21,7 +21,7 @@ MEARGE_EDGE=("merge_edge/",9)
 )
 def test_break_edge(case):
     inputs=read_case(BREAK_EDGE,case["in"],hook_mode="cad")
-    res=BreakEdgeAlgo([inputs]).get_result()[0]
+    res=BreakEdgeAlgo(inputs).get_result()
     if __name__=="__main__":
         CADPlotter.draw_geoms(res)
         # write_stdout(len(res),BREAK_EDGE,f"out_{i}") 
@@ -52,7 +52,7 @@ def test_merge_edge(case):
 def test_find_outline(case):
     edges=read_case(FIND_OUTLINE,case["in"],hook_mode="cad")
     res=FindOutlineAlgo(edges).get_result()
-    comp=Constant.get().get_comp_func("TOL_AREA")
+    comp=Constant.get().get_compare_func("TOL_AREA")
     if __name__=="__main__":
         CADPlotter.draw_geoms([res])
         # write_stdout([len(res),res.area],FIND_OUTLINE,f"out_{i}") 
@@ -66,9 +66,9 @@ if __name__=="__main__":
         for i in [3]:
         # for i in range(1,FIND_OUTLINE[1]+1):
             test_find_outline({"in":f"case_{i}","out":f"out_{i}"})
-    if 0:
-        # for i in [1]:
-        for i in range(1,BREAK_EDGE[1]+1):
+    if 1:
+        for i in [1]:
+        # for i in range(1,BREAK_EDGE[1]+1):
             test_break_edge({"in":f"case_{i}","out":f"out_{i}"})            
     if 0:
         for i in [10]:

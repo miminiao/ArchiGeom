@@ -41,7 +41,7 @@ class Domain1d[T](Domain):
     def __eq__(self,other:"Domain1d")->bool:
         if not isinstance(other,Domain1d): return False
         if self.is_empty() and other.is_empty():return True
-        tol_comp=self.const.get_comp_func()
+        tol_comp=self.const.get_compare_func()
         return tol_comp(self.l,other.l)==0 and tol_comp(self.r,other.r)==0 and self.compare(self.value,other.value)==0
     def __add__(self,other:"Domain1d| MultiDomain1d")->"Domain1d | MultiDomain1d":
         """区间合并"""
@@ -98,14 +98,14 @@ class Domain1d[T](Domain):
         if isinstance(other,MultiDomain1d):
             return other.is_overlap(self)
         if self.is_empty() or other.is_empty(): return False
-        tol_comp=self.const.get_comp_func()
+        tol_comp=self.const.get_compare_func()
         if include_endpoints:
             return tol_comp(self.r,other.l)>=0 and tol_comp(other.r,self.l)>=0
         else:
             return tol_comp(self.r,other.l)==1 and tol_comp(other.r,self.l)==1
     def is_empty(self)->bool:
         """判断区间是否为空，l==r的情况也返回True"""
-        tol_comp=self.const.get_comp_func()
+        tol_comp=self.const.get_compare_func()
         return tol_comp(self.l,self.r)>=0
     def copy(self,value:T=None)->"Domain1d":
         """返回与当前区间相同、高度为h的区间"""

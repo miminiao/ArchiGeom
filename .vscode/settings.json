@@ -15,5 +15,10 @@
         "Git Bash": {
             "source": "Git Bash"
         }
-    }
+    },
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }

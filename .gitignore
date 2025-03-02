@@ -4,6 +4,8 @@
 *.code-workspace
 output/
 data/
+*.err
+*.lnk
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

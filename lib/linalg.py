@@ -9,14 +9,9 @@ class Tensor:
 class Vector(Tensor):...
 class Vec3d(Vector):
     dim=(3,1)
+    X,Y,Z=None,None,None
     def __init__(self,x:float,y:float,z:float=0.0) -> None:
         self.x,self.y,self.z=x,y,z
-    @classmethod
-    def X(cls)->"Vec3d": return cls(1,0,0)
-    @classmethod
-    def Y(cls)->"Vec3d": return cls(0,1,0)
-    @classmethod
-    def Z(cls)->"Vec3d": return cls(0,0,1)
     def __getitem__(self,index:int)->float:
         if index>=3 or index<-3: raise IndexError
         match index%3:
@@ -74,6 +69,10 @@ class Vec3d(Vector):
         return [self.x,self.y,self.z]
     def to_vec4d(self,w:float=0)->"Vec4d":
         return Vec4d(self.x,self.y,self.z,w)
+Vec3d.X=Vec3d(1,0,0)
+Vec3d.Y=Vec3d(0,1,0)
+Vec3d.Z=Vec3d(0,0,1)
+
 class Vec4d(Vector):
     dim=(4,1)
     def __init__(self,x:float,y:float,z:float,w:float=1) -> None:

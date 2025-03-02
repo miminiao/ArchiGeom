@@ -236,8 +236,8 @@ class CADBlockRef(CADEntity):
     @property
     def basis3d(self)->Mat3d:
         vz=Vec3d(*self.normal)
-        vx=Vec3d.Z().cross(vz)
-        vx=vx.unit() if not vx.is_zero(is_unit=True) else Vec3d.X()
+        vx=Vec3d.Z.cross(vz)
+        vx=vx.unit() if not vx.is_zero(is_unit=True) else Vec3d.X
         vy=vz.cross(vx)
         return Mat3d.from_column_vecs([vx,vy,vz])
     @property
@@ -257,9 +257,9 @@ class CADBlockRef(CADEntity):
     @property
     def rotation_mat(self)->Mat3d:
         return Mat3d.from_column_vecs([
-            Vec3d.X().rotate2d(self.rotation),
-            Vec3d.Y().rotate2d(self.rotation),
-            Vec3d.Z(),
+            Vec3d.X.rotate2d(self.rotation),
+            Vec3d.Y.rotate2d(self.rotation),
+            Vec3d.Z,
         ])
     def to_tensor(self)->Tensor:
         if self.block_name=="_Matrix4d":

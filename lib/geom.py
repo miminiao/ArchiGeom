@@ -6,7 +6,8 @@ from enum import Enum
 from abc import ABC,abstractmethod
 from typing import Generator
 from lib.utils import Timer,Constant
-from lib.linalg import Vec3d,Mat3d,Tensor
+from lib.linalg import Vec3d,Mat3d
+from lib.index import STRTree
 
 class GeomRelation(Enum):
     """几何对象other和self的关系"""
@@ -14,7 +15,7 @@ class GeomRelation(Enum):
     Outside=2  # other与self的外部有交集
     OnBoundary=3  # other与self的边界有重叠
     Intersect=4  # other与self的边界有交点
-    
+
 class Geom(ABC):
     _dumper_ignore=[]
     def __init__(self) -> None: ...
@@ -44,7 +45,7 @@ class Geom(ABC):
     @staticmethod
     def mbb_relation(a:tuple["Node","Node"],b:tuple["Node","Node"])->list[GeomRelation]:
         rel=[]
-        comp=Constant.get().get_comp_func()
+        comp=Constant.get().get_compare_func()
         if (comp(b[0].x,a[1].x)<0 and comp(b[0].y,a[1].y)<0 and
             comp(b[1].x,a[0].x)>0 and comp(b[1].y,a[0].y)>0
         ): 
@@ -75,6 +76,10 @@ class Node(Geom):
         return self.equals(other)
     def __hash__(self)->int:
         return id(self)
+    def __add__(self,other:Vec3d)->"Node":
+        return Node.from_vec3d(self.to_vec3d()+other)
+    def __sub__(self,other:Vec3d)->"Node":
+        return Node.from_vec3d(self.to_vec3d()-other)
     @classmethod
     def from_array(cls,arr:np.ndarray) -> "Node":
         if arr.shape==(2,):
@@ -241,7 +246,7 @@ class Edge(Geom):
         c1,r1=arc1.center,arc1.radius
         c2,r2=arc2.center,arc2.radius
         dst=c1.dist(c2)  # 圆心距
-        comp=Constant.get().get_comp_func("TOL_DIST")
+        comp=Constant.get().get_compare_func("TOL_DIST")
         if c1.equals(c2) and comp(r1,r2)==0:  # 重合
             return []
         if (comp(dst,r1+r2)>0 or comp(dst,abs(r1-r2))<0):  # 相离 or 包含
@@ -288,7 +293,7 @@ class Edge(Geom):
     @staticmethod
     def compare_curvature_by_radius(a:float,b:float)->int:
         if (abs(a)==abs(b)==float("inf")
-                or Constant.get()._comp(abs(a-b),0)==0): 
+                or Constant.get()._compare(abs(a-b),0)==0): 
             return 0  # 直线
         if abs(a)==float("inf"): return (b<0)*2-1
         if abs(b)==float("inf"): return (a>0)*2-1
@@ -305,6 +310,9 @@ class LineSeg(Edge):
         return id(self)
     def equals(self,other:"LineSeg")->bool:
         return isinstance(other,LineSeg) and self.s==other.s and self.e==other.e
+    @classmethod
+    def from_origin_direction_length(cls,origin:Node,direction:Vec3d,length:float)->"LineSeg":
+        return cls(origin,origin+direction.unit()*length)
     @classmethod
     def from_array(cls,arr:np.ndarray) -> "LineSeg":
         if arr.shape==(2,2):
@@ -897,8 +905,8 @@ class Polyedge(Geom):
             yield self.edge(i)
 class Loop(Polyedge):
     """环(Closed PolyEdge)"""
-    _dumper_ignore=["polygon"]
-    def __init__(self,nodes:list[Node],bulges:list[float]=None,deepcopy:bool=False):
+    _dumper_ignore=["prepared"]
+    def __init__(self,nodes:list[Node],bulges:list[float]=None,deepcopy:bool=False,prepare:bool=True):
         """从顶点+凸度构造环
 
         Args:
@@ -907,6 +915,8 @@ class Loop(Polyedge):
             deepcopy (bool, optional): Defaults to False.
         """
         super().__init__(nodes,bulges,deepcopy)
+        self.prepared=None
+        if prepare: self.prepare()
     def __len__(self)->int: return len(self.nodes)
     @property
     def is_closed(self)->bool:return True
@@ -924,6 +934,9 @@ class Loop(Polyedge):
         if deepcopy: nodes=copy.deepcopy(nodes)
         bulges=[edge.bulge if isinstance(edge,Arc) else 0 for edge in edges]
         return cls(nodes,bulges)
+    def prepare(self)->None:
+        # if self.prepared is not None: return
+        self.prepared=STRTree(list(self.edges))
     def is_identical(self,other:"Loop")->bool:
         return abs(self.area-other.area)<self.const.TOL_AREA and self.covers(other) and other.covers(self)
     def reverse(self) -> None:
@@ -941,7 +954,7 @@ class Loop(Polyedge):
             if isinstance(edge,Arc) and not edge.is_zero():
                 vs=edge.s.to_vec3d()-edge.center.to_vec3d()
                 ve=edge.e.to_vec3d()-edge.center.to_vec3d()
-                bow_area=edge.radian/2*edge.radius**2-0.5*(vs.cross(ve).dot(Vec3d.Z()))
+                bow_area=edge.radian/2*edge.radius**2-0.5*(vs.cross(ve).dot(Vec3d.Z))
             s+=(edge.s.x*edge.e.y-edge.s.y*edge.e.x)/2+bow_area
         return s
     def get_centroid(self)->Node:  # 需测试 TODO
@@ -957,7 +970,7 @@ class Loop(Polyedge):
             triangle_centroid=(p0+p1+p2)/3
             centroid+=triangle_centroid*triangle_area/self.area
         return Node(centroid.x,centroid.y)
-    def simplify(self,cull_dup=True,cull_insig=True)->None:
+    def simplify(self,cull_dup=True,cull_insig=True)->None:  # TODO
         """去除环上冗余的顶点/边
 
         Args:
@@ -1019,14 +1032,16 @@ class Loop(Polyedge):
         new_loop=Loop.from_nodes(new_nodes)
         if not split:
             return [new_loop]
-    def has_self_intersection(self) -> bool:  # ok
+    def has_self_intersection(self) -> bool:  # ok, str ok
         """判断是否有自相交"""
         # self.edges们两两判断是否相交/重叠
         # 判断的时候每条线段的有效范围是[0,1)->[s,e)；只算头，不算尾巴
-        for i in range(len(self)-1):
-            ei=self.edge(i)
-            for j in range(i+1,len(self)):
-                ej=self.edge(j)
+        for i,ei in enumerate(self.edges):
+            if self.prepared is not None:
+                neighbors=self.prepared.query(ei.get_mbb(),tol=self.const.TOL_DIST)
+            else: neighbors=self.edges[i:]
+            for ej in neighbors:
+                if ei is ej: continue
                 # 相交
                 intersection=ei.intersection(ej)
                 for p in intersection:
@@ -1037,8 +1052,9 @@ class Loop(Polyedge):
         return False
     def covers(self,other:Geom,count_mode:str="or")->bool:  # ok
         """环覆盖其他对象"""
-        if not (count_mode=="or" or count_mode=="xor"): raise ValueError("Invalid count mode.")
-        if GeomRelation.Outside in Geom.mbb_relation(self.get_mbb(),other.get_mbb()):  # 包围盒不包含则不包含
+        if not (count_mode=="or" or count_mode=="xor"): 
+            raise ValueError("Invalid count mode.")
+        if GeomRelation.Outside in Geom.mbb_relation(self.get_mbb(),other.get_mbb()):  # 包围盒不满足则不满足
             return False
         if isinstance(other,Node):
             return self._covers_node(other,count_mode)
@@ -1063,8 +1079,14 @@ class Loop(Polyedge):
         return False    
     def _relation_with_node(self,other:Node,count_mode:str="or")->GeomRelation:
         """判断点和环的关系"""
+        rel=Geom.mbb_relation(self.get_mbb(),other.get_mbb())
+        if rel==[GeomRelation.Outside]:  # 包围盒不满足则不满足
+            return rel[0]
         # 先判断是否在边界上
-        for edge in self.edges:
+        if self.prepared is not None:
+            neighbor_edges=self.prepared.query(other.get_mbb(),tol=self.const.TOL_DIST)
+        else: neighbor_edges=self.edges
+        for edge in neighbor_edges:
             if edge.touches_node(other):
                 return GeomRelation.OnBoundary
         # 判断内外：射线法，计算环“真实”穿越射线的次数
@@ -1072,8 +1094,11 @@ class Loop(Polyedge):
         # 对于"xor"模式：偶数在外，奇数在内；对于"or"模式，0在外，非0在内
         max_x=self.get_mbb()[1].x
         ray=LineSeg(other,Node(max_x+self.const.TOL_DIST*2,other.y))
+        if self.prepared is not None:
+            neighbor_edges=self.prepared.query(ray.get_mbb(),tol=self.const.TOL_DIST)
+        else: neighbor_edges=self.edges
         cross_count=0
-        for edge in self.edges:
+        for edge in neighbor_edges:
             int_pts=ray.intersection(edge)
             if len(int_pts)==0:continue
             if len(int_pts)==2 and int_pts[0].equals(int_pts[1]):int_pts=[int_pts[1]]
@@ -1081,7 +1106,7 @@ class Loop(Polyedge):
                 is_up,is_down=False,False
                 t=edge.get_param(p)
                 tangent=edge.tangent_at(t)
-                if tangent.equals(Vec3d.X()) or tangent.equals(-Vec3d.X()):  # 相切
+                if tangent.equals(Vec3d.X) or tangent.equals(-Vec3d.X):  # 相切
                     if t!=0 and t!=1: continue  # 只是经过一下就不计
                     normal=edge.principal_normal_at(t)
                     if normal.y>0 and t==0 or normal.y<0 and t==1: is_up=True  # 切点->一二象限 或 三四象限->切点
@@ -1121,7 +1146,10 @@ class Loop(Polyedge):
               GeomRelation.OnBoundary:[],
               GeomRelation.Intersect:[]}
         break_points=[]
-        for edge in self.edges:
+        if self.prepared is not None:
+            neighbor_edges=self.prepared.query(other.get_mbb(),tol=self.const.TOL_DIST)
+        else: neighbor_edges=self.edges
+        for edge in neighbor_edges:
             if edge.s.is_on_edge(other): break_points.append(edge.s)
             elif edge.e.is_on_edge(other): break_points.append(edge.e)
             else: break_points+=other.intersection(edge)
@@ -1149,6 +1177,13 @@ class Loop(Polyedge):
         res=set()
         segs=self._cuts_edge(other,count_mode=count_mode)
         res=set([rel for rel in segs if len(segs[rel])>0])
+        return res
+    def _relation_with_loop(self,other:"Loop",count_mode:str="or")->set[GeomRelation]:
+        res=set()
+        for edge in other.edges:
+            rel=self._relation_with_edge(edge,count_mode)
+            res|=rel
+            if len(res)==4: break
         return res
     def _covers_edge(self,other:Edge,count_mode:str="or")->bool:  # ok
         """环覆盖边"""
@@ -1228,15 +1263,18 @@ class Polygon(Geom):
         for hole in self.holes: 
             if hole.area>0: hole.reverse()        
         # 2.判断polygon有效性iff重建拓扑关系之后的正环数量==1
-        valid_loops=BooleanOperation.union(self.all_loops)
-        if len(valid_loops)==1:
-            self.shell=valid_loops[0].shell
-            self.holes=valid_loops[0].holes
+        cond=lambda depth:depth==1  # Loop union
+        valid_polygon=BooleanOperation._pair_loops(self.all_loops,condition=cond)
+        if len(valid_polygon)==1:
+            self.shell=valid_polygon[0].shell
+            self.holes=valid_polygon[0].holes
             self.is_valid=True
         else:
             self.is_valid=False
     def prepare(self)->None:
-        ...
+        self.shell.prepare()
+        for hole in self.holes:
+            hole.prepare()
     def get_mbb(self) -> tuple[Node, Node]:
         return self.shell.get_mbb()
     def to_array(self)->tuple[np.ndarray,np.ndarray]:
@@ -1247,7 +1285,10 @@ class Polygon(Geom):
     @property
     def area(self)->float:  # ok
         return sum([ring.area for ring in self.all_loops])
-    def is_identical(self,other:"Polygon")->bool:
+    @property
+    def edges(self)->Generator[Edge,None,None]:
+        for loop in self.all_loops: yield from loop.edges
+    def is_identical_to(self,other:"Polygon")->bool:
         if not (len(self.holes)==len(other.holes) and
                 self.shell.is_identical(other.shell)):
             return False
@@ -1257,17 +1298,60 @@ class Polygon(Geom):
             else: return False
         return True
     def covers(self,other:Geom)->bool: 
-        """多边形包含其他对象. 注意：Polygon包含Loop的意思是包含边而非区域，要判断区域需构造Polygon"""
+        """多边形覆盖其他对象. 注意：Polygon包含Loop的意思是包含边而非区域，要判断区域需构造Polygon"""
+        rel=Geom.mbb_relation(self.get_mbb(),other.get_mbb())
+        if GeomRelation.Outside in rel: return False  # 包围盒不满足则不满足
         if isinstance(other,Node):
-            return self.shell.covers(other) and all([not hole.contains(other) for hole in self.holes])
+            if not self.shell.covers(other): return False
+            for hole in self.holes:
+                if hole.contains(other):
+                    return False
+            return True
         if isinstance(other,Edge):
-            return self.shell.covers(other) and all([GeomRelation.Inside not in hole._relation_with_edge(other) for hole in self.holes])
+            if not self.shell.covers(other): return False
+            for hole in self.holes:
+                if GeomRelation.Inside in hole._relation_with_edge(other):
+                    return False
+            return True
         if isinstance(other,Polyedge):
-            return all([self.covers(edge) for edge in other.edges])
+            for edge in other.edges:
+                if not self.covers(edge): 
+                    return False
+            return True
         if isinstance(other,Polygon):
             from lib.geom_algo import BooleanOperation
             u=BooleanOperation.union([self,other])
-            return len(u)==1 and self.is_identical(u[0])
+            return len(u)==1 and self.is_identical_to(u[0])
+
+    def contains(self,other:Geom)->bool: 
+        """多边形包含其他对象. 注意：Polygon包含Loop的意思是包含边而非区域，要判断区域需构造Polygon"""
+        rel=Geom.mbb_relation(self.get_mbb(),other.get_mbb())
+        if GeomRelation.Outside in rel or GeomRelation.OnBoundary in rel: return False  # 包围盒不满足则不满足
+        if isinstance(other,Node):
+            if not self.shell.contains(other): return False
+            for hole in self.holes:
+                if hole.covers(other):
+                    return False
+            return True
+        if isinstance(other,Edge):
+            if not self.shell.contains(other): return False
+            for hole in self.holes:
+                rel=hole._relation_with_edge(other)
+                if GeomRelation.Inside in rel or GeomRelation.OnBoundary in rel:
+                    return False
+            return True
+        if isinstance(other,Polyedge):
+            for edge in other.edges:
+                if not self.contains(edge): 
+                    return False
+            return True
+        if isinstance(other,Polygon):
+            if not self.covers(other):return False
+            for loop1 in self.all_loops:
+                for loop2 in other.all_loops:
+                    if GeomRelation.Intersect in loop1._relation_with_loop(loop2):
+                        return False        
+            return True
     def offset(self,dist:float)->list["Polygon"]:
         shells=self.shell.offset(dist)
         holes=[]
@@ -1328,7 +1412,7 @@ class GeomUtil:
         """有序插入：第一关键字角度，第二关键字曲率半径（左正右负）"""
         ang=edge.tangent_at(0).angle
         radius=edge.radius_at(0,signed=True)
-        comp=Constant.get().get_comp_func("TOL_ANG")
+        comp=Constant.get().get_compare_func("TOL_ANG")
         i=0
         while i<len(node.edge_out):
             angle_i=node.edge_out[i].tangent_at(0).angle
@@ -1351,7 +1435,7 @@ class GeomUtil:
         pre_angle=op.tangent_at(0).angle  # 入边的角度
         pre_radius=op.radius_at(0,signed=True)  # 入边的半径        
         i=len(node.edge_out)-1
-        comp=Constant.get().get_comp_func("TOL_ANG")
+        comp=Constant.get().get_compare_func("TOL_ANG")
         while i>=0:
             angle_i=node.edge_out[i].tangent_at(0).angle
             radius_i=node.edge_out[i].radius_at(0,signed=True)

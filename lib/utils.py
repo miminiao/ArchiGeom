@@ -24,20 +24,31 @@ class Timer:
     bar 0.0
     """
     _enabled=False
+    logs=[]
     def __init__(self,func=None,tag:str="") -> None:
         self._func=func
         self._tag=tag
+        self._instance=None
     def __enter__(self):
         self.start=time()
         return self
     def __exit__(self,exc_type,exc_val,exc_tb):
         if self._enabled:
-            print(self._tag,time()-self.start)
+            disc=self._tag
+            t=time()-self.start
+            self.logs.append((disc,t))
+            print(disc,t)
+    def __get__(self,instance,owner):
+        self._instance=instance
+        return self
     def __call__(self,*args,**kwargs):
         t0=time()
-        ret=self._func(*args,**kwargs)
+        ret=self._func(self._instance,*args,**kwargs)
         if self._enabled:
-            print(self._tag+self._func.__name__,time()-t0)
+            disc=self._tag+self._func.__name__
+            t=time()-t0
+            self.logs.append((disc,t))
+            print(disc,t)
         return ret
     @classmethod
     def enable(cls): cls._enabled=True
@@ -108,13 +119,13 @@ class Constant:
         """按标签名获取实例. 默认返回栈顶实例."""
         if tag is None: return cls._stack[-1]
         else: return cls._tags[tag]
-    def _comp(self,a:float,b:float,tol_type:str="TOL_DIST")->int:
+    def _compare(self,a:float,b:float,tol_type:str="TOL_DIST")->int:
         if tol_type=="TOL_ANG":  # 对于角度，额外判断0与2pi
             if 2*math.pi-abs(a-b)<self.TOL_ANG: return 0 
         if abs(a-b)<getattr(self,tol_type): return 0
         elif a>b: return 1
         else: return -1
-    def get_comp_func(self,tol_type:str="TOL_DIST")->Callable[[float,float],int]:
+    def get_compare_func(self,tol_type:str="TOL_DIST")->Callable[[float,float],int]:
         """获取比较函数.
 
         Args:
@@ -124,7 +135,7 @@ class Constant:
             Callable[[float,float],int]: eq->0, gt->1, lt->-1.
         """
         if tol_type not in self._arg_names: return ValueError(f"Tolerance type '{tol_type}' not supported.")
-        return lambda a,b:self._comp(a,b,tol_type)
+        return lambda a,b:self._compare(a,b,tol_type)
     @classmethod
     def push(cls,instance:Self)->None:
         cls._stack.append(instance)

@@ -125,7 +125,7 @@ def test_rebuild_loop(case)->None:
 
 def _find_identical_loop(loop:Loop,std_out:STRTree[Loop])->bool:
     neighbors=std_out.query(loop.get_mbb())
-    comp=Constant.get().get_comp_func("TOL_AREA")
+    comp=Constant.get().get_compare_func("TOL_AREA")
     for std_loop in neighbors:
         if comp(std_loop.area,loop.area)==0 and std_loop.covers(loop) and loop.covers(std_loop):
             return True
@@ -201,10 +201,11 @@ if __name__=="__main__":
     if 0:
         for i in range(1,REBUILD_LOOP[1]+1):
             test_rebuild_loop({"in":f"case_{i}","out":f"out_{i}"})
-    if 0:
-        for i in range(1,REBUILD_AND_CANCEL_LOOP[1]+1):
-            test_rebuild_and_cancel_loop({"in":f"case_{i}","out":f"out_{i}"})
     if 1:
+        for i in [8]:
+        # for i in range(1,REBUILD_AND_CANCEL_LOOP[1]+1):
+            test_rebuild_and_cancel_loop({"in":f"case_{i}","out":f"out_{i}"})
+    if 0:
         for i in [9]:
         # for i in range(1,FIND_LOOP[1]+1):
             test_find_loop({"in":f"case_{i}","out":f"out_{i}"})

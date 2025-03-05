@@ -17,21 +17,12 @@ class TreeNode[T]:
             node=node.parent
         return node
 
-class SupportCompare(Protocol):
-    def __lt__(self,other)->bool:...
-    def __le__(self,other)->bool:...
-    def __gt__(self,other)->bool:...    
-    def __ge__(self,other)->bool:...
-    def __eq__(self,other)->bool:...
-    def __ne__(self,other)->bool:...
-
-class BSTNode[T:SupportCompare](TreeNode[T]):
+class BSTNode[T](TreeNode[T]):
     def __init__(self, obj: T, parent: "BSTNode[T]" = None, lch: "BSTNode[T]" = None, rch:"BSTNode[T]" = None) -> None:
         self.child:list["BSTNode[T]"]
         super().__init__(obj,parent,[lch,rch])
         self.count=1  # 结点上存储的数据数量
-        self.size=1  # 树中结点的数量
-        self.h=1  # 树高
+        self._h=1  # 树高
     @property
     def lch(self)->"BSTNode[T]":
         return self.child[0]
@@ -44,8 +35,35 @@ class BSTNode[T:SupportCompare](TreeNode[T]):
     @rch.setter
     def rch(self,node:"BSTNode[T]")->None:
         self.child[1]=node
+    @classmethod
+    def get_h(cls,node:"BSTNode[T]")->int:
+        """计算当前节点的树高，需确保子树都已经计算好树高"""
+        if node is None: return 0
+        return 1+max(node.lch._h if node.lch is not None else 0,
+                     node.rch._h if node.rch is not None else 0)
+    def _l_rotate(self)->"BSTNode[T]":
+        """左旋，返回旋转后原位置上的节点"""
+        return self._rotate(0)
+    def _r_rotate(self)->"BSTNode[T]":
+        """右旋，返回旋转后原位置上的节点"""
+        return self._rotate(1)
+    def _rotate(self,i:int)->"BSTNode[T]":
+        """旋转，返回旋转后原位置上的节点，i=0->左旋，i=1->右旋"""
+        if self.child[1-i] is None: return self
+        new_node=self.child[1-i]
+        self.child[1-i]=new_node.child[i]
+        if self.child[1-i] is not None: self.child[1-i].parent=self
+        new_node.parent=self.parent
+        if self.parent is not None:
+            if self is self.parent.child[i]: self.parent.child[i]=new_node
+            else: self.parent.child[1-i]=new_node
+        self.parent=new_node
+        new_node.child[i]=self
+        self._h=BSTNode.get_h(self)
+        new_node._h=BSTNode.get_h(new_node)
+        return new_node
 
-class BSTree[T:SupportCompare]:
+class BSTree[T]:
     """二叉搜索树"""
     def __init__(self,objs:list[T]=None) -> None:
         if objs is None: objs=[]
@@ -53,110 +71,123 @@ class BSTree[T:SupportCompare]:
         for obj in objs:
             self.insert(obj)
     def traverse(self)->list[T]:
-        """顺序遍历"""
-        if self.root is None: return []
+        """顺序遍历值"""
+        return [node.obj for node in self.traverse_nodes()]
+    def traverse_nodes(self)->list[BSTNode[T]]:
+        """顺序遍历节点"""
         res=[]
         self._traverse(self.root,res)
-        return res            
-    def _traverse(self,root:BSTNode[T],res:list[T]):
+        return res
+    @classmethod
+    def _traverse(cls,root:BSTNode[T],res:list[BSTNode[T]])->None:
         """顺序遍历根为root的子树，结果存入res"""
-        if root.lch is not None: self._traverse(root.lch,res)
-        for _ in range(root.count): res.append(root.obj)
-        if root.rch is not None: self._traverse(root.rch,res)
-    def insert(self,obj:T)->BSTNode[T]:
-        """将值obj插入树中，返回插入的结点"""
-        if self.root is None: 
-            self.root=BSTNode(obj)
+        if root is None: return
+        cls._traverse(root.lch,res)
+        for _ in range(root.count): res.append(root)
+        cls._traverse(root.rch,res)
+    def insert(self,obj:T)->None:
+        """将值obj插入树中"""
+        self.root=self._insert(obj,self.root)
+    @classmethod
+    def _insert(cls,obj:T,root:BSTNode[T],parent:BSTNode[T]=None)->BSTNode[T]:
+        """将值obj插入到根为root的子树中，返回根结点"""
+        if root is None: return BSTNode(obj,parent=parent)
+        if obj<root.obj:
+            root.lch=cls._insert(obj,root.lch,parent=root)
+        elif obj>root.obj:
+            root.rch=cls._insert(obj,root.rch,parent=root)
         else:
-            self._insert(obj,self.root)
-    def _insert(self,obj:T,root:BSTNode[T])->BSTNode[T]:
-        """将值obj插入到根为root的子树中，返回插入的结点"""
-        root.size+=1
-        if obj==root.obj:
             root.count+=1
-            return root
-        i=0 if obj<root.obj else 1
-        if root.child[i] is None:
-            root.child[i]=BSTNode(obj,root)
-            if root.h==1: root.h=2
-            return root.child[i]
-        else:
-            new_node=self._insert(obj,root.child[i])
-            root.h=1+max(root.lch.h if root.lch is not None else 0,
-                         root.rch.h if root.rch is not None else 0)
-            return new_node
+        root._h=BSTNode.get_h(root)
+        return root
     def find(self,obj:T)->BSTNode[T]|None:
         """查找值为obj的结点"""
         if self.root is None: return None
         return self._find(obj,self.root)
-    def _find(self,obj:T,root:BSTNode[T])->BSTNode[T]|None:
+    @classmethod
+    def _find(cls,obj:T,root:BSTNode[T])->BSTNode[T]|None:
         """在根为root的子树中查找值为obj的结点"""
         if obj==root.obj: 
             return root
         else: 
             ch=root.lch if obj<root.obj else root.rch
-            return self._find(obj,ch) if ch is not None else None    
+            return cls._find(obj,ch) if ch is not None else None    
     def remove(self,obj:T)->None:
         """删除值为obj的结点"""
         if self.root is None: return
         self.root=self._remove(obj,self.root)
-    def _remove(self,obj:T,root:BSTNode[T])->BSTNode[T]:
+    @classmethod
+    def _remove(cls,obj:T,root:BSTNode[T])->BSTNode[T]:
         """在根为root的子树中删除值为obj的结点，返回删除后的树根"""
-        if obj==root.obj:
+        if root is None: return None
+        if obj<root.obj:
+            root.lch=cls._remove(obj,root.lch)
+        elif obj>root.obj:
+            root.rch=cls._remove(obj,root.rch)
+        else:
             if root.count>1:
                 root.count-=1
             elif root.lch is None and root.rch is None:
                 return None
-            elif root.rch is None or root.lch is None:
-                ch=root.lch if root.lch is not None else root.rch
-                ch.parent=root.parent
-                return ch
+            elif root.lch is None:
+                root.rch.parent=root.parent
+                root=root.rch
+            elif root.rch is None:
+                root.lch.parent=root.parent
+                root=root.lch
             else: 
-                pred=self.get_max_node(root.lch)
+                pred=cls.find_max(root.lch)
                 root.obj=pred.obj
                 root.count=pred.count
                 pred.count=1
-                root.lch=self._remove(pred.obj,root.lch)
-        else:
-            i=0 if obj<root.obj else 1
-            if root.child[i] is not None:
-                root.child[i]=self._remove(obj,root.child[i])
-        root.size=(root.count
-                   +root.lch.size if root.lch is not None else 0
-                   +root.rch.size if root.rch is not None else 0)
-        root.h=1+max(root.lch.h if root.lch is not None else 0,
-                     root.rch.h if root.rch is not None else 0)
-        return root        
-    def _l_rotate(self,root:BSTNode[T])->BSTNode[T]:
-        """左旋，返回旋转后该位置的节点"""
-        return self._rotate(root,0)
-    def _r_rotate(self,root:BSTNode[T])->BSTNode[T]:
-        """右旋，返回旋转后该位置的节点"""
-        return self._rotate(root,1)
-    def _rotate(self,root:BSTNode[T],i:int)->BSTNode[T]:
-        """旋转，返回旋转后该位置的节点，i=0->左旋，i=1->右旋"""
-        if root.child[1-i] is None: return root
-        new_node=root.child[1-i]
-        root.child[1-i]=new_node.child[i]
-        root.child[1-i].parent=root
-        new_node.parent=root.parent
-        if root.parent is not None:
-            if root is root.parent.child[i]: root.parent.child[i]=new_node
-            else: root.parent.child[1-i]=new_node
-        root.parent=new_node
-        new_node.child[i]=root
-        return new_node    
-    def get_max_node(self,root:"BSTNode[T]")->"BSTNode[T]":
+                root.lch=cls._remove(pred.obj,root.lch)
+        root._h=BSTNode.get_h(root)
+        return root
+    @classmethod
+    def find_max(cls,root:"BSTNode[T]")->"BSTNode[T]":
         """返回根为root的子树中最大的结点"""
         while root.rch is not None:
             root=root.rch
         return root
-    def get_min_node(self,node:"BSTNode[T]")->"BSTNode[T]":
+    @classmethod
+    def find_min(cls,node:"BSTNode[T]")->"BSTNode[T]":
         """返回根为root的子树中最小的结点"""
         while node.lch is not None:
             node=node.lch
         return node
-
+class AVLTree[T](BSTree[T]):
+    def __init__(self, objs:list[T]=None) -> None:
+        super().__init__(objs)
+    @classmethod
+    def _maintain_balance(cls,root:BSTNode[T])->BSTNode[T]:
+        """维护root结点处的平衡"""
+        if root is None: return None
+        if BSTNode.get_h(root.lch)-BSTNode.get_h(root.rch)>1:
+            if BSTNode.get_h(root.lch.lch)>=BSTNode.get_h(root.lch.rch):
+                root=root._r_rotate()
+            else:
+                root.lch=root.lch._l_rotate()
+                root=root._r_rotate()
+        elif BSTNode.get_h(root.rch)-BSTNode.get_h(root.lch)>1:
+            if BSTNode.get_h(root.rch.rch)>=BSTNode.get_h(root.rch.lch):
+                root=root._l_rotate()
+            else:
+                root.rch=root.rch._r_rotate()
+                root=root._l_rotate()
+        return root
+    @classmethod
+    def _insert(cls,obj:T,root:BSTNode[T],parent:BSTNode[T]=None)->BSTNode[T]:
+        """将值obj插入到根为root的子树中，返回根结点"""
+        root=super()._insert(obj,root,parent=parent)
+        root=cls._maintain_balance(root)
+        return root
+    @classmethod
+    def _remove(cls,obj:T,root:BSTNode[T])->BSTNode[T]:
+        """在根为root的子树中删除值为obj的结点，返回删除后的树根"""
+        root=super()._remove(obj,root)
+        root=cls._maintain_balance(root)
+        return root      
+        
 class UFSNode[T](TreeNode):
     """并查集"""
     def __init__(self, obj:T, parent: "UFSNode[T]" = None, child: list["UFSNode[T]"] = None) -> None:
@@ -174,11 +205,10 @@ class UFSNode[T](TreeNode):
 
 class _STRNode[T:Geom](TreeNode):
     """STR树结点"""
-    def __init__(self,index:int,geom:T=None,child:list["_STRNode[T]"]=None) -> None:
+    def __init__(self,geom:T=None,child:list["_STRNode[T]"]=None) -> None:
         from lib.geom import Geom
         super().__init__(geom,None,child)
-        self.index=index
-        self.mbb=geom.get_mbb() if index!=-1 else Geom.merge_mbb([ch.mbb for ch in child])
+        self.mbb=geom.get_mbb() if geom is not None else Geom.merge_mbb([ch.mbb for ch in child])
 
 class STRTree[T:Geom]:
     """STR树"""
@@ -191,7 +221,7 @@ class STRTree[T:Geom]:
         """
         self.geoms=geoms
         # 初始化叶子结点：几何图形的包围盒
-        child_treenodes=[_STRNode(i,geom,None) for i,geom in enumerate(geoms)]  
+        child_treenodes=[_STRNode(geom,None) for geom in geoms]  
         if len(geoms)==0: return
         # 每次循环自底向上构建一层树结构，直到最顶层一个根节点
         while True:
@@ -215,7 +245,7 @@ class STRTree[T:Geom]:
                     if b>=len(col): break
                     tile=col[b:t] if t<=len(col) else col[b:]
                     # 为每个tile构建新的父节点
-                    new_parent_node=_STRNode(index=-1,geom=None,child=tile)
+                    new_parent_node=_STRNode(geom=None,child=tile)
                     for node in tile: node.parent=new_parent_node
                     parent_treenodes.append(new_parent_node)
             if len(parent_treenodes)==1:  # 到根节点停止
@@ -223,29 +253,6 @@ class STRTree[T:Geom]:
                 break
             else:  # 否则继续构建上一层
                 child_treenodes=parent_treenodes
-    def __getitem__(self,index:int)->T:
-        return self.geoms[index]
-    def query_idx(self,extent:tuple["Node","Node"],tol:float=0,tree_node:_STRNode=None)-> list[int]:
-        """框选查询
-
-        Args:
-            extent (tuple[Node,Node]): 范围矩形左下右上.
-            tol (float, optional): 外扩距离. Defaults to 0.
-            tree_node (_STRNode, optional): 开始查询的结点. Defaults to None->self._root.
-
-        Returns:
-            list[int]: 查询到的几何图形index.
-        """        
-        tree_node=tree_node or self._root
-        if tree_node.index!=-1:
-            return [tree_node.index]
-        res=[]
-        qmin,qmax=extent
-        for ch in tree_node.child:
-            chmin,chmax=ch.mbb
-            if (qmin.x<=chmax.x+tol) and (chmin.x<=qmax.x+tol) and (qmin.y<=chmax.y+tol) and (chmin.y<=qmax.y+tol):
-                res=res+self.query_idx(extent,tol,ch)
-        return res
     def query(self,extent:tuple["Node","Node"],tol:float=0,tree_node:_STRNode=None) -> list[T]:
         """框选查询
 
@@ -257,7 +264,16 @@ class STRTree[T:Geom]:
         Returns:
             list[T]: 查询到的几何图形.
         """
-        return [self[i] for i in self.query_idx(extent,tol,tree_node)]
+        tree_node=tree_node or self._root
+        if tree_node.obj is not None:
+            return [tree_node.obj]
+        res=[]
+        qmin,qmax=extent
+        for ch in tree_node.child:
+            chmin,chmax=ch.mbb
+            if (qmin.x<=chmax.x+tol) and (chmin.x<=qmax.x+tol) and (qmin.y<=chmax.y+tol) and (chmin.y<=qmax.y+tol):
+                res=res+self.query(extent,tol,ch)
+        return res        
 
 class SegmentTree:  # TODO
     def __init__(self,segs:list[Domain1d],const:Constant=None) -> None:

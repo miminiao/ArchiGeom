@@ -355,9 +355,8 @@ class BreakEdgeAlgo(GeomAlgo):  # ✅
         break_points={line:[line.s,line.e] for line in all_edges} # 记录线段上的断点
         rt=STRTree(all_edges)
         for line in all_edges:
-            neighbors=rt.query_idx(line.get_mbb(),tol=1.0)
-            for other_idx in neighbors:
-                other=all_edges[other_idx]
+            neighbors=rt.query(line.get_mbb(),tol=1.0)
+            for other in neighbors:
                 if other in visited[line]: continue # 这俩已经求过了，就不再算了
                 visited[line].add(other)
                 visited[other].add(line)
@@ -378,7 +377,7 @@ class BreakEdgeAlgo(GeomAlgo):  # ✅
     def _get_break_points_by_scanning(self)->dict[Edge:list[Node]]:  # TODO
         """获取线段上的断点，没有排序，也没有去重"""
         all_edges=sum(self.edge_groups,[])
-        q=
+        break_points=...
         return break_points    
     def _rebuild_lines(self,break_points:dict[Edge,list[Node]])->list[list[Edge]]:
         """根据断点重构线段"""
@@ -706,12 +705,11 @@ class FindOutlineAlgo(GeomAlgo):  # TODO: 圆弧
             # 从this_node出发，找到pre_edge的下一条边
             new_edge=GeomUtil.find_next_edge_out(this_node,pre_edge)
             # 求所有与new_edge可能相交的线
-            nearest_edges_i=rt_edges.query_idx(new_edge.get_mbb(),tol=self.const.TOL_DIST)
+            nearest_edges=rt_edges.query(new_edge.get_mbb(),tol=self.const.TOL_DIST)
             # 遍历相交的线，取距离最近的一个交点(起点除外)，作为下一个顶点
             min_param_dist=1
             next_node=new_edge.e
-            for i in nearest_edges_i:
-                nearest_edge=self.edges[i]
+            for nearest_edge in nearest_edges:
                 intersections=new_edge.intersection(nearest_edge)
                 for p in intersections:
                     d=new_edge.get_param(p)

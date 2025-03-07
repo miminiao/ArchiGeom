@@ -1,11 +1,11 @@
 import pytest
-from lib.index import BSTree,BSTNode,AVLTree
+from lib.index import BST,_BSTNode,AVLTree
 import random
 
 input_num=1000
 def test_bst_insert():
     inputs=[random.randint(0,input_num) for _ in range(input_num)]
-    bst=BSTree(inputs)
+    bst=BST(inputs)
     res=bst.traverse()
     std=sorted(inputs)
     assert res==std
@@ -13,14 +13,14 @@ def test_bst_insert():
         assert node.get_root()==bst.root    
 def test_bst_find():
     inputs=[random.randint(0,input_num) for _ in range(input_num)]
-    bst=BSTree(inputs)
+    bst=BST(inputs)
     for i in range(input_num):
         node=bst.find(inputs[i])
         assert node is not None
     assert bst.find(-1) is None
 def test_bst_remove():
     inputs=[random.randint(0,input_num) for _ in range(input_num)]
-    bst=BSTree(inputs)
+    bst=BST(inputs)
     random.shuffle(inputs)
     for i in range(input_num):
         bst.remove(inputs[i])
@@ -45,7 +45,7 @@ def test_avl_insert():
     std=sorted(inputs)
     assert res==std
     for node in avl.traverse_nodes():
-        assert abs(BSTNode.get_h(node.lch)-BSTNode.get_h(node.rch))<=1
+        assert abs(_BSTNode.get_h(node.lch)-_BSTNode.get_h(node.rch))<=1
         assert node.get_root()==avl.root
 def test_avl_remove():
     input_num=1000
@@ -58,5 +58,7 @@ def test_avl_remove():
         std=sorted(inputs[i+1:])
         assert res==std
         for node in avl.traverse_nodes():
-            assert abs(BSTNode.get_h(node.lch)-BSTNode.get_h(node.rch))<=1
+            assert abs(_BSTNode.get_h(node.lch)-_BSTNode.get_h(node.rch))<=1
             assert node.get_root()==avl.root
+def test_segtree_insert():
+    ...

@@ -201,12 +201,12 @@ if __name__=="__main__":
     if 0:
         for i in range(1,REBUILD_LOOP[1]+1):
             test_rebuild_loop({"in":f"case_{i}","out":f"out_{i}"})
-    if 1:
+    if 0:
         for i in [8]:
         # for i in range(1,REBUILD_AND_CANCEL_LOOP[1]+1):
             test_rebuild_and_cancel_loop({"in":f"case_{i}","out":f"out_{i}"})
     if 0:
-        for i in [9]:
+        for i in [7]:
         # for i in range(1,FIND_LOOP[1]+1):
             test_find_loop({"in":f"case_{i}","out":f"out_{i}"})
     ...

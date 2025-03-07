@@ -4,7 +4,7 @@ import json
 import pathlib
 import math
 from time import time,sleep
-from typing import Any,Callable,Self
+from typing import Any,Callable,Self,Protocol
 from functools import wraps
 
 # -----------------------------------------------------------------------------
@@ -56,12 +56,13 @@ class Timer:
     def disable(cls): cls._enabled=False
 
 # -----------------------------------------------------------------------------
+TWO_PI=math.pi*2
 
 class Constant:
-    """全局常量类.
-
-    默认值从配置文件读取: ./env.json['CONSTANTS']
-
+    """全局常量类，默认值从配置文件读取: ./env.json['CONSTANTS']
+    
+    Args: 
+    Example:
     - 使用类的实例: 
     >>> from utils import DEFAULT_CONSTANT as const
     >>> print(const.TOL_DIST)
@@ -106,11 +107,32 @@ class Constant:
         self.TOL_DIST=tol_dist or self._DEFAULT.TOL_DIST
         self.TOL_AREA=tol_area or self._DEFAULT.TOL_AREA
         self.TOL_ANG=tol_ang or self._DEFAULT.TOL_ANG
+    def compare_val(self,x:float,y:float)->int:
+        if abs(x-y)<self.TOL_VAL: return 0
+        elif x>y: return 1
+        else: return -1
+    def compare_dist(self,x:float,y:float)->int:
+        if abs(x-y)<self.TOL_DIST: return 0
+        elif x>y: return 1
+        else: return -1
+    def compare_area(self,x:float,y:float)->int:
+        if abs(x-y)<self.TOL_AREA: return 0
+        elif x>y: return 1
+        else: return -1
+    def compare_ang(self,x:float,y:float,periodic:bool=True)->int:
+        """periodic==True时直接比较；periodic==False时先将x和y换算到[0,2pi)范围"""
+        if not periodic:
+            x%=TWO_PI
+            y%=TWO_PI
+            if TWO_PI-abs(x-y)<self.TOL_ANG: return 0         
+        if abs(x-y)<self.TOL_ANG: return 0
+        elif x>y: return 1
+        else: return -1        
     def __enter__(self):
-        self.push(self)
+        self._stack.append(self)
         return self
     def __exit__(self,exc_type,exc_val,exc_tb):
-        _=self.pop()
+        self._stack.pop()
     def _register(self,tag:str,update:bool=False):
         if not isinstance(tag,str): raise TypeError
         Constant._tags[tag]=self
@@ -119,36 +141,13 @@ class Constant:
         """按标签名获取实例. 默认返回栈顶实例."""
         if tag is None: return cls._stack[-1]
         else: return cls._tags[tag]
-    def _compare(self,a:float,b:float,tol_type:str="TOL_DIST")->int:
-        if tol_type=="TOL_ANG":  # 对于角度，额外判断0与2pi
-            if 2*math.pi-abs(a-b)<self.TOL_ANG: return 0 
-        if abs(a-b)<getattr(self,tol_type): return 0
-        elif a>b: return 1
-        else: return -1
-    def get_compare_func(self,tol_type:str="TOL_DIST")->Callable[[float,float],int]:
-        """获取比较函数.
-
-        Args:
-            tol_type (str, optional): 常量名称. Defaults to "TOL_VAL".
-
-        Returns:
-            Callable[[float,float],int]: eq->0, gt->1, lt->-1.
-        """
-        if tol_type not in self._arg_names: return ValueError(f"Tolerance type '{tol_type}' not supported.")
-        return lambda a,b:self._compare(a,b,tol_type)
-    @classmethod
-    def push(cls,instance:Self)->None:
-        cls._stack.append(instance)
-    @classmethod
-    def pop(cls)->Self:
-        return cls._stack.pop()
     @classmethod
     def _init_default(cls)-> Self:
         with open(pathlib.Path(__file__).parent.parent/"env.json",'r') as f:
             js=json.load(f)["CONSTANTS"]
         args=[float(js[name]) for name in cls._arg_names]
         cls._DEFAULT=cls(*args,tag="DEFAULT")
-        cls.push(cls._DEFAULT)
+        cls._stack=[cls._DEFAULT]
         return cls._DEFAULT
 
 DEFAULT_CONSTANT=Constant._init_default()
@@ -157,9 +156,9 @@ DEFAULT_CONSTANT=Constant._init_default()
 
 class ListTool:
     @staticmethod
-    def sort_and_overkill(a: list[float]) -> None:
+    def sort_and_overkill(a: list[float],tol:float=None) -> None:
         """排序并去除重复float元素"""
-        tol=Constant.get().TOL_VAL
+        tol=tol or Constant.get().TOL_VAL
         if len(a) <= 1:
             return
         a.sort()
@@ -233,3 +232,29 @@ def retry(max_times:int=10,interval:float=0):
             raise last_err
         return wrapper
     return decorator
+
+class SupportsCompare[T](Protocol):
+    compare:Callable[[T,T],int]
+    
+
+class Comparer:
+    """比较器.
+    - 作为上下文管理器: 
+    >>> compare_width=Wall.const.get_compare_func("TOL_DIST")
+    >>> compare_wall=lambda x,y:compare_width(x.width,y.width)
+    >>> with Comparer(Wall,compare_wall) as comparer:
+    ...     biz_algo.merge_wall(walls)
+    """
+    def __init__(self,type:type,func=None) -> None:
+        self._func=func
+        self._tag=tag
+        self._instance=None
+    def __enter__(self):
+        self.start=time()
+        return self
+    def __exit__(self,exc_type,exc_val,exc_tb):
+        if self._enabled:
+            disc=self._tag
+            t=time()-self.start
+            self.logs.append((disc,t))
+            print(disc,t)

@@ -3,11 +3,11 @@
 import pytest
 from lib.domain import Domain1d, MultiDomain1d
 
-def lt(self,x,y):
+def gt(self,x,y):
     if x>y:return 1
     elif x<y:return -1
     else:return 0
-def st(self,x,y):
+def lt(self,x,y):
     if x<y:return 1
     elif x>y:return -1
     else:return 0
@@ -25,7 +25,7 @@ def st(self,x,y):
     {"in":[[0,1,2],[1,2,2]],"out":[[0,2,2]]},
     ])
 def test_add_higher(case):
-    Domain1d.push_compare(lt)
+    Domain1d.push_compare(gt)
     a=Domain1d(*case["in"][0])
     b=Domain1d(*case["in"][1])
     if len(case["out"])==1:
@@ -48,7 +48,7 @@ def test_add_higher(case):
     {"in":[[0,1,2],[1,2,2]],"out":[[0,2,2]]},
     ])
 def test_add_lower(case):
-    Domain1d.push_compare(st)
+    Domain1d.push_compare(lt)
     a=Domain1d(*case["in"][0])
     b=Domain1d(*case["in"][1])
     if len(case["out"])==1:
@@ -90,7 +90,7 @@ def test_sub(case):
     {"in":[[0.5,1.5,1],[0,2,2]],"out":[[0.5,1.5,2]]},
     ])
 def test_mul_higher(case):
-    Domain1d.push_compare(lt)    
+    Domain1d.push_compare(gt)    
     a=Domain1d(*case["in"][0])
     b=Domain1d(*case["in"][1])
     if len(case["out"])==1:
@@ -113,7 +113,7 @@ def test_mul_higher(case):
     {"in":[[0,1,2],[1,2,2]],"out":[[1,0,0]]},
     ])
 def test_mul_lower(case):
-    Domain1d.push_compare(st)
+    Domain1d.push_compare(lt)
     a=Domain1d(*case["in"][0])
     b=Domain1d(*case["in"][1])
     if len(case["out"])==1:
@@ -133,7 +133,7 @@ def test_mul_lower(case):
     {"in":[[[0,2,2],[2.5,3.5,1]],[[0.5,1.5,1],[2,4,2]]],"out":[[0,4,2]]},
     ])
 def test_multi_add_higher(case):
-    Domain1d.push_compare(lt)
+    Domain1d.push_compare(gt)
     a=MultiDomain1d([Domain1d(*dom) for dom in case["in"][0]])
     b=MultiDomain1d([Domain1d(*dom) for dom in case["in"][1]])
     if len(case["out"])==1:
@@ -153,7 +153,7 @@ def test_multi_add_higher(case):
     {"in":[[[0,2,2],[2.5,3.5,1]],[[0.5,1.5,1],[2,4,2]]],"out":[[0,0.5,2],[0.5,1.5,1],[1.5,2.5,2],[2.5,3.5,1],[3.5,4,2]]},
     ])
 def test_multi_add_lower(case):
-    Domain1d.push_compare(st)
+    Domain1d.push_compare(lt)
     a=MultiDomain1d([Domain1d(*dom) for dom in case["in"][0]])
     b=MultiDomain1d([Domain1d(*dom) for dom in case["in"][1]])
     if len(case["out"])==1:
@@ -191,7 +191,7 @@ def test_multi_sub(case):
     {"in":[[[0,2,2],[2.5,3.5,1]],[[0.5,1.5,1],[2,4,2]]],"out":[[0.5,1.5,2],[2.5,3.5,2]]},
     ])
 def test_multi_mul_higher(case):
-    Domain1d.push_compare(lt)
+    Domain1d.push_compare(gt)
     a=MultiDomain1d([Domain1d(*dom) for dom in case["in"][0]])
     b=MultiDomain1d([Domain1d(*dom) for dom in case["in"][1]])
     if len(case["out"])==1:
@@ -211,7 +211,7 @@ def test_multi_mul_higher(case):
     {"in":[[[0,2,2],[2.5,3.5,1]],[[0.5,1.5,1],[2,4,2]]],"out":[[0.5,1.5,1],[2.5,3.5,1]]},
     ])
 def test_multi_mul_lower(case):
-    Domain1d.push_compare(st)
+    Domain1d.push_compare(lt)
     a=MultiDomain1d([Domain1d(*dom) for dom in case["in"][0]])
     b=MultiDomain1d([Domain1d(*dom) for dom in case["in"][1]])
     if len(case["out"])==1:

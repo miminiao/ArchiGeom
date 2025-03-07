@@ -81,8 +81,8 @@ class JsonLoader:
             case "circle":
                 return 
             case "polyline":
-                nodes=[Node(*seg["start_point"]) for seg in obj["segments"]]
-                bulges=[seg["bulge"] for seg in obj["segments"]]
+                nodes=[Node(*point) for point in obj["points"]]
+                bulges=obj["bulges"]
                 if obj["is_closed"]:
                     return Loop(nodes,bulges)
                 else:

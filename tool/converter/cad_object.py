@@ -1,6 +1,6 @@
 import math
 from abc import ABC
-from typing import Protocol,runtime_checkable
+from typing import Protocol,runtime_checkable,Self,Literal
 from lib.linalg import Tensor,Vec3d,Vec4d,Mat3d,Mat4d
 from lib.geom import Geom,Node,LineSeg,Arc,Polyedge,Loop
 from lib.building_element import BuildingElement
@@ -17,6 +17,9 @@ class SupportToTensor(Protocol):
 @runtime_checkable
 class SupportToBuildingElement(Protocol):
     def to_building_element(self)->BuildingElement:...
+
+type Coord=list[float,float,float]
+type DXFType=int|float|str|Coord
 
 class CADEntity(ABC):
     def __init__(self,object_name:str,ent) -> None:
@@ -40,25 +43,44 @@ class CADEntity(ABC):
     def _get_boundingbox(cls,ent):
         return ent.GetBoundingBox()
     @classmethod
-    def get_dxf_data(cls,ent,code:int,data_type:type,index:int=0)->list[int|float|str]:
-        """获取组码为code的第index (starting from 0)个的数据"""
+    def get_dxf_data_count(cls,ent,code:int)->int:
+        """获取组码为code的数据的个数"""
+        command="".join([
+            LispScript(0).set_to_var("useri1"),
+            LispScript().get_ent_dxf(ent.Handle)
+            .filter_code(code)
+            .get_length()
+            .set_to_var("useri1")
+            .end()
+        ])
         doc=ent.Document
+        doc.SendCommand(command)
+        return doc.GetVariable("useri1")
+    @classmethod
+    def get_dxf_data[T:DXFType](cls,ent,code:int,data_type:type[T],index:int=0)->T:
+        """获取组码为code的第index个的数据; index==-1表示获取全部"""
         type_map={int:"useri1",float:"userr1",str:"users1"}
-        if data_type==list[float]:
-            dxf_data=[]
-            command_gen=lambda var,num,index,code,handle: f'(setvar "{var}" ({num} (nth {index} (mapcar \'cdr (vl-remove-if-not \'(lambda(x) (= {code} (car x))) (entget (handent "{handle}")))))))'
-            command="".join([
-                command_gen("userr1","car",index,code,ent.Handle),
-                command_gen("userr2","cadr",index,code,ent.Handle),
-                '(princ) ',]
+        doc=ent.Document
+        if data_type==Coord:
+            command=(LispScript().get_ent_dxf(ent.Handle)
+                    .filter_code(code)
+                    .get_nth(index)
+                    .set_coord_to_var()
+                    .end()
             )
             doc.SendCommand(command)
-            dxf_data=[doc.GetVariable("userr1"),doc.GetVariable("userr2"),0]
+            dxf_data=[doc.GetVariable("userr1"),doc.GetVariable("userr2"),doc.GetVariable("userr3")]
         elif data_type in type_map:
-            command=f'(setvar "{type_map[data_type]}" (nth {index} (mapcar \'cdr (vl-remove-if-not \'(lambda(x) (= {code} (car x))) (entget (handent "{ent.Handle}"))))))(princ) '
+            command=(LispScript().get_ent_dxf(ent.Handle)
+                    .filter_code(code)
+                    .get_nth(index)
+                    .set_to_var(type_map[data_type])
+                    .end()
+            )
             doc.SendCommand(command)
             dxf_data=doc.GetVariable(type_map[data_type])
-        else : raise ValueError('Value of "data_type" must be one of int, float, str or list[float].')
+        else: 
+            raise ValueError(f'Value of "data_type" must be int, float, str or Coord. Got "{data_type}"')
         return dxf_data
         
 class CADPoint(CADEntity):
@@ -120,20 +142,25 @@ class CADCircle(CADEntity):
                 Arc.from_center_radius_angle(Node(*self.center), self.radius, math.pi, math.pi*2)]
     
 class CADPolyline(CADEntity):
-    class _CADPolylineSegment:
-        def __init__(self,ent,i) -> None:
-            coords=ent.Coordinates[:]
-            l=len(coords)
-            self.start_point:list[float]=[coords[i*2], coords[i*2+1], 0]
-            self.end_point:list[float]=[coords[(i+1)*2-l], coords[(i+1)*2+1-l], 0]
-            self.start_width, self.end_width=ent.GetWidth(i)
-            self.bulge:float=ent.GetBulge(i)
-    def __init__(self,ent) -> None:
+    def __init__(self,ent,no_attr=False) -> None:
         super().__init__("polyline", ent)
-        self.segments:list[CADPolyline._CADPolylineSegment]=[]
+        if no_attr: return
+        coords=ent.Coordinates[:]
+        l=len(coords)//2
+        self.points=[[coords[i*2], coords[i*2+1], 0] for i in range(l)]
+        self.bulges,self.widths=[],[]
+        for i in range(l):
+            self.bulges.append(ent.GetBulge(i))
+            self.widths.append(ent.GetWidth(i))
         self.is_closed:bool=ent.Closed
-        for i in range(len(ent.Coordinates)//2):
-            self.segments.append(CADPolyline._CADPolylineSegment(ent,i))
+    @classmethod
+    def from_points_bulges(cls,ent,points,bulges,is_closed)->Self:
+        pl=cls(ent,no_attr=True)
+        pl.points=points
+        pl.bulges=bulges
+        pl.widths=[(0,0)]*len(points)
+        pl.is_closed=is_closed
+        return pl
     def to_geom(self) -> Polyedge|Loop:
         if self.is_closed:
             # return Loop([(seg.start_point,seg.bulge) for seg in self.segments])
@@ -181,7 +208,7 @@ class CADText(CADEntity):
                 self.insert_point=ent.InsertionPoint[:]
             case "TDbText":
                 self.text=ent.Text
-                self.insert_point=CADEntity.get_dxf_data(ent,10,list[float])
+                self.insert_point=CADEntity.get_dxf_data(ent,10,Coord)
         self.height=ent.Height        
 
 class CADBlockRef(CADEntity):
@@ -209,7 +236,7 @@ class CADBlockRef(CADEntity):
                 point_num=CADEntity.get_dxf_data(spatial_filter,70,int)
                 clip_boundary=[]
                 for i in range(point_num):
-                    coords=CADEntity.get_dxf_data(spatial_filter,10,list[float],i)
+                    coords=CADEntity.get_dxf_data(spatial_filter,10,Coord,i)
                     clip_boundary.append(coords)
                 tmp=[0]*12
                 for i in range(12):
@@ -343,7 +370,7 @@ class TZOpening(CADEntity):
         self.door_line:int=ent.DoorLine  # 门口线: 0="无" | 1="开启侧" | 2="背开侧" | 3="双侧" | 4="居中"
         self.up_lever:bool=ent.UpLevel=="是"  # 位于上层
         self.style2d:str=CADEntity.get_dxf_data(ent,1,str)  # 2d样式
-        self.position=self.get_dxf_data(ent,10,list[float])  # 插入点
+        self.position=self.get_dxf_data(ent,10,Coord)  # 插入点
         self.angle=CADEntity.get_dxf_data(ent,50,float)  # 旋转角度
     @classmethod
     def classifier(cls,ent)->"TZOpening":
@@ -378,6 +405,32 @@ class TZHole(TZOpening):
         self.line_offset_distance:float=ent.LineOffsetDistance  # 偏移距离
     def to_building_element(self)->BuildingElement: ...
 
+class TZColumn(CADEntity):
+    """天正柱子"""
+    def __init__(self,ent) -> None:
+        super().__init__("tzcolumn", ent)
+        self.section_shape_text=ent.SectionShapeText  # 截面形状: "矩形" | "圆形" | "正三角形" | "正[五,六,八,十二]边形" | "异形柱"
+        self.depth=ent.Deep  # 截面深
+        self.diameter=ent.Diameter  # 直径
+        self.elevation=ent.Elevation  # 标高
+        self.height=ent.Height  # 柱高
+        self.insulate=ent.Insulate  # 保温层："有" | "无"
+        self.insulate_thick=ent.InsulateThick  # 保温层厚
+        self.rotation=ent.Rotation  # 旋转角度
+        self.side_length=ent.SideLength  # 边长
+        self.style=ent.Style  # 材料: "钢筋砼" | "混凝土" | "砖" | "耐火砖" | "毛石" | "金属"
+        self.type=ent.Type  # 用途："普通柱" | "构造柱" | "矮柱"
+        self.width=ent.Width  # 截面宽
+        self.position=CADEntity.get_dxf_data(ent,11,Coord)
+        self.shape=None  # 异形柱截面轮廓坐标
+        if self.section_shape_text=="异形柱":
+            points,bulges=[],[]
+            n=CADEntity.get_dxf_data_count(ent,10)
+            for i in range(n):
+                points.append(CADEntity.get_dxf_data(ent,10,Coord,i))
+                bulges.append(CADEntity.get_dxf_data(ent,50,float,i))
+            self.shape=CADPolyline.from_points_bulges(ent,points,bulges,True)
+
 _ENT_CLASS_MAP = {
     "AcDbPoint": CADPoint,
     "AcDbLine": CADLine,
@@ -393,4 +446,29 @@ _ENT_CLASS_MAP = {
     "AcDbHatch": CADHatch,
     "TDbWall": TZWall,
     "TDbOpening": TZOpening.classifier,
+    "TDbColumn":TZColumn,
 }
+
+class LispScript(str):
+    def __init__(self,s:str='') -> None:
+        super().__init__()
+    def get_ent_dxf(self,handle:str)->Self:
+        return LispScript(f'(entget (handent "{handle}"))')
+    def filter_code(self,key:int)->Self:
+        return LispScript(f'(mapcar \'cdr (vl-remove-if-not \'(lambda(x) (= {key} (car x))) {self}))')
+    def get_nth(self,n:int)->Self:
+        return LispScript(f'(nth {n} {self})')
+    def set_to_var(self,name:str)->Self:
+        return LispScript(f'(setvar "{name}" {self})')
+    def assign_to(self,name:str)->Self:
+        return LispScript(f'(setq {name} {self})')
+    def set_coord_to_var(self)->Self:
+        coord=LispScript("coord")
+        s_list=[self.assign_to(coord)]
+        for i in range(3):
+            s_list.append(coord.get_nth(i).set_to_var(f'userr{i+1}'))
+        return LispScript(''.join(s_list))
+    def get_length(self)->Self:
+        return LispScript(f'(length {self})')
+    def end(self)->Self:
+        return LispScript(self+'(princ) ')

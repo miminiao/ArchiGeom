@@ -39,7 +39,7 @@ class CADInterface:
     def get_cad_objects(self,parse_block_def:bool=True)->list[CADEntity|CADBlockDef]:
         CADBlockDef.init_doc_block_table(self._doc.Blocks)
         CADBlockDef.set_parse_flag(parse_block_def)
-        print("Parsing..."+" (block def excluded)" if not parse_block_def else "")
+        print("Parsing..."+(" (block def excluded)" if not parse_block_def else ""))
         res=[]
         for i,ent in enumerate(self._selection):
             if object_name:=ent.ObjectName!="":
@@ -63,5 +63,5 @@ if __name__=="__main__":
     doc=CADInterface()
     cad_objects=doc.get_cad_objects()
     # doc.close()
-    with open("./tool/converter/output/case_1.json",'w',encoding="utf8") as f:
+    with open("./tool/converter/output/case_7.json",'w',encoding="utf8") as f:
         json.dump(cad_objects,f,ensure_ascii=False,default=dumper)

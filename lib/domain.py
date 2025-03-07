@@ -1,29 +1,13 @@
-from typing import Callable
-from abc import ABC,abstractmethod
-from lib.utils import Constant
+from abc import ABC
+from lib.utils import Constant,SupportsCompare
 
-class Domain[T](ABC):
-    """区间基类."""
-    compare=lambda x,y:0
-    _compare_stack=[compare]
+class Domain[T:SupportsCompare](ABC,SupportsCompare[float]):
+    """区间基类"""
+    compare=Constant._DEFAULT.compare_val
+    """区间端点值的比较方法"""
+
     def __init__(self) -> None: ...
-    @property
-    def const(self)->Constant:
-        return Constant.get()
-    @classmethod
-    def push_compare(cls,compare:Callable[[T,T],int]=None)->None:
-        """定义当前上下文的compare函数
-
-        Args:
-            compare (Callable[[T,T],int], optional): value的比较函数，合并时保留较大的. Defaults to 0.
-        """
-        cls._compare_stack.append(cls.compare)
-        cls.compare=compare
-    @classmethod
-    def pop_compare(cls)->Callable[[T,T],int]:
-        return cls._compare_stack.pop()
-    
-class Domain1d[T](Domain):
+class Domain1d[T:SupportsCompare](Domain[T]):
     def __init__(self,l:float,r:float,value:T) -> None:
         """描述一个带有附加值的一维区间.
 
@@ -41,8 +25,7 @@ class Domain1d[T](Domain):
     def __eq__(self,other:"Domain1d")->bool:
         if not isinstance(other,Domain1d): return False
         if self.is_empty() and other.is_empty():return True
-        tol_comp=self.const.get_compare_func()
-        return tol_comp(self.l,other.l)==0 and tol_comp(self.r,other.r)==0 and self.compare(self.value,other.value)==0
+        return self.compare(self.l,other.l)==0 and self.compare(self.r,other.r)==0 and self.value.compare(self.value,other.value)==0
     def __add__(self,other:"Domain1d| MultiDomain1d")->"Domain1d | MultiDomain1d":
         """区间合并"""
         if isinstance(other,MultiDomain1d):
@@ -98,15 +81,13 @@ class Domain1d[T](Domain):
         if isinstance(other,MultiDomain1d):
             return other.is_overlap(self)
         if self.is_empty() or other.is_empty(): return False
-        tol_comp=self.const.get_compare_func()
         if include_endpoints:
-            return tol_comp(self.r,other.l)>=0 and tol_comp(other.r,self.l)>=0
+            return self.compare(self.r,other.l)>=0 and self.compare(other.r,self.l)>=0
         else:
-            return tol_comp(self.r,other.l)==1 and tol_comp(other.r,self.l)==1
+            return self.compare(self.r,other.l)==1 and self.compare(other.r,self.l)==1
     def is_empty(self)->bool:
         """判断区间是否为空，l==r的情况也返回True"""
-        tol_comp=self.const.get_compare_func()
-        return tol_comp(self.l,self.r)>=0
+        return self.compare(self.l,self.r)>=0
     def copy(self,value:T=None)->"Domain1d":
         """返回与当前区间相同、高度为h的区间"""
         return Domain1d(self.l,self.r,value or self.value)

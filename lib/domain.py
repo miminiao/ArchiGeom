@@ -1,7 +1,7 @@
 from abc import ABC
-from lib.utils import Constant,SupportsCompare
+from lib.utils import Constant,SupportsCompareWithTolerance,SupportsCompare
 
-class Domain[T:SupportsCompare](ABC,SupportsCompare[float]):
+class Domain[T:SupportsCompare](ABC,SupportsCompareWithTolerance[float]):
     """区间基类"""
     compare=Constant._DEFAULT.compare_val
     """区间端点值的比较方法"""
@@ -25,7 +25,7 @@ class Domain1d[T:SupportsCompare](Domain[T]):
     def __eq__(self,other:"Domain1d")->bool:
         if not isinstance(other,Domain1d): return False
         if self.is_empty() and other.is_empty():return True
-        return self.compare(self.l,other.l)==0 and self.compare(self.r,other.r)==0 and self.value.compare(self.value,other.value)==0
+        return self.compare(self.l,other.l)==0 and self.compare(self.r,other.r)==0
     def __add__(self,other:"Domain1d| MultiDomain1d")->"Domain1d | MultiDomain1d":
         """区间合并"""
         if isinstance(other,MultiDomain1d):

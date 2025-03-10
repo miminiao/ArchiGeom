@@ -4,6 +4,8 @@ class A:
         self.f()
     def f(self):
         print("A.f")
+    def g(self):
+        print("A.g")
 class B(A):
     def __init__(self):
         super().__init__()
@@ -11,5 +13,6 @@ class B(A):
         self.f()
     def f(self):
         print("B.f")
-# a=A()
+a=A()
 b=B()
+...

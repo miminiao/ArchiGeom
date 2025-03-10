@@ -233,28 +233,55 @@ def retry(max_times:int=10,interval:float=0):
         return wrapper
     return decorator
 
-class SupportsCompare[T](Protocol):
-    compare:Callable[[T,T],int]
-    
+class SupportsCompareWithTolerance(Protocol):
+    compare:Callable[[float,float],int]
 
-class Comparer:
+class SupportsCompare(Protocol):
+    def __lt__(self,other)->bool: ...
+    def __gt__(self,other)->bool: ...
+    def __eq__(self,other)->bool: ...
+    def __le__(self,other)->bool: ...
+    def __ge__(self,other)->bool: ...
+    def __ne__(self,other)->bool: ...
+
+class ComparerInjector[T]:
     """比较器.
     - 作为上下文管理器: 
-    >>> compare_width=Wall.const.get_compare_func("TOL_DIST")
+    >>> compare_width=Wall.const.compare_dist
     >>> compare_wall=lambda x,y:compare_width(x.width,y.width)
     >>> with Comparer(Wall,compare_wall) as comparer:
     ...     biz_algo.merge_wall(walls)
     """
-    def __init__(self,type:type,func=None) -> None:
+    def __init__(self,cls:type[T],func:Callable[[T,T],int]) -> None:
+        self._cls=cls
         self._func=func
-        self._tag=tag
-        self._instance=None
+
     def __enter__(self):
-        self.start=time()
+        if "_compare" in self._cls.__dict__:
+            self._previous_func=self._cls._compare
+        else: 
+            self._previous_func=None
+        self.inject(self._func)            
         return self
     def __exit__(self,exc_type,exc_val,exc_tb):
-        if self._enabled:
-            disc=self._tag
-            t=time()-self.start
-            self.logs.append((disc,t))
-            print(disc,t)
+        if self._previous_func is not None:
+            self.inject(self._previous_func)
+        else: 
+            self.eject()
+    def inject(self,func)->None:
+        self._cls._compare=func
+        self._cls.__lt__=lambda self,other: func(self,other)<0
+        self._cls.__gt__=lambda self,other: func(self,other)>0
+        self._cls.__eq__=lambda self,other: func(self,other)==0
+        self._cls.__le__=lambda self,other: func(self,other)<=0
+        self._cls.__ge__=lambda self,other: func(self,other)>=0
+        self._cls.__ne__=lambda self,other: func(self,other)!=0
+        self._cls.__hash__=id(self)
+    def eject(self)->None:
+        delattr(self._cls,"_compare")
+        delattr(self._cls,"__lt__")
+        delattr(self._cls,"__gt__")
+        delattr(self._cls,"__eq__")
+        delattr(self._cls,"__le__")
+        delattr(self._cls,"__ge__")
+        delattr(self._cls,"__ne__")

@@ -122,8 +122,8 @@ class MaxRectAlgo(GeomAlgo):  # TODO
             more_nodes += new_nodes
         x = [node.x for node in nodes + int_nodes + int_gridY + more_nodes]
         y = [node.y for node in nodes + int_nodes + int_gridX + more_nodes]
-        ListTool.sort_and_overkill(x)
-        ListTool.sort_and_overkill(y)
+        ListTool.sort_and_dedup(x)
+        ListTool.sort_and_dedup(y)
         return x, y
     
     def _intersection_nodesXY(self, edges: list[Edge], nodes: list[Node]) -> list[Node]:
@@ -433,20 +433,21 @@ class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
             collinear_arc_groups+=self._group_collinear_from_parallel_arcs(group)            
         # 3.合并重叠的线段
         for group in collinear_line_groups:
-            self.merged+=self._merge_collinear_edges(group)
+            # self.merged+=self._merge_collinear_lines(group)
+            self.merged+=self._merge_collinear_lines_by_segtree(group)
+        for group in collinear_arc_groups:
+            self.merged+=self._merge_collinear_lines(group)
         # 4.后处理
         self._postprocess()
         return self.merged
     def _preprocess(self)->None:
         """前处理"""
         super()._preprocess()
-        Domain1d.push_compare(self.compare)
     def _postprocess(self)->None:
         """后处理"""
         # 按需打断
         if self.break_at_intersections:
             self.merged=BreakEdgeAlgo([self.merged]).get_result()[0]
-        Domain1d.pop_compare()
         super()._postprocess()        
     def _group_parallel_lines(self,lines:list[LineSeg])->list[list[LineSeg]]:  # ✅OK
         """线段按角度分组"""
@@ -528,7 +529,7 @@ class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
                     group[i]=arc.opposite()
             group.sort(key=lambda arc:arc.angles[0])
         return collinear_groups
-    def _merge_collinear_edges(self,unmerged_lines:list[Edge]):
+    def _merge_collinear_lines(self,unmerged_lines:list[Edge]):
         """顺序合并排好序的共线的线段"""
         lines=unmerged_lines.copy()
         # 找一根最长的，作为方向向量
@@ -584,21 +585,16 @@ class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
     def _merge_collinear_lines_by_segtree(self,unmerged_lines:list[Edge]):
         """用线段树合并共线的线段"""
         # 找一根最长的，作为方向向量
-        longest_line=max(unmerged_lines,key=lambda line:line.length)
-        unit_vector=longest_line.to_vec3d().unit()
-        proj=lambda p:p.to_vec3d().dot(unit_vector)
-        domains=[]
-        for line in unmerged_lines:
-            domains.append(Domain1d(proj(line.s),proj(line.e),line))
-            domains[-1].line=line
-        seg_tree=SegmentTree(domains,self.const)
-        merged_domains=seg_tree.get_leaf_segs()
+        longest=max(unmerged_lines,key=lambda line:line.length)
+        o=longest.s.to_vec3d()
+        u=longest.to_vec3d().unit()
+        proj=lambda p:(p.to_vec3d()-o).dot(u)
+        domains=[Domain1d(proj(line.s),proj(line.e),0) for line in unmerged_lines]
+        seg_tree=SegmentTree(domains)
+        merged_domains=seg_tree.get_united_leaves()
         merged_lines=[]
         for dom in merged_domains:
-            if len(merged_lines)>0 and self.compare(dom.line,merged_lines[-1])==0:
-                merged_lines[-1].e=dom.line.e
-            elif dom.value>0:
-                merged_lines.append(dom.line)
+            merged_lines.append(LineSeg(Node.from_vec3d(o+u*dom.l),Node.from_vec3d(o+u*dom.r)))
         return merged_lines
 class FindConnectedGraphAlgo(GeomAlgo):
     def __init__(self,lines:list[Edge]) -> None:

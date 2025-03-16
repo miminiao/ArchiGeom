@@ -9,7 +9,7 @@ from lib.domain import Domain1d,MultiDomain1d
 from lib.utils import Timer, Constant
 from lib.linalg import Vec3d
 from lib.index import STRTree
-from typing import Union
+from typing import Union,Callable
 
 
 class Wall(LineSeg):
@@ -65,9 +65,9 @@ def parse_data(j_data:list,center_to_zero:bool=True)->tuple:
                 e=find_or_insert_node(e,nodes)
                 s.add_edge_in_order(LineSeg(s,e))
                 e.add_edge_in_order(LineSeg(e,s))
-                new_LineSeg=LineSeg(s,e)
+                new_edge=LineSeg(s,e)
                 category=map_layer(ent["layer"])
-                if category is not None: category.append(new_LineSeg)
+                if category is not None: category.append(new_edge)
             case "arc":
                 center_vec=Vec3d(*ent["center"])
                 trans=trans or -center_vec  # 归零向量
@@ -80,12 +80,12 @@ def parse_data(j_data:list,center_to_zero:bool=True)->tuple:
                 end_point=Node.from_vec3d(e_vec+trans)
                 tot_angle=end_angle-start_angle
                 if tot_angle<0: tot_angle+=math.pi*2
-                new_LineSeg=Arc(start_point,end_point,math.tan(tot_angle/4))
-                if new_LineSeg.length<const.TOL_DIST:continue
+                new_edge=Arc(start_point,end_point,math.tan(tot_angle/4))
+                if new_edge.length<const.TOL_DIST:continue
                 category=map_layer(ent["layer"])
                 if category is not None: 
                     # category.append(new_LineSeg)  # TODO
-                    category.append(LineSeg(new_LineSeg.s,new_LineSeg.e))  # 先按直线段处理
+                    category.append(LineSeg(new_edge.s,new_edge.e))  # 先按直线段处理
             case "polyline":
                 seg_num=len(ent["segments"]) if ent["is_closed"] else len(ent["segments"])-1
                 for i in range(seg_num):
@@ -101,9 +101,9 @@ def parse_data(j_data:list,center_to_zero:bool=True)->tuple:
                     e=find_or_insert_node(e,nodes)
                     s.add_edge_in_order(LineSeg(s,e))
                     e.add_edge_in_order(LineSeg(e,s))
-                    new_LineSeg=LineSeg(s,e) if abs(bulge)<const.TOL_VAL else Arc(s,e,bulge)
+                    new_edge=LineSeg(s,e) if abs(bulge)<const.TOL_VAL else Arc(s,e,bulge)
                     category=map_layer(ent["layer"])
-                    if category is not None: category.append(new_LineSeg)
+                    if category is not None: category.append(new_edge)
             case _:continue
     return wall_lines,watch_lines,opening_lines,window_blocks,door_blocks,block_defs
 def group_lines_by_angle(lines:list[LineSeg])->tuple[list[list[LineSeg]],list[Vec3d],list[Vec3d]]:
@@ -241,32 +241,32 @@ def find_butress(wall_outline_loops:list[Loop])->set[LineSeg]:
     butresses=set()
     for outline in wall_outline_loops:
         # 找到2次90度左转的墙线，作为备选墙垛
-        for i,LineSeg in enumerate(outline.LineSegs):
-            if not WALL_WIDTH_LIMITS[0]-const.TOL_DIST<=LineSeg.length<=WALL_WIDTH_LIMITS[1]+const.TOL_DIST:
+        for i,edge in enumerate(outline.edges):
+            if not WALL_WIDTH_LIMITS[0]-const.TOL_DIST<=edge.length<=WALL_WIDTH_LIMITS[1]+const.TOL_DIST:
                 continue
-            pre_LineSeg=outline.LineSegs[i-1]
-            succ_LineSeg=outline.LineSegs[(i+1)%len(outline.LineSegs)]
-            if (abs(pre_LineSeg.to_vec3d().unit().cross(LineSeg.to_vec3d().unit()).z-1)<const.TOL_VAL
-                and abs(LineSeg.to_vec3d().unit().cross(succ_LineSeg.to_vec3d().unit()).z-1)<const.TOL_VAL): # 2次90度左转
-                butresses.add(LineSeg)
+            pre_edge=outline.edges[i-1]
+            succ_edge=outline.edges[(i+1)%len(outline.edges)]
+            if (abs(pre_edge.to_vec3d().unit().cross(edge.to_vec3d().unit()).z-1)<const.TOL_VAL
+                and abs(edge.to_vec3d().unit().cross(succ_edge.to_vec3d().unit()).z-1)<const.TOL_VAL): # 2次90度左转
+                butresses.add(edge)
         # 连续3个墙垛相邻的情况，去除夹在中间的那个
-        for i,LineSeg in enumerate(outline.LineSegs):
-            pre_LineSeg=outline.LineSegs[i-1]
-            succ_LineSeg=outline.LineSegs[(i+1)%len(outline.LineSegs)]
-            if LineSeg in butresses and pre_LineSeg in butresses and succ_LineSeg in butresses: # 夹在中间
-                if len(outline.LineSegs)==4 and (LineSeg.length<pre_LineSeg.length or LineSeg.length<succ_LineSeg.length): # 连续4个的情况，去除长的； TODO：都一样长的情况，根据配对关系判断 
+        for i,edge in enumerate(outline.edges):
+            pre_edge=outline.edges[i-1]
+            succ_edge=outline.edges[(i+1)%len(outline.edges)]
+            if edge in butresses and pre_edge in butresses and succ_edge in butresses: # 夹在中间
+                if len(outline.edges)==4 and (edge.length<pre_edge.length or edge.length<succ_edge.length): # 连续4个的情况，去除长的； TODO：都一样长的情况，根据配对关系判断 
                     continue
-                butresses.remove(LineSeg)
+                butresses.remove(edge)
         # 连续2个墙垛相邻的情况：比较当前墙垛与另一墙垛的邻边的长度，如果比邻边，把与长的相邻的从墙垛中踢掉
-        for i,LineSeg in enumerate(outline.LineSegs):
-            pre_LineSeg=outline.LineSegs[i-1]
-            if LineSeg in butresses and pre_LineSeg in butresses:  # 连续2个墙垛
-                succ_neighbor=outline.LineSegs[(i+1)%len(outline.LineSegs)]  # 下一条邻边
-                pre_neighbor=outline.LineSegs[i-2]  # 上一条邻边
-                if pre_neighbor.length<LineSeg.length:
-                    butresses.remove(LineSeg)
-                elif succ_neighbor.length<pre_LineSeg.length:
-                    butresses.remove(pre_LineSeg)
+        for i,edge in enumerate(outline.edges):
+            pre_edge=outline.edges[i-1]
+            if edge in butresses and pre_edge in butresses:  # 连续2个墙垛
+                succ_neighbor=outline.edges[(i+1)%len(outline.edges)]  # 下一条邻边
+                pre_neighbor=outline.edges[i-2]  # 上一条邻边
+                if pre_neighbor.length<edge.length:
+                    butresses.remove(edge)
+                elif succ_neighbor.length<pre_edge.length:
+                    butresses.remove(pre_edge)
     return butresses
 def find_opening_regions(butresses:set[LineSeg],
                          wall_outline_loops:list[Loop],
@@ -280,9 +280,9 @@ def find_opening_regions(butresses:set[LineSeg],
         butress_dist_limits (tuple[float,float]): _description_
 
     Returns:
-        list[Loop]: Loop.LineSegs=[s1,e1,e2,s2]
+        list[Loop]: Loop.edges=[s1,e1,e2,s2]
     """
-    def match_butress_lines(dist_condition:typing.Callable[[LineSeg,LineSeg],bool]):
+    def match_butress_lines(dist_condition:Callable[[LineSeg,LineSeg],bool]):
         for i,line in enumerate(lines):
             """从一组平行线中找到墙垛所形成的墙洞区域"""
             # 遍历每一个墙垛
@@ -327,15 +327,15 @@ def find_opening_regions(butresses:set[LineSeg],
     # 记录每个墙垛的相邻墙垛
     neighbor_butress:dict[LineSeg,list[LineSeg]]={}
     for loop in wall_outline_loops:
-        for i,LineSeg in enumerate(loop.LineSegs):
-            if LineSeg in butresses:
-                neighbor_butress[LineSeg]=[]
-                if loop.LineSegs[i-1] in butresses:
-                    neighbor_butress[LineSeg].append(loop.LineSegs[i-1])
-                if loop.LineSegs[(i+1)%len(loop.LineSegs)] in butresses:
-                    neighbor_butress[LineSeg].append(loop.LineSegs[(i+1)%len(loop.LineSegs)])
+        for i,edge in enumerate(loop.edges):
+            if edge in butresses:
+                neighbor_butress[edge]=[]
+                if loop.edges[i-1] in butresses:
+                    neighbor_butress[edge].append(loop.edges[i-1])
+                if loop.edges[(i+1)%len(loop.edges)] in butresses:
+                    neighbor_butress[edge].append(loop.edges[(i+1)%len(loop.edges)])
     # 沿着墙垛的方向，找到最近的有重叠范围的平行线
-    wall_lines=[LineSeg for loop in wall_outline_loops for LineSeg in loop.LineSegs]
+    wall_lines=[edge for loop in wall_outline_loops for edge in loop.edges]
     opening_regions=[]
     visited_butresses=set()
     groups=group_lines_by_angle(wall_lines)
@@ -389,7 +389,7 @@ def recognize_windows_and_doors(opening_regions:list[Loop],
             if line.length<const.TOL_DIST: continue
             mid=line.point_at(t=0.5)
             if not region.contains(mid): continue
-            for region_bound in region.LineSegs:
+            for region_bound in region.edges:
                 if mid.is_on_LineSeg(region_bound): 
                     break
             else:
@@ -413,13 +413,13 @@ def recognize_windows_and_doors(opening_regions:list[Loop],
             pass
     return windows,doors
                 
-def _draw_LineSeg(line:LineSeg,base_color:str="m",LineSeg_color:str="b",alpha:float=0.5):
+def _draw_edge(line:LineSeg,base_color:str="m",edge_color:str="b",alpha:float=0.5):
     left=line.offset(line.lw)
     right=line.offset(-line.rw)
     def plt_line(line,c):plt.plot([line.s.x,line.e.x],[line.s.y,line.e.y],color=c,alpha=alpha)
     plt_line(line,base_color)
-    plt_line(left,LineSeg_color)
-    plt_line(right,LineSeg_color)
+    plt_line(left,edge_color)
+    plt_line(right,edge_color)
 
 if __name__=="__main__":
     import json
@@ -486,14 +486,14 @@ if __name__=="__main__":
     # colors=list(TABLEAU_COLORS)
     # for idx,g in enumerate(wall_outline_loops):
     #     color=colors[idx % len(colors)]
-    #     for line in g.LineSegs:
+    #     for line in g.edges:
     #         plt.plot(*line.to_array().T,color=color)
     for line in wall_lines:
-        _draw_LineSeg(line,base_color="b",LineSeg_color="b")
+        _draw_edge(line,base_color="b",edge_color="b")
     for line in watch_lines:
-        _draw_LineSeg(line,base_color="r",LineSeg_color="r")
+        _draw_edge(line,base_color="r",edge_color="r")
     # for line in butresses:
-    #     _draw_LineSeg(line,base_color="m",LineSeg_color="m",alpha=1)
+    #     _draw_edge(line,base_color="m",edge_color="m",alpha=1)
     for loop in opening_regions:
         plt.fill(*loop.xy,color="g",alpha=0.2)
 ########################################### PLOT END ###########################################
@@ -516,9 +516,9 @@ if __name__=="__main__":
     #     watch_walls+=find_walls_from_parallel_lines(line_group,WALL_WIDTH_LIMIT)
 
     # for wall in walls:
-    #     _draw_LineSeg(wall)
+    #     _draw_edge(wall)
     # for wall in watch_walls:
-    #     _draw_LineSeg(wall)
+    #     _draw_edge(wall)
 
     ax = plt.gca()
     ax.set_aspect(1)

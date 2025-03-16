@@ -64,22 +64,27 @@ class Constant:
     Args: 
     Example:
     - 使用类的实例: 
-    >>> from utils import DEFAULT_CONSTANT as const
-    >>> print(const.TOL_DIST)
+    >>> Constant.DEFAULT.TOL_DIST
     1e-2
-    >>> from utils import Constant
-    >>> print(Constant.get().TOL_DIST)
+
+    - 使用类属性:
+    >>> Constant.TOL_DIST
     1e-2
 
     - 使用上下文管理器: 
-    >>> with Constant(tol_dist=1e-3) as const:
-    ...     print(const.TOL_DIST, const.MAX_VAL)
-    1e-3
+    >>> with Constant(tol_dist=1e-1):
+    ...     print(Constant.TOL_DIST)
+    1e-1
+    
+    - 使用比较函数:
+    >>> Constant.compare_dist(1.000,1.001)
+    0
     """
     _arg_names=["MAX_VAL","TOL_VAL","TOL_DIST","TOL_AREA","TOL_ANG"]
-    _tags={}
-    _stack=[]
-    _DEFAULT:Self=None
+    _stack:list[Self]=[]
+    DEFAULT:Self=None
+
+    MAX_VAL,TOL_ANG,TOL_AREA,TOL_DIST,TOL_VAL=[None]*5
 
     def __init__(self,
                  max_val:float=None,
@@ -87,7 +92,6 @@ class Constant:
                  tol_dist:float=None,
                  tol_area:float=None,
                  tol_ang:float=None,
-                 tag:str=None,
                  ) -> None:
         """自定义常量.
 
@@ -97,81 +101,91 @@ class Constant:
             tol_dist (float, optional): 距离容差. Defaults to DEFAULT.TOL_DIST.
             tol_area (float, optional): 面积容差. Defaults to DEFAULT.TOL_AREA.
             tol_ang (float, optional): 角度容差. Defaults to DEFAULT.TOL_ANG.
-            tag (str, optional): 唯一标签名; 同名将会替换. Defaults to None.
         """
-        if tag is not None: 
-            self._register(tag)
-        self.tag=tag
-        self.MAX_VAL=max_val or self._DEFAULT.MAX_VAL
-        self.TOL_VAL=tol_val or self._DEFAULT.TOL_VAL
-        self.TOL_DIST=tol_dist or self._DEFAULT.TOL_DIST
-        self.TOL_AREA=tol_area or self._DEFAULT.TOL_AREA
-        self.TOL_ANG=tol_ang or self._DEFAULT.TOL_ANG
-    def compare_val(self,x:float,y:float)->int:
-        if abs(x-y)<self.TOL_VAL: return 0
+        self.MAX_VAL=max_val or self.DEFAULT.MAX_VAL
+        self.TOL_VAL=tol_val or self.DEFAULT.TOL_VAL
+        self.TOL_DIST=tol_dist or self.DEFAULT.TOL_DIST
+        self.TOL_AREA=tol_area or self.DEFAULT.TOL_AREA
+        self.TOL_ANG=tol_ang or self.DEFAULT.TOL_ANG
+    @classmethod
+    def compare_val(cls,x:float,y:float)->int:
+        if abs(x-y)<cls.TOL_VAL: return 0
         elif x>y: return 1
         else: return -1
-    def compare_dist(self,x:float,y:float)->int:
-        if abs(x-y)<self.TOL_DIST: return 0
+    @classmethod        
+    def compare_dist(cls,x:float,y:float)->int:
+        if abs(x-y)<cls.TOL_DIST: return 0
         elif x>y: return 1
         else: return -1
-    def compare_area(self,x:float,y:float)->int:
-        if abs(x-y)<self.TOL_AREA: return 0
+    @classmethod
+    def compare_area(cls,x:float,y:float)->int:
+        if abs(x-y)<cls.TOL_AREA: return 0
         elif x>y: return 1
         else: return -1
-    def compare_ang(self,x:float,y:float,periodic:bool=True)->int:
+    @classmethod
+    def compare_ang(cls,x:float,y:float,periodic:bool=True)->int:
         """periodic==True时直接比较；periodic==False时先将x和y换算到[0,2pi)范围"""
         if not periodic:
             x%=TWO_PI
             y%=TWO_PI
-            if TWO_PI-abs(x-y)<self.TOL_ANG: return 0         
-        if abs(x-y)<self.TOL_ANG: return 0
+            if TWO_PI-abs(x-y)<cls.TOL_ANG: return 0         
+        if abs(x-y)<cls.TOL_ANG: return 0
         elif x>y: return 1
-        else: return -1        
+        else: return -1
     def __enter__(self):
-        self._stack.append(self)
+        Constant._push(self)
         return self
     def __exit__(self,exc_type,exc_val,exc_tb):
-        self._stack.pop()
-    def _register(self,tag:str,update:bool=False):
-        if not isinstance(tag,str): raise TypeError
-        Constant._tags[tag]=self
+        Constant._pop()
     @classmethod
-    def get(cls,tag:str=None)->Self:
-        """按标签名获取实例. 默认返回栈顶实例."""
-        if tag is None: return cls._stack[-1]
-        else: return cls._tags[tag]
+    def get(cls)->Self:
+        return cls._stack[-1]
     @classmethod
     def _init_default(cls)-> Self:
         with open(pathlib.Path(__file__).parent.parent/"env.json",'r') as f:
             js=json.load(f)["CONSTANTS"]
         args=[float(js[name]) for name in cls._arg_names]
-        cls._DEFAULT=cls(*args,tag="DEFAULT")
-        cls._stack=[cls._DEFAULT]
-        return cls._DEFAULT
+        cls.DEFAULT=cls(*args)
+        cls._push(cls.DEFAULT)
+    @classmethod
+    def _push(cls,item:Self)->None:
+        cls._stack.append(item)
+        for arg_name in cls._arg_names:
+            setattr(cls,arg_name,getattr(item,arg_name))
+    @classmethod
+    def _pop(cls)->Self:
+        cls._stack.pop()
+        for arg_name in cls._arg_names:
+            setattr(cls,arg_name,getattr(cls._stack[-1],arg_name))
 
-DEFAULT_CONSTANT=Constant._init_default()
+Constant._init_default()
 
 # -----------------------------------------------------------------------------
 
 class ListTool:
     @staticmethod
-    def sort_and_overkill(a: list[float],tol:float=None) -> None:
+    def sort_and_dedup(a: list[float],
+                       tol:float=None,
+                       compare_func:Callable[[float,float],int]=None
+    ) -> list[float]:
         """排序并去除重复float元素"""
-        tol=tol or Constant.get().TOL_VAL
-        if len(a) <= 1:
-            return
-        a.sort()
-        for i in range(len(a) - 1, 0, -1):
-            if a[i] - a[i - 1] < tol:
-                del a[i]
+        if len(a)==0: return
+        if compare_func is None:
+            tol=tol or Constant.TOL_VAL
+            compare_func=lambda x,y:0 if abs(x-y)<tol else 1
+        tmp=sorted(a)
+        res=[tmp[0]]
+        for _,x in enumerate(tmp,start=1):
+            if compare_func(x,res[-1])!=0:
+                res.append(x)
+        return res
     @staticmethod
     def search_value(a: list, x: float, key:Callable[[Any],float]=None) -> tuple[bool, int]:
-        """在a(sorted)中二分查找x的index。找不到则返回应当插入的位置
+        """在a(sorted)中二分查找x的index; 找不到则返回应当插入的位置.
 
         Args:
-            a (list): 按照key排好序的list
-            x (float): 查找的key值
+            a (list): 按照key排好序的list.
+            x (float): 查找的key值.
             key (Callable[[Any],float], optional): _description_. Defaults to None.
 
         Returns:
@@ -234,7 +248,7 @@ def retry(max_times:int=10,interval:float=0):
     return decorator
 
 class SupportsCompareWithTolerance(Protocol):
-    compare:Callable[[float,float],int]
+    _compare:Callable[[float,float],int]
 
 class SupportsCompare(Protocol):
     def __lt__(self,other)->bool: ...
@@ -247,41 +261,44 @@ class SupportsCompare(Protocol):
 class ComparerInjector[T]:
     """比较器.
     - 作为上下文管理器: 
-    >>> compare_width=Wall.const.compare_dist
-    >>> compare_wall=lambda x,y:compare_width(x.width,y.width)
-    >>> with Comparer(Wall,compare_wall) as comparer:
-    ...     biz_algo.merge_wall(walls)
+    >>> compare_wall=lambda x,y:Constant.compare_dist(x.width,y.width)
+    >>> with Comparer(Wall,compare_wall,override_ops=True) as comparer:
+    ...     print(Wall(width=100)>Wall(width=50))
+    True
     """
-    def __init__(self,cls:type[T],func:Callable[[T,T],int]) -> None:
+    def __init__(self,cls:type[T],func:Callable[[T,T],int],override_ops:bool=False) -> None:
         self._cls=cls
         self._func=func
+        self._override_ops=override_ops
 
     def __enter__(self):
         if "_compare" in self._cls.__dict__:
             self._previous_func=self._cls._compare
         else: 
             self._previous_func=None
-        self.inject(self._func)            
+        self._inject(self._func)
         return self
     def __exit__(self,exc_type,exc_val,exc_tb):
         if self._previous_func is not None:
-            self.inject(self._previous_func)
+            self._inject(self._previous_func)
         else: 
-            self.eject()
-    def inject(self,func)->None:
+            self._eject()
+    def _inject(self,func)->None:
         self._cls._compare=func
-        self._cls.__lt__=lambda self,other: func(self,other)<0
-        self._cls.__gt__=lambda self,other: func(self,other)>0
-        self._cls.__eq__=lambda self,other: func(self,other)==0
-        self._cls.__le__=lambda self,other: func(self,other)<=0
-        self._cls.__ge__=lambda self,other: func(self,other)>=0
-        self._cls.__ne__=lambda self,other: func(self,other)!=0
-        self._cls.__hash__=id(self)
-    def eject(self)->None:
+        if self._override_ops:
+            self._cls.__lt__=lambda self,other: func(self,other)<0
+            self._cls.__gt__=lambda self,other: func(self,other)>0
+            self._cls.__eq__=lambda self,other: func(self,other)==0
+            self._cls.__le__=lambda self,other: func(self,other)<=0
+            self._cls.__ge__=lambda self,other: func(self,other)>=0
+            self._cls.__ne__=lambda self,other: func(self,other)!=0
+            self._cls.__hash__=id(self)
+    def _eject(self)->None:
         delattr(self._cls,"_compare")
-        delattr(self._cls,"__lt__")
-        delattr(self._cls,"__gt__")
-        delattr(self._cls,"__eq__")
-        delattr(self._cls,"__le__")
-        delattr(self._cls,"__ge__")
-        delattr(self._cls,"__ne__")
+        if self._override_ops:
+            delattr(self._cls,"__lt__")
+            delattr(self._cls,"__gt__")
+            delattr(self._cls,"__eq__")
+            delattr(self._cls,"__le__")
+            delattr(self._cls,"__ge__")
+            delattr(self._cls,"__ne__")

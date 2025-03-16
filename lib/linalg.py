@@ -90,7 +90,7 @@ class Vec4d(Vector):
     def to_list(self)->list[float]:
         return [self.x,self.y,self.z,self.w]
     def to_array(self)->np.ndarray:
-        return np.array([self.x,self.y,self.z,self.w]).T    
+        return np.array([self.x,self.y,self.z,self.w]).T
 class Matrix(Tensor):
     def __init__(self,mat:list[list[float]]) -> None:
         assert len(mat)==self.dim[0] and all([len(row)==self.dim[1] for row in mat])

@@ -5,7 +5,7 @@ import copy
 from enum import Enum
 from abc import ABC,abstractmethod
 from typing import Generator
-from lib.utils import Timer,Constant
+from lib.utils import Timer,Constant as Const
 from lib.linalg import Vec3d,Mat3d
 from lib.index import STRTree
 
@@ -19,9 +19,6 @@ class GeomRelation(Enum):
 class Geom(ABC):
     _dumper_ignore=[]
     def __init__(self) -> None: ...
-    @property
-    def const(self)->Constant:
-        return Constant.get()
     @staticmethod
     def merge_mbb(mbbs:list[tuple["Node","Node"]]) -> tuple["Node","Node"]:
         """合并包围盒，返回一堆包围盒的包围盒.
@@ -32,7 +29,7 @@ class Geom(ABC):
             tuple[Node,Node]: 大包围盒.
         """
         if len(mbbs)==0: return None
-        max_val=Constant.get().MAX_VAL
+        max_val=Const.MAX_VAL
         pmin=Node(max_val,max_val)
         pmax=Node(-max_val,-max_val)
         for mbb in mbbs:
@@ -45,7 +42,7 @@ class Geom(ABC):
     @staticmethod
     def mbb_relation(a:tuple["Node","Node"],b:tuple["Node","Node"])->list[GeomRelation]:
         rel=[]
-        comp=Constant.get().get_compare_func()
+        comp=Const.compare_dist
         if (comp(b[0].x,a[1].x)<0 and comp(b[0].y,a[1].y)<0 and
             comp(b[1].x,a[0].x)>0 and comp(b[1].y,a[0].y)>0
         ): 
@@ -91,7 +88,7 @@ class Node(Geom):
     def get_mbb(self) -> tuple["Node", "Node"]:
         return (self,self)
     def equals(self, other:"Node") -> bool:
-        return isinstance(other,Node) and self.dist(other)<self.const.TOL_DIST
+        return isinstance(other,Node) and self.dist(other)<Const.TOL_DIST
     def dist(self, other:"Node") -> bool:
         return ((self.x-other.x)**2+(self.y-other.y)**2)**0.5
     def to_array(self) ->np.ndarray:
@@ -246,7 +243,7 @@ class Edge(Geom):
         c1,r1=arc1.center,arc1.radius
         c2,r2=arc2.center,arc2.radius
         dst=c1.dist(c2)  # 圆心距
-        comp=Constant.get().get_compare_func("TOL_DIST")
+        comp=Const.compare_dist
         if c1.equals(c2) and comp(r1,r2)==0:  # 重合
             return []
         if (comp(dst,r1+r2)>0 or comp(dst,abs(r1-r2))<0):  # 相离 or 包含
@@ -275,7 +272,7 @@ class Edge(Geom):
         res=[]
         projection=edge.projection(arc.center)
         h=projection.dist(arc.center)  # 弓高
-        if h>arc.radius+arc.const.TOL_DIST:  # 圆和直线不交
+        if h>arc.radius+Const.TOL_DIST:  # 圆和直线不交
             return res
         half_chord=abs(arc.radius**2-h**2)**0.5  # 半弦长        
         res=[Node.from_vec3d(projection.to_vec3d()+edge.to_vec3d().unit()*half_chord),
@@ -293,7 +290,7 @@ class Edge(Geom):
     @staticmethod
     def compare_curvature_by_radius(a:float,b:float)->int:
         if (abs(a)==abs(b)==float("inf")
-                or Constant.get()._compare(abs(a-b),0)==0): 
+                or Const.compare_dist(abs(a-b),0)==0): 
             return 0  # 直线
         if abs(a)==float("inf"): return (b<0)*2-1
         if abs(b)==float("inf"): return (a>0)*2-1
@@ -336,7 +333,7 @@ class LineSeg(Edge):
         """求线段所在直线的角度, 范围[0,pi), 含误差"""
         angle=self.angle
         if angle>=math.pi: angle-=math.pi
-        if math.pi-angle<self.const.TOL_ANG: angle-=math.pi
+        if math.pi-angle<Const.TOL_ANG: angle-=math.pi
         return angle
     @property
     def coefficients(self) -> tuple[float,float,float]:
@@ -355,14 +352,14 @@ class LineSeg(Edge):
     def is_point_on_line(self,point:Node)->bool:
         """点在线段所在的直线上"""
         # 点到直线的投影距离=0
-        return point.dist(self.projection(point))<self.const.TOL_DIST
+        return point.dist(self.projection(point))<Const.TOL_DIST
     def touches_node(self,point:Node,include_endpoints:bool=True)->bool:
         """点在线段上"""
         if self.is_zero(): return self.s.equals(point)
         # 点是否在直线上
         if not self.is_point_on_line(point): return False
         # 点是否在端点上
-        if point.dist(self.s)<self.const.TOL_DIST or point.dist(self.e)<self.const.TOL_DIST:
+        if point.dist(self.s)<Const.TOL_DIST or point.dist(self.e)<Const.TOL_DIST:
             return include_endpoints
         # 点在线段内
         return 0<self.get_param(point)<1
@@ -370,7 +367,7 @@ class LineSeg(Edge):
         """平行，含共线；认为点和任意曲线都平行"""
         if self.is_zero() or other.is_zero(): return True
         if isinstance(other,Arc):
-            return abs(other.bulge)<self.const.TOL_VAL and self.is_parallel(LineSeg(other.s,other.e))
+            return abs(other.bulge)<Const.TOL_VAL and self.is_parallel(LineSeg(other.s,other.e))
         if isinstance(other,LineSeg):
             # 四个点互相投影，判断平行距离相等；；这样会拖慢速度
             # v=[other.projection(self.s).to_vec3d()-self.s.to_vec3d(),
@@ -406,34 +403,34 @@ class LineSeg(Edge):
         """共线"""
         if not self.is_parallel(other): return False
         if isinstance(other,Arc):
-            return abs(other.bulge)<self.const.TOL_VAL and self.is_collinear(LineSeg(other.s,other.e),method)
+            return abs(other.bulge)<Const.TOL_VAL and self.is_collinear(LineSeg(other.s,other.e),method)
         if isinstance(other,LineSeg):
             # 判断各端点在另一条直线上的投影距离是0
-            cond1=self.s.dist(other.projection(self.s))<self.const.TOL_DIST
-            cond2=self.e.dist(other.projection(self.e))<self.const.TOL_DIST
-            cond3=other.s.dist(self.projection(other.s))<self.const.TOL_DIST
-            cond4=other.e.dist(self.projection(other.e))<self.const.TOL_DIST
+            cond1=self.s.dist(other.projection(self.s))<Const.TOL_DIST
+            cond2=self.e.dist(other.projection(self.e))<Const.TOL_DIST
+            cond3=other.s.dist(self.projection(other.s))<Const.TOL_DIST
+            cond4=other.e.dist(self.projection(other.e))<Const.TOL_DIST
             return cond1 and cond2 and cond3 and cond4
     def is_on_same_direction(self,other:Edge)->bool:
         """线段同向"""
         if not isinstance(other,LineSeg): return False
         if self.is_zero() or other.is_zero(): return True  # 零线段和所有人都同向
         return (self.is_parallel(other)
-                and self.to_vec3d().dot(other.to_vec3d())>self.const.TOL_VAL)
+                and self.to_vec3d().dot(other.to_vec3d())>Const.TOL_VAL)
     def point_at(self,t:float=None,x:float=None,y:float=None,cut:bool=False,out_t:list=None) -> Node: 
         """求线段所在直线上的点，并返回参数t∈[0,1]
         优先级t>x>y，cut==True时在线段端点t==0/1处截断
         """
         if out_t is None:out_t=[]
         if y is not None:
-            if abs(self.e.y-self.s.y)>self.const.TOL_DIST:
+            if abs(self.e.y-self.s.y)>Const.TOL_DIST:
                 t=(y-self.s.y)/(self.e.y-self.s.y)
-            elif abs(y-self.s.y)<self.const.TOL_DIST:
+            elif abs(y-self.s.y)<Const.TOL_DIST:
                 t=0.0
         if x is not None:
-            if abs(self.e.x-self.s.x)>self.const.TOL_DIST:
+            if abs(self.e.x-self.s.x)>Const.TOL_DIST:
                 t=(x-self.s.x)/(self.e.x-self.s.x)
-            elif abs(x-self.s.x)<self.const.TOL_DIST:
+            elif abs(x-self.s.x)<Const.TOL_DIST:
                 t=0.0
         if t is not None:
             if cut and t<0: t=0
@@ -495,7 +492,7 @@ class LineSeg(Edge):
         if min2>max2: #排序
             min2, max2=max2, min2
             pMin2, pMax2=pMax2, pMin2
-        if min2>max1+self.const.TOL_DIST or min1>max2+self.const.TOL_DIST: #没有重叠的情况返回None
+        if min2>max1+Const.TOL_DIST or min1>max2+Const.TOL_DIST: #没有重叠的情况返回None
             return []
         pMin=pMin1 if min1>min2 else pMin2 #左侧重叠点
         pMax=pMax1 if max1<max2 else pMax2 #右侧重叠点
@@ -512,7 +509,7 @@ class LineSeg(Edge):
             if (t1<t2 or p1.equals(p2)): return LineSeg(p1,p2)
             else: return None
         else:
-            if 0<=t1+self.const.TOL_VAL<=t2+2*self.const.TOL_VAL<=1+3*self.const.TOL_VAL: return LineSeg(p1,p2)
+            if 0<=t1+Const.TOL_VAL<=t2+2*Const.TOL_VAL<=1+3*Const.TOL_VAL: return LineSeg(p1,p2)
             else: return None
     def offset(self,dist:float) -> "LineSeg": 
         """左正右负"""
@@ -570,7 +567,7 @@ class Arc(Edge):
     def __hash__(self) ->int:
         return id(self)
     def equals(self,other:"Arc")->bool:
-        return isinstance(other,Arc) and self.s==other.s and self.e==other.e and abs(self.bow_height-other.bow_height)<self.const.TOL_DIST
+        return isinstance(other,Arc) and self.s==other.s and self.e==other.e and abs(self.bow_height-other.bow_height)<Const.TOL_DIST
     @property
     def bow_height(self)->float:
         """弓高，分正负"""
@@ -592,14 +589,14 @@ class Arc(Edge):
             start_angle,end_angle=end_angle,start_angle
             total_angle=-total_angle
         end_angle=start_angle+total_angle
-        if end_angle+Constant.get().TOL_ANG>math.pi*2:
+        if end_angle+Const.TOL_ANG>math.pi*2:
             end_angle-=math.pi*2
         s=Node(center_point.x+radius*math.cos(start_angle),
                center_point.y+radius*math.sin(start_angle))
         e=Node(center_point.x+radius*math.cos(end_angle),
                center_point.y+radius*math.sin(end_angle))
         bulge=math.tan(total_angle/4)
-        # if abs(bulge)<Constant.get().TOL_VAL: return LineSeg(s,e)
+        # if abs(bulge)<Const.TOL_VAL: return LineSeg(s,e)
         # else: return cls(s,e,bulge)
         return cls(s,e,bulge)
     def get_mbb(self) -> tuple[Node, Node]:
@@ -635,7 +632,7 @@ class Arc(Edge):
         return math.atan(self.bulge)*4
     @property
     def length(self)->float:
-        if abs(self.bulge)<self.const.TOL_VAL: return self.s.dist(self.e)
+        if abs(self.bulge)<Const.TOL_VAL: return self.s.dist(self.e)
         return abs(self.radius*self.radian)
     def is_zero(self)->bool:
         """0线段"""
@@ -643,13 +640,13 @@ class Arc(Edge):
     def is_point_on_circle(self,point:Node)->bool:
         """点在圆弧所在的圆周上"""
         if self.is_zero(): return self.s.equals(point)
-        return abs(point.dist(self.center)-self.radius)<self.const.TOL_DIST
+        return abs(point.dist(self.center)-self.radius)<Const.TOL_DIST
     def touches_node(self,point:Node,include_endpoints:bool=True)->bool:
         """点在圆弧上"""
         # 点是否在圆周上
         if not self.is_point_on_circle(point): return False
         # 点是否在端点上
-        if point.dist(self.s)<self.const.TOL_DIST or point.dist(self.e)<self.const.TOL_DIST:
+        if point.dist(self.s)<Const.TOL_DIST or point.dist(self.e)<Const.TOL_DIST:
             return include_endpoints
         # 点在线段内
         return 0<self.get_param(point)<1
@@ -666,12 +663,12 @@ class Arc(Edge):
         # 其中一个是点，则它需要在另一个圆周上
         if self.is_zero() and other.is_point_on_circle(self.s) and other.is_point_on_circle(self.e): return True
         if other.is_zero() and self.is_point_on_circle(other.s) and self.is_point_on_circle(other.e): return True
-        return self.is_parallel(other) and abs(self.radius-other.radius)<self.const.TOL_DIST
+        return self.is_parallel(other) and abs(self.radius-other.radius)<Const.TOL_DIST
     def is_on_same_direction(self,other:Edge)->bool:
         """圆弧同向"""
         if not isinstance(other,Arc): return False
         if self.is_zero() or other.is_zero(): return True  # 零线段和所有人都同向        
-        return (abs(self.radius-other.radius)<self.const.TOL_DIST
+        return (abs(self.radius-other.radius)<Const.TOL_DIST
                 and (self.bulge>0)==(other.bulge>0))
     def closest_point(self, other: Node) -> Node:
         if other.equals(self.center): return self.s
@@ -713,7 +710,7 @@ class Arc(Edge):
         v_p=point.to_vec3d()-self.center.to_vec3d()
         v_s=self.s.to_vec3d()-self.center.to_vec3d()
         radian_s2p=v_s.angle_to(v_p)
-        if self.bulge<0 and abs(radian_s2p)>self.const.TOL_ANG: radian_s2p=radian_s2p-2*math.pi
+        if self.bulge<0 and abs(radian_s2p)>Const.TOL_ANG: radian_s2p=radian_s2p-2*math.pi
         return radian_s2p/self.radian
     def point_at(self,t:float,cut:bool=False,out_t:list=None) -> tuple[Node,float]:
         if out_t is None:out_t=[]
@@ -731,7 +728,7 @@ class Arc(Edge):
         tangent=Vec3d(0,0,1).cross(vec) if self.bulge>0 else vec.cross(Vec3d(0,0,1))
         return tangent
     def principal_normal_at(self,t:float)->Vec3d:
-        if self.bulge>self.const.TOL_VAL:
+        if self.bulge>Const.TOL_VAL:
             return self.tangent_at(t).rotate2d(math.pi/2)
         else: 
             return self.tangent_at(t).rotate2d(-math.pi/2)
@@ -782,7 +779,7 @@ class Arc(Edge):
             if (t1<t2 or p1.equals(p2)): return Arc(p1,p2,math.tan(radian/4))
             else: return None
         else:
-            if 0<=t1+self.const.TOL_VAL<=t2+2*self.const.TOL_VAL<=1+3*self.const.TOL_VAL: return Arc(p1,p2,math.tan(radian/4))
+            if 0<=t1+Const.TOL_VAL<=t2+2*Const.TOL_VAL<=1+3*Const.TOL_VAL: return Arc(p1,p2,math.tan(radian/4))
             else: return None
     def fit(self,quad_segs:int=16,min_segs:int=1) -> list[LineSeg]:
         subdiv_num=max(min_segs,math.ceil(abs(self.radian/(math.pi/2)*quad_segs)))
@@ -805,9 +802,9 @@ class Arc(Edge):
         Returns:
             Arc: 偏移后的
         """
-        if abs(self.bulge)<self.const.TOL_VAL: return LineSeg(self.s,self.e,dist)
+        if abs(self.bulge)<Const.TOL_VAL: return LineSeg(self.s,self.e,dist)
         if self.bulge>0: dist=-dist  # 圆心在弦的左侧，此时向左偏意味着半径减小
-        if self.radius+dist<self.const.TOL_DIST and not cross_center:  # 圆心穿越
+        if self.radius+dist<Const.TOL_DIST and not cross_center:  # 圆心穿越
             return LineSeg(self.center,self.center)
         vs=(self.s.to_vec3d()-self.center.to_vec3d()).unit()
         ve=(self.e.to_vec3d()-self.center.to_vec3d()).unit()
@@ -830,7 +827,7 @@ class Circle(Arc):
     def __hash__(self) ->int:
         return id(self)
     def equals(self,other:"Circle")->bool:
-        return isinstance(other,Circle) and self.center.dist(other.center)+abs(self.radius-other.radius)<self.const.TOL_DIST
+        return isinstance(other,Circle) and self.center.dist(other.center)+abs(self.radius-other.radius)<Const.TOL_DIST
 class Polyedge(Geom):
     """多段线"""
     def __init__(self,nodes:list[Node],bulges:list[float]=None,deepcopy:bool=False):
@@ -938,7 +935,7 @@ class Loop(Polyedge):
         # if self.prepared is not None: return
         self.prepared=STRTree(list(self.edges))
     def is_identical(self,other:"Loop")->bool:
-        return abs(self.area-other.area)<self.const.TOL_AREA and self.covers(other) and other.covers(self)
+        return abs(self.area-other.area)<Const.TOL_AREA and self.covers(other) and other.covers(self)
     def reverse(self) -> None:
         self.nodes.reverse()
         self.nodes=self.nodes[-1:]+self.nodes[:-1]  # 保持起点不变
@@ -1011,7 +1008,7 @@ class Loop(Polyedge):
             if edge_offset.get_param(intersection)>1 and intersection.dist(edge_offset.e)<mitre_limit:  # 交点在后一段的终点之后，但是没有超过限制
                 return True
             return False
-        if mitre_limit is None: mitre_limit=self.const.MAX_VAL
+        if mitre_limit is None: mitre_limit=Const.MAX_VAL
         new_nodes=[]
         pre_edge=self.edges[-1]
         pre_edge_offset=pre_edge.offset(comb_dist(pre_edge,dist))
@@ -1038,7 +1035,7 @@ class Loop(Polyedge):
         # 判断的时候每条线段的有效范围是[0,1)->[s,e)；只算头，不算尾巴
         for i,ei in enumerate(self.edges):
             if self.prepared is not None:
-                neighbors=self.prepared.query(ei.get_mbb(),tol=self.const.TOL_DIST)
+                neighbors=self.prepared.query(ei.get_mbb(),tol=Const.TOL_DIST)
             else: neighbors=self.edges[i:]
             for ej in neighbors:
                 if ei is ej: continue
@@ -1084,7 +1081,7 @@ class Loop(Polyedge):
             return rel[0]
         # 先判断是否在边界上
         if self.prepared is not None:
-            neighbor_edges=self.prepared.query(other.get_mbb(),tol=self.const.TOL_DIST)
+            neighbor_edges=self.prepared.query(other.get_mbb(),tol=Const.TOL_DIST)
         else: neighbor_edges=self.edges
         for edge in neighbor_edges:
             if edge.touches_node(other):
@@ -1093,9 +1090,9 @@ class Loop(Polyedge):
         # 向上：+1；向下：-1；向上+终点 或 向下+起点：不计
         # 对于"xor"模式：偶数在外，奇数在内；对于"or"模式，0在外，非0在内
         max_x=self.get_mbb()[1].x
-        ray=LineSeg(other,Node(max_x+self.const.TOL_DIST*2,other.y))
+        ray=LineSeg(other,Node(max_x+Const.TOL_DIST*2,other.y))
         if self.prepared is not None:
-            neighbor_edges=self.prepared.query(ray.get_mbb(),tol=self.const.TOL_DIST)
+            neighbor_edges=self.prepared.query(ray.get_mbb(),tol=Const.TOL_DIST)
         else: neighbor_edges=self.edges
         cross_count=0
         for edge in neighbor_edges:
@@ -1147,7 +1144,7 @@ class Loop(Polyedge):
               GeomRelation.Intersect:[]}
         break_points=[]
         if self.prepared is not None:
-            neighbor_edges=self.prepared.query(other.get_mbb(),tol=self.const.TOL_DIST)
+            neighbor_edges=self.prepared.query(other.get_mbb(),tol=Const.TOL_DIST)
         else: neighbor_edges=self.edges
         for edge in neighbor_edges:
             if edge.s.is_on_edge(other): break_points.append(edge.s)
@@ -1361,7 +1358,7 @@ class Polygon(Geom):
         return ...
     def closest_point(self,other:Geom)->Node:
         if isinstance(other,Node):
-            min_dist=self.const.MAX_VAL
+            min_dist=Const.MAX_VAL
             res=None
             for loop in self.all_loops:
                 for edge in loop.edges:
@@ -1412,7 +1409,7 @@ class GeomUtil:
         """有序插入：第一关键字角度，第二关键字曲率半径（左正右负）"""
         ang=edge.tangent_at(0).angle
         radius=edge.radius_at(0,signed=True)
-        comp=Constant.get().get_compare_func("TOL_ANG")
+        comp=Const.compare_ang
         i=0
         while i<len(node.edge_out):
             angle_i=node.edge_out[i].tangent_at(0).angle
@@ -1435,7 +1432,7 @@ class GeomUtil:
         pre_angle=op.tangent_at(0).angle  # 入边的角度
         pre_radius=op.radius_at(0,signed=True)  # 入边的半径        
         i=len(node.edge_out)-1
-        comp=Constant.get().get_compare_func("TOL_ANG")
+        comp=Const.compare_ang
         while i>=0:
             angle_i=node.edge_out[i].tangent_at(0).angle
             radius_i=node.edge_out[i].radius_at(0,signed=True)

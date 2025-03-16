@@ -5,7 +5,7 @@ from lib.geom import Geom,Node,LineSeg,Arc,Edge,Polyedge,Loop
 from lib.geom_algo import FindLoopAlgo
 from lib.geom_plotter import CADPlotter
 from tests.utils import set_root_dir,read_case,write_stdout
-from lib.utils import Constant
+from lib.utils import Constant as Const
 from lib.index import STRTree
 
 set_root_dir("./tests/loop_algo/")
@@ -125,7 +125,7 @@ def test_rebuild_loop(case)->None:
 
 def _find_identical_loop(loop:Loop,std_out:STRTree[Loop])->bool:
     neighbors=std_out.query(loop.get_mbb())
-    comp=Constant.get().get_compare_func("TOL_AREA")
+    comp=Const.compare_area
     for std_loop in neighbors:
         if comp(std_loop.area,loop.area)==0 and std_loop.covers(loop) and loop.covers(std_loop):
             return True

@@ -2,6 +2,7 @@
 
 import math
 from lib.geom import Geom,Node,LineSeg,Arc,Polyedge,Loop,Polygon
+from lib.domain import Domain1d
 from lib.linalg import Tensor,Vec3d,Vec4d,Mat3d,Mat4d
 from tests.CGS.case_model import CGSTestCase
 
@@ -9,7 +10,7 @@ class JsonDumper:
     """Geom类的序列化方法"""
     @staticmethod
     def default(obj:Geom):
-        ignore_list=obj._dumper_ignore
+        ignore_list=getattr(obj,"_dumper_ignore",[])
         res={"class_name":obj.__class__.__name__}
         res.update({k:v for k,v in obj.__dict__.items() if k not in ignore_list})
         return res
@@ -110,4 +111,6 @@ class JsonLoader:
                 return Loop(obj["nodes"],obj["bulges"])
             case "Polygon":
                 return Polygon(obj["shell"],obj["holes"])
+            case "Domain1d":
+                return Domain1d(obj["l"],obj["r"],obj["value"])
             case None: return obj

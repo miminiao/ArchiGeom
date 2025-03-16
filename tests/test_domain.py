@@ -3,15 +3,6 @@
 import pytest
 from lib.domain import Domain1d, MultiDomain1d
 
-def gt(self,x,y):
-    if x>y:return 1
-    elif x<y:return -1
-    else:return 0
-def lt(self,x,y):
-    if x<y:return 1
-    elif x>y:return -1
-    else:return 0
-
 # 测试单区间并集(取高)
 @pytest.mark.parametrize('case',[
     {"in":[[0,1,1],[0.5,1.5,2]],"out":[[0,0.5,1],[0.5,1.5,2]]},
@@ -25,7 +16,6 @@ def lt(self,x,y):
     {"in":[[0,1,2],[1,2,2]],"out":[[0,2,2]]},
     ])
 def test_add_higher(case):
-    Domain1d.push_compare(gt)
     a=Domain1d(*case["in"][0])
     b=Domain1d(*case["in"][1])
     if len(case["out"])==1:
@@ -33,7 +23,6 @@ def test_add_higher(case):
     else:
         c=MultiDomain1d([Domain1d(*dom) for dom in case["out"]])
     assert a+b==c
-    Domain1d.pop_compare()
 
 # 测试单区间并集(取矮)
 @pytest.mark.parametrize('case',[
@@ -48,15 +37,16 @@ def test_add_higher(case):
     {"in":[[0,1,2],[1,2,2]],"out":[[0,2,2]]},
     ])
 def test_add_lower(case):
-    Domain1d.push_compare(lt)
     a=Domain1d(*case["in"][0])
+    a.value=-a.value
     b=Domain1d(*case["in"][1])
+    b.value=-b.value
     if len(case["out"])==1:
         c=Domain1d(*case["out"][0])
+        c.value=-c.value
     else:
-        c=MultiDomain1d([Domain1d(*dom) for dom in case["out"]])
+        c=MultiDomain1d([Domain1d(l,r,-v) for l,r,v in case["out"]])
     assert a+b==c
-    Domain1d.pop_compare()
 
 # 测试单区间差集
 @pytest.mark.parametrize('case',[
@@ -80,6 +70,27 @@ def test_sub(case):
 
 # 测试单区间交集(取高)
 @pytest.mark.parametrize('case',[
+    {"in":[[0,1,1],[0.5,1.5,2]],"out":[[0.5,1,1]]},
+    {"in":[[0.5,1.5,2],[0,1,1]],"out":[[0.5,1,1]]},
+    {"in":[[0.5,1.5,2],[0,1,2]],"out":[[0.5,1,2]]},
+    {"in":[[0,1,1],[1.1,1.5,2]],"out":[[1,0,0]]},
+    {"in":[[0,2,1],[0.5,1.5,2]],"out":[[0.5,1.5,1]]},
+    {"in":[[0,2,2],[0.5,1.5,1]],"out":[[0.5,1.5,1]]},
+    {"in":[[0.5,1.5,2],[0,2,1]],"out":[[0.5,1.5,1]]},
+    {"in":[[0.5,1.5,1],[0,2,2]],"out":[[0.5,1.5,1]]},
+    {"in":[[0,1,2],[1,2,2]],"out":[[1,0,0]]},    
+    ])
+def test_mul_higher(case):
+    a=Domain1d(*case["in"][0])
+    b=Domain1d(*case["in"][1])
+    if len(case["out"])==1:
+        c=Domain1d(*case["out"][0])
+    else:
+        c=MultiDomain1d([Domain1d(*dom) for dom in case["out"]])
+    assert a*b==c
+
+# 测试单区间交集(取矮)
+@pytest.mark.parametrize('case',[
     {"in":[[0,1,1],[0.5,1.5,2]],"out":[[0.5,1,2]]},
     {"in":[[0.5,1.5,2],[0,1,1]],"out":[[0.5,1,2]]},
     {"in":[[0.5,1.5,2],[0,1,2]],"out":[[0.5,1,2]]},
@@ -89,39 +100,17 @@ def test_sub(case):
     {"in":[[0.5,1.5,2],[0,2,1]],"out":[[0.5,1.5,2]]},
     {"in":[[0.5,1.5,1],[0,2,2]],"out":[[0.5,1.5,2]]},
     ])
-def test_mul_higher(case):
-    Domain1d.push_compare(gt)    
-    a=Domain1d(*case["in"][0])
-    b=Domain1d(*case["in"][1])
-    if len(case["out"])==1:
-        c=Domain1d(*case["out"][0])
-    else:
-        c=MultiDomain1d([Domain1d(*dom) for dom in case["out"]])
-    assert a*b==c
-    Domain1d.pop_compare()
-
-# 测试单区间交集(取矮)
-@pytest.mark.parametrize('case',[
-    {"in":[[0,1,1],[0.5,1.5,2]],"out":[[0.5,1,1]]},
-    {"in":[[0.5,1.5,2],[0,1,1]],"out":[[0.5,1,1]]},
-    {"in":[[0.5,1.5,2],[0,1,2]],"out":[[0.5,1,2]]},
-    {"in":[[0,1,1],[1.1,1.5,2]],"out":[[1,0,0]]},
-    {"in":[[0,2,1],[0.5,1.5,2]],"out":[[0.5,1.5,1]]},
-    {"in":[[0,2,2],[0.5,1.5,1]],"out":[[0.5,1.5,1]]},
-    {"in":[[0.5,1.5,2],[0,2,1]],"out":[[0.5,1.5,1]]},
-    {"in":[[0.5,1.5,1],[0,2,2]],"out":[[0.5,1.5,1]]},
-    {"in":[[0,1,2],[1,2,2]],"out":[[1,0,0]]},
-    ])
 def test_mul_lower(case):
-    Domain1d.push_compare(lt)
     a=Domain1d(*case["in"][0])
+    a.value=-a.value
     b=Domain1d(*case["in"][1])
+    b.value=-b.value
     if len(case["out"])==1:
         c=Domain1d(*case["out"][0])
+        c.value=-c.value
     else:
-        c=MultiDomain1d([Domain1d(*dom) for dom in case["out"]])
+        c=MultiDomain1d([Domain1d(l,r,-v) for l,r,v in case["out"]])
     assert a*b==c
-    Domain1d.pop_compare()
 
 # 测试多区间并集(取高)
 @pytest.mark.parametrize('case',[
@@ -133,7 +122,6 @@ def test_mul_lower(case):
     {"in":[[[0,2,2],[2.5,3.5,1]],[[0.5,1.5,1],[2,4,2]]],"out":[[0,4,2]]},
     ])
 def test_multi_add_higher(case):
-    Domain1d.push_compare(gt)
     a=MultiDomain1d([Domain1d(*dom) for dom in case["in"][0]])
     b=MultiDomain1d([Domain1d(*dom) for dom in case["in"][1]])
     if len(case["out"])==1:
@@ -141,7 +129,6 @@ def test_multi_add_higher(case):
     else:
         c=MultiDomain1d([Domain1d(*dom) for dom in case["out"]])
     assert a+b==c
-    Domain1d.pop_compare()
 
 # 测试多区间并集(取矮)
 @pytest.mark.parametrize('case',[
@@ -153,15 +140,14 @@ def test_multi_add_higher(case):
     {"in":[[[0,2,2],[2.5,3.5,1]],[[0.5,1.5,1],[2,4,2]]],"out":[[0,0.5,2],[0.5,1.5,1],[1.5,2.5,2],[2.5,3.5,1],[3.5,4,2]]},
     ])
 def test_multi_add_lower(case):
-    Domain1d.push_compare(lt)
-    a=MultiDomain1d([Domain1d(*dom) for dom in case["in"][0]])
-    b=MultiDomain1d([Domain1d(*dom) for dom in case["in"][1]])
+    a=MultiDomain1d([Domain1d(l,r,-v) for l,r,v in case["in"][0]])
+    b=MultiDomain1d([Domain1d(l,r,-v) for l,r,v in case["in"][1]])
     if len(case["out"])==1:
         c=Domain1d(*case["out"][0])
+        c.value=-c.value
     else:
-        c=MultiDomain1d([Domain1d(*dom) for dom in case["out"]])
+        c=MultiDomain1d([Domain1d(l,r,-v) for l,r,v in case["out"]])
     assert a+b==c
-    Domain1d.pop_compare()
 
 # 测试多区间差集
 @pytest.mark.parametrize('case',[
@@ -183,26 +169,6 @@ def test_multi_sub(case):
 
 # 测试多区间交集(取高)
 @pytest.mark.parametrize('case',[
-    {"in":[[[0,1,1],[1.5,3,1],[3.5,4.5,1]],[[0.5,2,2],[2.5,4,2]]],"out":[[0.5,1,2],[1.5,2,2],[2.5,3,2],[3.5,4,2]]},
-    {"in":[[[1.5,2,2],[4,4.5,2]],[[0,1,1],[2.5,3.5,1]]],"out":[[1,0,0]]},
-    {"in":[[[0,1.5,2],[3,4.5,2]],[[0,0.5,1],[1,2,1],[2.5,3,1],[3.5,4,1]]],"out":[[0,0.5,2],[1,1.5,2],[3.5,4,2]]},
-    {"in":[[[0,3.5,1],[4,4.5,2]],[[0.5,1,2],[1.5,2,2],[2.5,3,1]]],"out":[[0.5,1,2],[1.5,2,2],[2.5,3,1]]},
-    {"in":[[[0,2,2],[2.5,3,2],[3.5,4,2]],[[0.5,1.5,2],[2,2.5,2],[3,3.5,2],[4,4.5,2]]],"out":[[0.5,1.5,2]]},
-    {"in":[[[0,2,2],[2.5,3.5,1]],[[0.5,1.5,1],[2,4,2]]],"out":[[0.5,1.5,2],[2.5,3.5,2]]},
-    ])
-def test_multi_mul_higher(case):
-    Domain1d.push_compare(gt)
-    a=MultiDomain1d([Domain1d(*dom) for dom in case["in"][0]])
-    b=MultiDomain1d([Domain1d(*dom) for dom in case["in"][1]])
-    if len(case["out"])==1:
-        c=Domain1d(*case["out"][0])
-    else:
-        c=MultiDomain1d([Domain1d(*dom) for dom in case["out"]])
-    assert a*b==c
-    Domain1d.pop_compare()
-
-# 测试多区间交集(取矮)
-@pytest.mark.parametrize('case',[
     {"in":[[[0,1,1],[1.5,3,1],[3.5,4.5,1]],[[0.5,2,2],[2.5,4,2]]],"out":[[0.5,1,1],[1.5,2,1],[2.5,3,1],[3.5,4,1]]},
     {"in":[[[1.5,2,2],[4,4.5,2]],[[0,1,1],[2.5,3.5,1]]],"out":[[1,0,0]]},
     {"in":[[[0,1.5,2],[3,4.5,2]],[[0,0.5,1],[1,2,1],[2.5,3,1],[3.5,4,1]]],"out":[[0,0.5,1],[1,1.5,1],[3.5,4,1]]},
@@ -210,8 +176,7 @@ def test_multi_mul_higher(case):
     {"in":[[[0,2,2],[2.5,3,2],[3.5,4,2]],[[0.5,1.5,2],[2,2.5,2],[3,3.5,2],[4,4.5,2]]],"out":[[0.5,1.5,2]]},
     {"in":[[[0,2,2],[2.5,3.5,1]],[[0.5,1.5,1],[2,4,2]]],"out":[[0.5,1.5,1],[2.5,3.5,1]]},
     ])
-def test_multi_mul_lower(case):
-    Domain1d.push_compare(lt)
+def test_multi_mul_higher(case):
     a=MultiDomain1d([Domain1d(*dom) for dom in case["in"][0]])
     b=MultiDomain1d([Domain1d(*dom) for dom in case["in"][1]])
     if len(case["out"])==1:
@@ -219,4 +184,37 @@ def test_multi_mul_lower(case):
     else:
         c=MultiDomain1d([Domain1d(*dom) for dom in case["out"]])
     assert a*b==c
-    Domain1d.pop_compare()
+
+# 测试多区间交集(取矮)
+@pytest.mark.parametrize('case',[
+    {"in":[[[0,1,1],[1.5,3,1],[3.5,4.5,1]],[[0.5,2,2],[2.5,4,2]]],"out":[[0.5,1,2],[1.5,2,2],[2.5,3,2],[3.5,4,2]]},
+    {"in":[[[1.5,2,2],[4,4.5,2]],[[0,1,1],[2.5,3.5,1]]],"out":[[1,0,0]]},
+    {"in":[[[0,1.5,2],[3,4.5,2]],[[0,0.5,1],[1,2,1],[2.5,3,1],[3.5,4,1]]],"out":[[0,0.5,2],[1,1.5,2],[3.5,4,2]]},
+    {"in":[[[0,3.5,1],[4,4.5,2]],[[0.5,1,2],[1.5,2,2],[2.5,3,1]]],"out":[[0.5,1,2],[1.5,2,2],[2.5,3,1]]},
+    {"in":[[[0,2,2],[2.5,3,2],[3.5,4,2]],[[0.5,1.5,2],[2,2.5,2],[3,3.5,2],[4,4.5,2]]],"out":[[0.5,1.5,2]]},
+    {"in":[[[0,2,2],[2.5,3.5,1]],[[0.5,1.5,1],[2,4,2]]],"out":[[0.5,1.5,2],[2.5,3.5,2]]},    
+    ])
+def test_multi_mul_lower(case):
+    a=MultiDomain1d([Domain1d(l,r,-v) for l,r,v in case["in"][0]])
+    b=MultiDomain1d([Domain1d(l,r,-v) for l,r,v in case["in"][1]])
+    if len(case["out"])==1:
+        c=Domain1d(*case["out"][0])
+        c.value=-c.value
+    else:
+        c=MultiDomain1d([Domain1d(l,r,-v) for l,r,v in case["out"]])
+    assert a*b==c
+
+# 测试多区间重叠判断
+@pytest.mark.parametrize('case',[
+    {"in":[[[0,1,1],[2,4,1],[5,7,1]],[[3,6,2]]],"out":True},
+    {"in":[[[3,6,2]],[[0,1,1],[2,4,1],[5,7,1]]],"out":True},
+    {"in":[[[0,1,1],[4,5,1]],[[2,3,2],[6,7,2]]],"out":False},
+    {"in":[[[2,3,2],[6,7,2]],[[0,1,1],[4,5,1]]],"out":False},
+    {"in":[[[0,1,1],[2,3,1]],[[4,5,2],[6,7,2]]],"out":False},
+    {"in":[[[4,5,2],[6,7,2]],[[0,1,1],[2,3,1]]],"out":False},
+    ])
+# @pytest.mark.timeout(5)
+def test_multi_overlap(case):
+    a=MultiDomain1d([Domain1d(*dom) for dom in case["in"][0]])
+    b=MultiDomain1d([Domain1d(*dom) for dom in case["in"][1]])
+    assert a.is_overlap(b,include_endpoints=True)==case["out"]

@@ -1,7 +1,7 @@
 import math
 from lib.utils import Constant,ListTool
-from lib.domain import Domain1d
-from typing import Protocol,TYPE_CHECKING
+from lib.domain import Domain1d,MultiDomain1d
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from lib.geom import Geom,Node
 
@@ -280,16 +280,15 @@ class STRTree[T:Geom]:
                 res=res+self.query(extent,tol,ch)
         return res        
 
-class SegmentTree:  # TODO
+class SegmentTree[T]:
     """线段树"""
-    def __init__(self,segs:list[Domain1d]) -> None:
+    def __init__(self,segs:list[Domain1d[T]]) -> None:
         # 用所有区间的端点建立树结构，然后把区间逐个插到树里
-        self.endpoints=[]
-        self._const=Constant.get()
-        self._neg_inf=-math.inf
-        self.compare=Domain1d.compare
-        for seg in segs: self.endpoints.extend([seg.l,seg.r])
-        ListTool.sort_and_overkill(self.endpoints,tol=self._const.TOL_DIST)
+        self._compare=Domain1d._compare
+        endpoints=[]
+        for seg in segs: endpoints.extend([seg.l,seg.r])
+        self.endpoints=ListTool.sort_and_dedup(endpoints,compare_func=self._compare)
+        # self.endpoints.sort()
         self.root=self._construct_tree(0,len(self.endpoints)-1)
         for seg in segs: self.insert(self.root,seg)
     def _construct_tree(self,l:int,r:int)->_BinaryTreeNode[Domain1d]:
@@ -303,13 +302,18 @@ class SegmentTree:  # TODO
             TreeNode[Domain1d]: 当前根节点.
         """
         if l==r: return None
-        node=_BinaryTreeNode(Domain1d(self.endpoints[l],self.endpoints[r],self._neg_inf))
+        node=_BinaryTreeNode(Domain1d(self.endpoints[l],self.endpoints[r],None))
         if r-l==1: return node
         node.child=[self._construct_tree(l,(l+r)//2),
                     self._construct_tree((l+r)//2,r),
                     ]
         for ch in node.child: ch.parent=node
         return node
+    @classmethod
+    def _update_value(self,node:_BinaryTreeNode[Domain1d])->None:
+        if node.parent is None or node.parent.obj.value is None: return
+        if node.obj.value is None or node.parent.obj.value>node.obj.value:
+            node.obj.value=node.parent.obj.value
     def insert(self,root:_BinaryTreeNode[Domain1d],seg:Domain1d)->None:
         """向根为root的子树中插入一段新的线段.
 
@@ -317,18 +321,19 @@ class SegmentTree:  # TODO
             root (_BinaryTreeNode[Domain1d]): 当前树根.
             seg (Domain1d): 新线段.
         """
-        if root.parent is not None and root.obj.compare(root.parent.obj.value,root.obj.value)>0:  # 当前节点的父亲的value更大，就刷新当前结点
-            root.obj.value=root.parent.obj.value
-        if self.compare(seg.value,root.obj.value)<=0: return  # 新线段没现在的大，就不用看了
-        if seg.l<=root.obj.l and seg.r>=root.obj.r:  # 新线段覆盖当前节点，就刷新当前节点
+        self._update_value(root)  # lazy-update当前结点的value
+        if root.obj.value is not None and seg.value<=root.obj.value:  # 新线段没现在的大，就不用看了
+            return
+        if self._compare(seg.l,root.obj.l)<=0 and self._compare(seg.r,root.obj.r)>=0:  # 新线段覆盖当前节点，就刷新当前节点
             root.obj.value=seg.value
             return
-        if seg.l<root.lch.obj.r:
+        if self._compare(seg.l,root.lch.obj.r)<0:
             self.insert(root.lch,seg)
-        if seg.r>root.rch.obj.l:
+        if self._compare(seg.r,root.rch.obj.l)>0:
             self.insert(root.rch,seg)
     @classmethod
     def _traverse_leaves(cls,root:_BinaryTreeNode[Domain1d],res:list[Domain1d])->None:
+        cls._update_value(root)  # lazy-update当前结点的value
         if len(root.child)==0:
             res.append(root.obj)
         else:
@@ -336,69 +341,13 @@ class SegmentTree:  # TODO
             cls._traverse_leaves(root.child[1],res)
     def get_united_leaves(self)->list[Domain1d]:
         """获取叶子结点区间合并的结果"""
-        leaves=[]
+        leaves:list[Domain1d]=[]
         self._traverse_leaves(self.root,leaves)
         res=[leaves[0]]
-        for i,node in enumerate(leaves,1):
-            if node.compare(node,res[-1])==0:
+        for _,node in enumerate(leaves,start=1):
+            if node.value==res[-1].value:
                 res[-1].r=node.r
             else:
                 res.append(node)
-        res=[obj for obj in res if obj.value!=self._neg_inf]
+        res=[obj for obj in res if obj.value is not None]
         return res
-
-# %% 线段合并测试，带优先级比较
-if 1 and __name__ == "__main__":
-    import json,random
-    import matplotlib.pyplot as plt
-    from lib.geom import LineSeg,Edge
-    const=Constant.default()
-
-    # with open("./test/merge_line/case_1.json",'r',encoding="utf8") as f:
-    #     j_obj=json.load(f)
-    # edges:list[Edge]=[]
-    # for ent in j_obj:
-    #     if ent["object_name"]=="line" and ent["layer"]=="WALL":
-    #         x1,y1,z1=ent["start_point"]
-    #         x2,y2,z2=ent["end_point"]
-    #         s=Node(x1,y1)
-    #         e=Node(x2,y2)
-    #         if s.equals(e):continue
-    #         edges.append(Edge(s,e))
-
-    doms:list[Domain1d]=[]
-    limits=(0,10000,1000)
-    random.seed(0)
-    for i in range(10):
-        l=random.random()*(limits[1]-limits[0])+limits[0]
-        # r=random.random()*(limits[1]-limits[0])+limits[0]
-        r=l.x+1000
-        h=random.random()*limits[2]
-        doms.append(Domain1d(l,r,h))
-
-    plt.subplot(2,1,1)
-    for i,dom in enumerate(doms):
-        plt.plot([dom.l,dom.r],[dom.h,dom.h])
-
-    print(f"{len(doms)} lines before")
-    def compare(self,a:Domain1d,b:Domain1d): 
-        if abs(a.value-b.value)<const.TOL_VAL: return 0
-        elif a.value>b.value: return 1
-        else: return -1
-    segtree=SegmentTree(doms)
-
-    
-    # print(f"{len(merged_lines)} lines after")
-
-    # plt.subplot(2,1,2)
-    # for i,dom in enumerate(merged_lines):
-    #     plt.plot([dom.s.x,dom.e.x],[dom.s.y+dom.lw+dom.rw,dom.e.y+dom.lw+dom.rw])
-
-    # plt.show()
-
-    # CASE_ID="6"
-
-    # with open(f"./test/merge_line/case_{CASE_ID}.json",'w',encoding="utf8") as f:
-    #     json.dump(lines,f,ensure_ascii=False,default=lambda x:x.__dict__)
-    # with open(f"./test/merge_line/case_{CASE_ID}_out.json",'w',encoding="utf8") as f:
-    #     json.dump(merged_lines,f,ensure_ascii=False,default=lambda x:x.__dict__)

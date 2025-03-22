@@ -4,7 +4,7 @@ import math
 import copy
 from enum import Enum
 from abc import ABC,abstractmethod
-from typing import Generator
+from typing import Self,Generator,overload
 from lib.utils import Timer,Constant as Const
 from lib.linalg import Vec3d,Mat3d
 from lib.index import STRTree
@@ -42,7 +42,7 @@ class Geom(ABC):
     @staticmethod
     def mbb_relation(a:tuple["Node","Node"],b:tuple["Node","Node"])->list[GeomRelation]:
         rel=[]
-        comp=Const.compare_dist
+        comp=Const.cmp_dist
         if (comp(b[0].x,a[1].x)<0 and comp(b[0].y,a[1].y)<0 and
             comp(b[1].x,a[0].x)>0 and comp(b[1].y,a[0].y)>0
         ): 
@@ -117,18 +117,11 @@ class Edge(Geom):
     @property
     @abstractmethod
     def length(self) -> float: ...
+    def is_zero(self)->bool:
+        return self.length<Const.TOL_DIST
     @abstractmethod
-    def is_zero(self)->bool:...
-    @abstractmethod
-    def point_at(self,t:float,cut:bool=False,out_t:list=None) -> tuple[Node,float]:
-        """根据参数t求点
-
-        Args:
-            t (float): 曲线参数；曲线内的范围为[0,1].
-            cut (bool, optional): 是否在端点处截断. Defaults to False.
-        Returns:
-            tuple[Node,float]: (曲线上的点, 实际的参数t)
-        """
+    def point_at(self,t:float) -> Node:
+        """参数t处的点"""
         ...
     @abstractmethod
     def tangent_at(self,t:float)->Vec3d:
@@ -167,16 +160,17 @@ class Edge(Geom):
         vz=vx.cross(vy)
         return Mat3d.from_column_vecs([vx,vy,vz])
     @abstractmethod
-    def slice_between(self,p1:Node,p2:Node,extend:bool=False)->"Edge":
-        """返回p1->p2的切片
+    def slice_between(self,a:float|Node,b:float|Node,extend:bool=True)->Self:
+        
+        """返回a->b的切片.
 
         Args:
-            p1 (Node): 起点
-            p2 (Node): 终点，满足t(p1)<=t(p2)
-            extend (bool, optional): 允许向外延伸. Defaults to False.
+            a (Node|float): 起点.
+            b (Node|float): 终点，满足t(a)<=t(b).
+            extend (bool, optional): 允许向外延伸. Defaults to True.
 
         Returns:
-            Edge: p1->p2的切片
+            Edge: a->b的切片.t(a)>t(b)时返回None.
         """
         ...
     @abstractmethod
@@ -220,8 +214,16 @@ class Edge(Geom):
         """点到边的最近点"""
         ...
     @abstractmethod
-    def get_param(self,p:Node) -> float:
-        """点在边上的参数。起点==0，终点==1"""
+    def get_param(self,p:Node,arc_length:bool=False) -> float|None:
+        """点在边上的参数.
+
+        Args:
+            p (Node): 点.
+            arc_length (bool, optional): True返回[0,self.length]，False返回[0,1]. Defaults to False.
+
+        Returns:
+            float|None: 不在Edge上时返回None.
+        """
         ...
     @staticmethod
     def intersection_extended(e1:"Edge",e2:"Edge")->list[Node]:
@@ -243,7 +245,7 @@ class Edge(Geom):
         c1,r1=arc1.center,arc1.radius
         c2,r2=arc2.center,arc2.radius
         dst=c1.dist(c2)  # 圆心距
-        comp=Const.compare_dist
+        comp=Const.cmp_dist
         if c1.equals(c2) and comp(r1,r2)==0:  # 重合
             return []
         if (comp(dst,r1+r2)>0 or comp(dst,abs(r1-r2))<0):  # 相离 or 包含
@@ -290,11 +292,59 @@ class Edge(Geom):
     @staticmethod
     def compare_curvature_by_radius(a:float,b:float)->int:
         if (abs(a)==abs(b)==float("inf")
-                or Const.compare_dist(abs(a-b),0)==0): 
+                or Const.cmp_dist(abs(a-b),0)==0): 
             return 0  # 直线
         if abs(a)==float("inf"): return (b<0)*2-1
         if abs(b)==float("inf"): return (a>0)*2-1
         return (a>b)*2-1 if a*b<0 else (a<b)*2-1
+class Line(Geom):  # [TODO]: 把LineSeg直线相关的方法搬过来
+    """直线"""
+    def __init__(self,origin:Node,direction:Vec3d):
+        super().__init__()
+        self.origin=origin
+        self.direction=direction.unit()
+    def get_mbb(self):
+        if abs(self.angle-math.pi/2)<Const.TOL_ANG: 
+            x1=x2=self.origin.x
+        else:
+            x1,x2=-math.inf,math.inf
+        if self.angle<Const.TOL_ANG: 
+            y1=y2=self.origin.y
+        else: 
+            y1,y2=-math.inf,math.inf
+        return (Node(x1,y1),Node(x2,y2))
+    @property
+    def angle(self)->float:
+        """直线的角度, 范围[0,pi), 含误差"""
+        angle=self.direction.angle
+        if angle>=math.pi: angle-=math.pi
+        if math.pi-angle<Const.TOL_ANG: angle-=math.pi
+        return angle
+class Ray(Geom):  # [TODO]: 实现LineSeg相关的方法
+    """射线"""
+    def __init__(self,origin:Node,direction:Vec3d):
+        super().__init__()
+        self.origin=origin
+        self.direction=direction.unit()
+    def get_mbb(self):
+        a=self.angle
+        if a<Const.TOL_ANG or abs(a-math.pi)<Const.TOL_ANG:  # ↔
+            y1=y2=self.origin.y
+        elif a>math.pi:  # ⬇
+            y1,y2=-math.inf,self.origin
+        else:  # ⬆
+            y1,y2=self.origin.y,math.inf
+        if abs(a-math.pi/2)<Const.TOL_ANG or abs(a-math.pi/2*3)<Const.TOL_ANG:  # ↕
+            x1=x2=self.origin.x
+        elif math.pi/2<a<math.pi/2*3:  # ⬅
+            x1,x2=-math.inf,self.origin.x
+        else:  # ➡
+            x1,x2=self.origin.x,math.inf
+        return (Node(x1,y1),Node(x2,y2))
+    @property
+    def angle(self)->float:
+        """射线的角度, 范围[0,2pi), 含误差"""
+        return self.direction.angle
 class LineSeg(Edge):
     """直线段"""
     def __init__(self, s:Node, e:Node) -> None:
@@ -326,15 +376,12 @@ class LineSeg(Edge):
         return self.s.dist(self.e)
     @property
     def angle(self) -> float:
-        """角度范围[0,2pi), 含误差"""
+        """角度，范围[0,2pi), 含误差"""
         return self.to_vec3d().angle
     @property
     def angle_of_line(self)->float:
         """求线段所在直线的角度, 范围[0,pi), 含误差"""
-        angle=self.angle
-        if angle>=math.pi: angle-=math.pi
-        if math.pi-angle<Const.TOL_ANG: angle-=math.pi
-        return angle
+        self.to_line().angle
     @property
     def coefficients(self) -> tuple[float,float,float]:
         """求线段所在直线方程ax+by+c=0的系数"""
@@ -346,9 +393,8 @@ class LineSeg(Edge):
         return np.array([self.s.to_array(),self.e.to_array()])
     def to_vec3d(self) -> Vec3d:
         return Vec3d(self.e.x,self.e.y)-Vec3d(self.s.x,self.s.y)
-    def is_zero(self)->bool:
-        """0线段"""
-        return self.s.equals(self.e)
+    def to_line(self) -> Line:
+        return Line(self.s,self.to_vec3d())
     def is_point_on_line(self,point:Node)->bool:
         """点在线段所在的直线上"""
         # 点到直线的投影距离=0
@@ -366,10 +412,12 @@ class LineSeg(Edge):
     def is_parallel(self, other:Edge) -> bool:
         """平行，含共线；认为点和任意曲线都平行"""
         if self.is_zero() or other.is_zero(): return True
-        if isinstance(other,Arc):
-            return abs(other.bulge)<Const.TOL_VAL and self.is_parallel(LineSeg(other.s,other.e))
+        if not isinstance(other,LineSeg):
+            # raise TypeError('The other object must be LineSeg.')
+            return False
+            # return abs(other.bulge)<Const.TOL_VAL and self.is_parallel(LineSeg(other.s,other.e))
         if isinstance(other,LineSeg):
-            # 四个点互相投影，判断平行距离相等；；这样会拖慢速度
+            # 四个点互相投影，判断平行距离相等；这样会拖慢速度
             # v=[other.projection(self.s).to_vec3d()-self.s.to_vec3d(),
             #    other.projection(self.e).to_vec3d()-self.e.to_vec3d(),
             #    -(self.projection(other.s).to_vec3d()-other.s.to_vec3d()),
@@ -379,7 +427,6 @@ class LineSeg(Edge):
             #     for j in range(i+1,4):
             #         if not v[i].equals(v[j]):
             #             return False
-            
             # 丑而快的写法
             vself=self.to_vec3d().unit()
             vos=other.s.to_vec3d()-self.s.to_vec3d()
@@ -398,12 +445,13 @@ class LineSeg(Edge):
             if not v2.equals(v4): return False
             if not v3.equals(v4): return False
             return True
-        return False                    
-    def is_collinear(self, other:Edge, method:str="by_dist")->bool:
+        return False
+    def is_collinear(self, other:Edge)->bool:
         """共线"""
         if not self.is_parallel(other): return False
         if isinstance(other,Arc):
-            return abs(other.bulge)<Const.TOL_VAL and self.is_collinear(LineSeg(other.s,other.e),method)
+            return False
+            # return abs(other.bulge)<Const.TOL_VAL and self.is_collinear(LineSeg(other.s,other.e))
         if isinstance(other,LineSeg):
             # 判断各端点在另一条直线上的投影距离是0
             cond1=self.s.dist(other.projection(self.s))<Const.TOL_DIST
@@ -417,27 +465,8 @@ class LineSeg(Edge):
         if self.is_zero() or other.is_zero(): return True  # 零线段和所有人都同向
         return (self.is_parallel(other)
                 and self.to_vec3d().dot(other.to_vec3d())>Const.TOL_VAL)
-    def point_at(self,t:float=None,x:float=None,y:float=None,cut:bool=False,out_t:list=None) -> Node: 
-        """求线段所在直线上的点，并返回参数t∈[0,1]
-        优先级t>x>y，cut==True时在线段端点t==0/1处截断
-        """
-        if out_t is None:out_t=[]
-        if y is not None:
-            if abs(self.e.y-self.s.y)>Const.TOL_DIST:
-                t=(y-self.s.y)/(self.e.y-self.s.y)
-            elif abs(y-self.s.y)<Const.TOL_DIST:
-                t=0.0
-        if x is not None:
-            if abs(self.e.x-self.s.x)>Const.TOL_DIST:
-                t=(x-self.s.x)/(self.e.x-self.s.x)
-            elif abs(x-self.s.x)<Const.TOL_DIST:
-                t=0.0
-        if t is not None:
-            if cut and t<0: t=0
-            if cut and t>1: t=1
-            out_t.append(t)
-            return Node(self.s.x+(self.e.x-self.s.x)*t,self.s.y+(self.e.y-self.s.y)*t)
-        else: return None
+    def point_at(self,t:float) -> Node:
+        return Node(self.s.x+(self.e.x-self.s.x)*t,self.s.y+(self.e.y-self.s.y)*t)
     def tangent_at(self,t:float)->Vec3d:
         return self.to_vec3d().unit()
     def principal_normal_at(self,t:float)->Vec3d:
@@ -465,15 +494,23 @@ class LineSeg(Edge):
             if p is not None and self.touches_node(p) and other.touches_node(p):
                 return [p]
             else: return []
-    def get_param(self,p:Node) -> float:
-        """求点在线段上的位置参数"""
+    def get_param(self,p:Node,arc_length:bool=False) -> float|None:
+        """点在边上的参数.
+
+        Args:
+            p (Node): 点.
+            arc_length (bool, optional): True返回[0..self.length]，False返回[0..1]. Defaults to False.
+
+        Returns:
+            float|None: 不在Edge上时返回None.
+        """
+        l=self.length
         if self.s.equals(p): return 0
-        if self.e.equals(p): return 1
-        if self.is_zero() or not self.is_point_on_line(p): return None
+        if self.e.equals(p): return l if arc_length else 1
         v1=(self.e.x-self.s.x,self.e.y-self.s.y)
         v2=(p.x-self.s.x,p.y-self.s.y)
-        t=(v1[0]*v2[0]+v1[1]*v2[1])/(self.length**2)
-        return t
+        t=(v1[0]*v2[0]+v1[1]*v2[1])/l
+        return t if arc_length else t/l
     def projection(self, pt:Node) -> Node:
         """求pt在self所在直线上的投影点"""
         if self.is_zero(): return self.point_at(0.5)
@@ -501,16 +538,16 @@ class LineSeg(Edge):
         """求点到线段的最近点"""
         dot_prod=(other.x-self.s.x)*(self.e.x-self.s.x)+(other.y-self.s.y)*(self.e.y-self.s.y)
         t=dot_prod/(self.length**2)
-        return self.point_at(t,cut=True)
-    def slice_between(self,p1:Node,p2:Node,extend:bool=False)->"LineSeg":
-        """返回线段上p1->p2的切片"""
-        t1,t2=self.get_param(p1),self.get_param(p2)
-        if extend:
-            if (t1<t2 or p1.equals(p2)): return LineSeg(p1,p2)
-            else: return None
-        else:
-            if 0<=t1+Const.TOL_VAL<=t2+2*Const.TOL_VAL<=1+3*Const.TOL_VAL: return LineSeg(p1,p2)
-            else: return None
+        t=max(min(t,1),0)
+        return self.point_at(t)
+    def slice_between(self,a:float|Node,b:float|Node)->Self:
+        t1=a if isinstance(a,(int,float)) else self.get_param(a)
+        t2=b if isinstance(b,(int,float)) else self.get_param(b)
+        p1=a if isinstance(a,Node) else self.point_at(a)
+        p2=b if isinstance(b,Node) else self.point_at(b)
+        if t1<t2 or p1.equals(p2): 
+            return LineSeg(p1,p2)
+        else: return None
     def offset(self,dist:float) -> "LineSeg": 
         """左正右负"""
         vector=(self.e.x-self.s.x,self.e.y-self.s.y)
@@ -634,9 +671,6 @@ class Arc(Edge):
     def length(self)->float:
         if abs(self.bulge)<Const.TOL_VAL: return self.s.dist(self.e)
         return abs(self.radius*self.radian)
-    def is_zero(self)->bool:
-        """0线段"""
-        return self.s.equals(self.e)
     def is_point_on_circle(self,point:Node)->bool:
         """点在圆弧所在的圆周上"""
         if self.is_zero(): return self.s.equals(point)
@@ -703,23 +737,30 @@ class Arc(Edge):
             if self.touches_node(p) and other.touches_node(p):
                 res.append(p)
         return res
-    def get_param(self,point:Node)->float:
-        if self.s.equals(point): return 0
-        if self.e.equals(point): return 1
-        if self.is_zero() or not self.is_point_on_circle(point): return None
-        v_p=point.to_vec3d()-self.center.to_vec3d()
+    def get_param(self,p:Node,arc_length:bool=False) -> float|None:
+        """点在边上的参数.
+
+        Args:
+            p (Node): 点.
+            arc_length (bool, optional): True返回[0..self.length]，False返回[0..1]. Defaults to False.
+
+        Returns:
+            float|None: 不在Edge上时返回None.
+        """
+        l=self.length
+        if self.s.equals(p): return 0
+        if self.e.equals(p): return l if arc_length else 1
+        if self.is_zero() or not self.is_point_on_circle(p): return None
+        v_p=p.to_vec3d()-self.center.to_vec3d()
         v_s=self.s.to_vec3d()-self.center.to_vec3d()
         radian_s2p=v_s.angle_to(v_p)
         if self.bulge<0 and abs(radian_s2p)>Const.TOL_ANG: radian_s2p=radian_s2p-2*math.pi
-        return radian_s2p/self.radian
-    def point_at(self,t:float,cut:bool=False,out_t:list=None) -> tuple[Node,float]:
-        if out_t is None:out_t=[]
+        t=radian_s2p/self.radian
+        return t*l if arc_length else t
+    def point_at(self,t:float) -> Node:
         t_range=2*math.pi/self.radian  # 圆周的t的范围
         t=t%t_range
-        if cut and t<0: t=0
-        if cut and t>1: t=1
         angle=self.angles[0]+t*self.radian  # 点的角度
-        out_t.append(t)
         return Node(self.center.x+self.radius*math.cos(angle),self.center.y+self.radius*math.sin(angle))
     def tangent_at(self,t:float)->Vec3d:
         t_range=2*math.pi/self.radian  # 圆周的t的范围
@@ -771,16 +812,16 @@ class Arc(Edge):
         dists=[other.dist(p) for p in possible_projections]
         nearest_p=possible_projections[dists.index(min(dists))]
         return nearest_p
-    def slice_between(self,p1:Node,p2:Node,extend:bool=False)->"Arc":
-        """返回圆弧上p1->p2的切片"""
-        t1,t2=self.get_param(p1),self.get_param(p2)
+    def slice_between(self,a:float|Node,b:float|Node)->Self:
+        t1=a if isinstance(a,(int,float)) else self.get_param(a)
+        t2=b if isinstance(b,(int,float)) else self.get_param(b)
+        p1=a if isinstance(a,Node) else self.point_at(a)
+        p2=b if isinstance(b,Node) else self.point_at(b)
         radian=self.radian*(t2-t1)
-        if extend:
-            if (t1<t2 or p1.equals(p2)): return Arc(p1,p2,math.tan(radian/4))
-            else: return None
-        else:
-            if 0<=t1+Const.TOL_VAL<=t2+2*Const.TOL_VAL<=1+3*Const.TOL_VAL: return Arc(p1,p2,math.tan(radian/4))
-            else: return None
+        arc_length=self.radius*radian
+        if t1<t2 or arc_length<Const.TOL_DIST:
+            return Arc(p1,p2,math.tan(radian/4))
+        else: return None
     def fit(self,quad_segs:int=16,min_segs:int=1) -> list[LineSeg]:
         subdiv_num=max(min_segs,math.ceil(abs(self.radian/(math.pi/2)*quad_segs)))
         if subdiv_num==0: return [LineSeg(self.s,self.e)]
@@ -813,21 +854,47 @@ class Arc(Edge):
         return Arc(new_s,new_e,self.bulge)
 class Circle(Arc):
     """圆周"""
+    _dumper_ignore=["radian","bulge","angles"]
     def __init__(self,center:Node,radius:float) -> None:
-        self.center=center
-        self.radius=radius
-        self.s=Node(center.x+radius,center.y)
-        self.e=self.s
-        self.bulge=float("inf")
-        self.angles=(0,math.pi*2)
+        s=Node(center.x+radius,center.y)
+        super().__init__(s,s,math.inf)
+        self._center=center
+        self._radius=radius
+        self._radian=math.pi*2
+        self._angles=(0,math.pi*2)
+    @property
+    def center(self) -> Node:
+        return self._center
+    @property
+    def radius(self) -> Node:
+        return self._radius
+    @property
+    def radian(self) -> Node:
+        return self._radian    
+    @property
+    def angles(self) -> Node:
+        return self._angles 
+    @classmethod
+    def from_center_start(cls,center:Node,start_point:Node)->Self:
+        new_ins=cls(center,center.dist(start_point))
+        new_ins.s=new_ins.e=start_point
+        angle=(start_point.to_vec3d()-center.to_vec3d()).angle
+        new_ins.angles=(angle,angle+math.pi*2)
     def __repr__(self) -> str:
-        return f"Arc({self.center},{self.radius})"
+        return f"Circle({self.center},{self.radius})"
     def __eq__(self,other):
         return self.equals(other)
     def __hash__(self) ->int:
         return id(self)
+    def get_mbb(self):
+        return (Node(self.center.x-self.radius,self.center.y-self.radius),
+                Node(self.center.x+self.radius,self.center.y+self.radius))
     def equals(self,other:"Circle")->bool:
         return isinstance(other,Circle) and self.center.dist(other.center)+abs(self.radius-other.radius)<Const.TOL_DIST
+    def to_halves(self)->list["Arc"]:
+        return [Arc.from_center_radius_angle(self.center,self.radius,0,math.pi),
+                Arc.from_center_radius_angle(self.center,self.radius,math.pi,math.pi)]
+        
 class Polyedge(Geom):
     """多段线"""
     def __init__(self,nodes:list[Node],bulges:list[float]=None,deepcopy:bool=False):
@@ -1207,7 +1274,7 @@ class Loop(Polyedge):
     def _contains_polygon(self,other:"Polygon",count_mode:str="or")->bool:  # ok
         return self._contains_polyedge(other.shell,count_mode)    
     def fillet(self,radius:float,mode:str="amap",quad_segs:int=16)->"Loop":
-        """倒圆角
+        """倒圆角.
 
         Parameters
         ----------
@@ -1295,7 +1362,11 @@ class Polygon(Geom):
             else: return False
         return True
     def covers(self,other:Geom)->bool: 
-        """多边形覆盖其他对象. 注意：Polygon包含Loop的意思是包含边而非区域，要判断区域需构造Polygon"""
+        """多边形覆盖其他对象. 
+
+        **Attention:**
+            Polygon包含Loop的意思是包含边而非区域，要判断区域需构造Polygon
+        """
         rel=Geom.mbb_relation(self.get_mbb(),other.get_mbb())
         if GeomRelation.Outside in rel: return False  # 包围盒不满足则不满足
         if isinstance(other,Node):
@@ -1409,7 +1480,7 @@ class GeomUtil:
         """有序插入：第一关键字角度，第二关键字曲率半径（左正右负）"""
         ang=edge.tangent_at(0).angle
         radius=edge.radius_at(0,signed=True)
-        comp=Const.compare_ang
+        comp=Const.cmp_ang
         i=0
         while i<len(node.edge_out):
             angle_i=node.edge_out[i].tangent_at(0).angle
@@ -1432,7 +1503,7 @@ class GeomUtil:
         pre_angle=op.tangent_at(0).angle  # 入边的角度
         pre_radius=op.radius_at(0,signed=True)  # 入边的半径        
         i=len(node.edge_out)-1
-        comp=Const.compare_ang
+        comp=Const.cmp_ang
         while i>=0:
             angle_i=node.edge_out[i].tangent_at(0).angle
             radius_i=node.edge_out[i].radius_at(0,signed=True)
@@ -1443,3 +1514,6 @@ class GeomUtil:
                     break  # 角度相同的，比较带符号曲率，取曲率比前一条出边小的第一条边
             i-=1
         return node.edge_out[i]
+    
+
+ 

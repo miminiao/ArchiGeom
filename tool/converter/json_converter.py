@@ -1,8 +1,8 @@
 """Geom<-->json"""
 
 import math
-from lib.geom import Geom,Node,LineSeg,Arc,Polyedge,Loop,Polygon
-from lib.domain import Domain1d
+from lib.geom import Geom,Node,LineSeg,Arc,Circle,Polyedge,Loop,Polygon
+from lib.interval import Interval1d
 from lib.linalg import Tensor,Vec3d,Vec4d,Mat3d,Mat4d
 from tests.CGS.case_model import CGSTestCase
 
@@ -80,7 +80,7 @@ class JsonLoader:
                 if total_angle<0: total_angle+=math.pi*2
                 return Arc(s,e,math.tan(total_angle/4))
             case "circle":
-                return 
+                return Circle(obj["center"],obj["radius"])
             case "polyline":
                 nodes=[Node(*point) for point in obj["points"]]
                 bulges=obj["bulges"]
@@ -89,7 +89,11 @@ class JsonLoader:
                 else:
                     return Polyedge(nodes,bulges)
             case "hatch":
-                ...
+                if len(obj["loops"])==1: 
+                    return Polygon(obj["loops"][0])
+                shell=max(obj["loops"],key=lambda loop:abs(loop.area))
+                holes=[loop for loop in obj["loops"] if loop is not shell]
+                return Polygon(shell,holes)
             case "text":
                 ...
             case None: return obj
@@ -111,6 +115,6 @@ class JsonLoader:
                 return Loop(obj["nodes"],obj["bulges"])
             case "Polygon":
                 return Polygon(obj["shell"],obj["holes"])
-            case "Domain1d":
-                return Domain1d(obj["l"],obj["r"],obj["value"])
+            case "Interval1d":
+                return Interval1d(obj["l"],obj["r"],obj["value"])
             case None: return obj

@@ -1,17 +1,16 @@
 """测试Edge集合相关的操作"""
 
 import pytest
-from lib.utils import Constant as Const, ComparerInjector
-from lib.domain import Domain
+from lib.utils import Constant as Const
 from lib.geom_algo import BreakEdgeAlgo, MergeEdgeAlgo,FindOutlineAlgo
 from lib.geom_plotter import CADPlotter
-from tests.utils import set_root_dir,read_case,write_stdout
+from tests.utils import read_case,write_stdout
 
-set_root_dir("./tests/edge_set_algo/")
+ROOT="./tests/edge_set_algo/"
 
-BREAK_EDGE=("break_edge/",6)
-FIND_OUTLINE=("find_outline/",4)
-MEARGE_EDGE=("merge_edge/",9)
+BREAK_EDGE=(ROOT+"break_edge/",6)
+FIND_OUTLINE=(ROOT+"find_outline/",4)
+MEARGE_EDGE=(ROOT+"merge_edge/",9)
 
 @pytest.mark.parametrize(
     argnames="case",
@@ -35,8 +34,7 @@ def test_break_edge(case):
 )
 def test_merge_edge(case):
     edges=read_case(MEARGE_EDGE,case["in"],hook_mode="cad")
-    with ComparerInjector(Domain,Const.compare_dist):
-        res=MergeEdgeAlgo(edges,break_at_intersections=False).get_result()
+    res=MergeEdgeAlgo(edges,break_at_intersections=False).get_result()
     if __name__=="__main__":
         CADPlotter.draw_geoms(res)
         # write_stdout(len(res),MEARGE_EDGE,f"out_{i}") 
@@ -52,7 +50,7 @@ def test_merge_edge(case):
 def test_find_outline(case):
     edges=read_case(FIND_OUTLINE,case["in"],hook_mode="cad")
     res=FindOutlineAlgo(edges).get_result()
-    comp=Const.compare_area
+    comp=Const.cmp_area
     if __name__=="__main__":
         CADPlotter.draw_geoms([res])
         # write_stdout([len(res),res.area],FIND_OUTLINE,f"out_{i}") 
@@ -66,11 +64,11 @@ if __name__=="__main__":
         for i in [3]:
         # for i in range(1,FIND_OUTLINE[1]+1):
             test_find_outline({"in":f"case_{i}","out":f"out_{i}"})
-    if 0:
-        for i in [1]:
+    if 1:
+        for i in [5]:
         # for i in range(1,BREAK_EDGE[1]+1):
             test_break_edge({"in":f"case_{i}","out":f"out_{i}"})            
-    if 1:
-        for i in [8]:
+    if 0:
+        for i in [5]:
         # for i in range(1,MEARGE_EDGE[1]+1):
             test_merge_edge({"in":f"case_{i}","out":f"out_{i}"})       

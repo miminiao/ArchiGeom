@@ -1,21 +1,21 @@
 """测试Loop相关的操作"""
 
 import pytest
-from lib.geom import Geom,Node,LineSeg,Arc,Edge,Polyedge,Loop
+from lib.geom import Node,Arc,Edge,Polyedge,Loop
 from lib.geom_algo import FindLoopAlgo
 from lib.geom_plotter import CADPlotter
-from tests.utils import set_root_dir,read_case,write_stdout
+from tests.utils import read_case,write_stdout
 from lib.utils import Constant as Const
 from lib.index import STRTree
 
-set_root_dir("./tests/loop_algo/")
+ROOT="./tests/loop_polygon_algo/"
 
-COVER_NODE=("loop_covers_node/",7)
-COVER_EDGE=("loop_covers_edge/",8)
-COVER_LOOP=("loop_covers_loop/",13)
-REBUILD_LOOP=("rebuild_loop/",15)
-REBUILD_AND_CANCEL_LOOP=("rebuild_and_cancel_loop/",29)
-FIND_LOOP=("find_loop/",10)
+COVER_NODE=(ROOT+"loop_covers_node/",7)
+COVER_EDGE=(ROOT+"loop_covers_edge/",8)
+COVER_LOOP=(ROOT+"loop_covers_loop/",13)
+REBUILD_LOOP=(ROOT+"rebuild_loop/",15)
+REBUILD_AND_CANCEL_LOOP=(ROOT+"rebuild_and_cancel_loop/",29)
+FIND_LOOP=(ROOT+"find_loop/",10)
 
 # -------------------------------------------------------------------------
 
@@ -118,16 +118,16 @@ def test_rebuild_loop(case)->None:
         CADPlotter.draw_geoms(res)
         # write_stdout(res,REBUILD_LOOP,f"out_{i}")
     else:
-        std_out=read_case(REBUILD_LOOP,case["out"])
-        std_tree=STRTree(std_out)        
+        std_out=read_case(REBUILD_LOOP,case["out"])      
         assert len(res)==len(std_out)
+        std_tree=STRTree(std_out)  
         assert all([_find_identical_loop(geom,std_tree) for geom in res])
 
 def _find_identical_loop(loop:Loop,std_out:STRTree[Loop])->bool:
     neighbors=std_out.query(loop.get_mbb())
-    comp=Const.compare_area
+    cmp=Const.cmp_area
     for std_loop in neighbors:
-        if comp(std_loop.area,loop.area)==0 and std_loop.covers(loop) and loop.covers(std_loop):
+        if cmp(std_loop.area,loop.area)==0 and std_loop.covers(loop) and loop.covers(std_loop):
             return True
     return False
 
@@ -153,8 +153,8 @@ def test_rebuild_and_cancel_loop(case)->None:
         # write_stdout(res,REBUILD_AND_CANCEL_LOOP,f"out_{i}")     
     else:   
         std_out=read_case(REBUILD_AND_CANCEL_LOOP,case["out"])
-        std_tree=STRTree(std_out)
         assert len(res)==len(std_out)
+        std_tree=STRTree(std_out)
         assert all([_find_identical_loop(geom,std_tree) for geom in res])
 
 def _rebuild_and_cancel_loop(loops:list[Loop]):
@@ -182,8 +182,8 @@ def test_find_loop(case):
         CADPlotter.draw_geoms(res)
     else:
         std_out=read_case(FIND_LOOP,case["out"])
-        std_tree=STRTree(std_out)
         assert len(res)==len(std_out)
+        std_tree=STRTree(std_out)
         assert all([_find_identical_loop(geom,std_tree) for geom in res])
 
 # -------------------------------------------------------------------------

@@ -1,12 +1,12 @@
 import pytest
 from lib.index import BST,_BSTNode,AVLTree,SegmentTree
-from tests.utils import set_root_dir,read_case,write_stdout
-from lib.domain import Domain1d
+from tests.utils import read_case,write_stdout
+from lib.interval import Interval1d
 import random
 
-set_root_dir("./tests/tree/")
+ROOT="./tests/tree/"
 
-SEG_TREE=("seg_tree/",5)
+SEG_TREE=(ROOT+"seg_tree/",5)
 
 input_num=1000
 def test_bst_insert():
@@ -66,7 +66,7 @@ def test_avl_remove():
             assert node.get_root()==avl.root
 
 def random_test_segtree():
-    doms=[]
+    intvs=[]
     limits=(0,10000,1000)
     random.seed(0)
     for _ in range(input_num):
@@ -74,25 +74,25 @@ def random_test_segtree():
         # r=random.random()*(limits[1]-limits[0])+limits[0]
         r=l+1000
         h=random.random()*limits[2]
-        doms.append(Domain1d(l,r,h))
+        intvs.append(Interval1d(l,r,h))
     # input_num=100000
-    # doms=[Domain1d(l,l+input_num+1,l) for l in range(input_num)]
-    segtree=SegmentTree(doms)
-    merged_doms=segtree.get_united_leaves()
+    # intvs=[Interval1d(l,l+input_num+1,l) for l in range(input_num)]
+    segtree=SegmentTree(intvs)
+    merged_intvs=segtree.get_united_leaves()
 
     import matplotlib.pyplot as plt
     plt.subplot(2,1,1)
-    for _,dom in enumerate(doms):
-        plt.plot([dom.l,dom.r],[dom.value,dom.value])    
+    for _,intv in enumerate(intvs):
+        plt.plot([intv.l,intv.r],[intv.value,intv.value])
     plt.subplot(2,1,2)
-    for _,dom in enumerate(merged_doms):
-        plt.plot([dom.l,dom.r],[dom.value,dom.value])
-    plt.show()        
+    for _,intv in enumerate(merged_intvs):
+        plt.plot([intv.l,intv.r],[intv.value,intv.value])
+    plt.show()
 
-    print(f"{len(doms)} lines before")
-    print(f"{len(merged_doms)} lines after")
-    # write_stdout(doms,SEG_TREE,"case_3")
-    # write_stdout(merged_doms,SEG_TREE,"out_3")
+    print(f"{len(intvs)} lines before")
+    print(f"{len(merged_intvs)} lines after")
+    # write_stdout(intvs,SEG_TREE,"case_3")
+    # write_stdout(merged_intvs,SEG_TREE,"out_3")
 
 @pytest.mark.parametrize(
     argnames="case",
@@ -100,22 +100,22 @@ def random_test_segtree():
     ids=[f"case_{i}" for i in range(1,SEG_TREE[1]+1)],
 )
 def test_segtree(case):
-    doms=read_case(SEG_TREE,case["in"])
-    segtree=SegmentTree(doms)
-    merged_doms=segtree.get_united_leaves()
+    intvs=read_case(SEG_TREE,case["in"])
+    segtree=SegmentTree(intvs)
+    merged_intvs=segtree.get_united_leaves()
     if __name__=="__main__":
         import matplotlib.pyplot as plt
         plt.subplot(2,1,1)
-        for _,dom in enumerate(doms):
-            plt.plot([dom.l,dom.r],[dom.value,dom.value])    
+        for _,intv in enumerate(intvs):
+            plt.plot([intv.l,intv.r],[intv.value,intv.value])
         plt.subplot(2,1,2)
-        for _,dom in enumerate(merged_doms):
-            plt.plot([dom.l,dom.r],[dom.value,dom.value])
+        for _,intv in enumerate(merged_intvs):
+            plt.plot([intv.l,intv.r],[intv.value,intv.value])
         plt.show()  
-        # write_stdout(merged_doms,SEG_TREE,f"out_{i}") 
+        # write_stdout(merged_intvs,SEG_TREE,f"out_{i}") 
     else:
         std_out=read_case(SEG_TREE,case["out"])
-        assert merged_doms==std_out
+        assert merged_intvs==std_out
 
 if __name__=="__main__":
     if 0: random_test_segtree()

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from lib.geom import Node,LineSeg,Arc,Loop,Polygon
 from lib.geom_algo import BreakEdgeAlgo, MergeEdgeAlgo,FindOutlineAlgo,FindConnectedGraphAlgo
 from lib.building_element import Wall,Window,Door
-from lib.domain import Domain1d,MultiDomain1d
+from lib.interval import Interval1d,MultiInterval1d
 from lib.utils import Timer, Constant
 from lib.linalg import Vec3d
 from lib.index import STRTree
@@ -15,9 +15,9 @@ from typing import Union,Callable
 class Wall(LineSeg):
     def __init__(self, s: Node, e: Node, lw=0, rw=0) -> None:
         super().__init__(s, e, lw, rw)
-        self.domain:Union[Domain1d,MultiDomain1d]=None
-        self.upper_domain:Union[Domain1d,MultiDomain1d]=None
-        self.lower_domain:Union[Domain1d,MultiDomain1d]=None
+        self.interval:Union[Interval1d,MultiInterval1d]=None
+        self.upper_interval:Union[Interval1d,MultiInterval1d]=None
+        self.lower_interval:Union[Interval1d,MultiInterval1d]=None
         self.upper_lines:list[Wall]=[]
         self.lower_lines:list[Wall]=[]
         self.linked_lines:list[LineSeg]=[]
@@ -150,8 +150,8 @@ def find_walls_from_parallel_lines(line_group:list[LineSeg],wall_width_limit:flo
     # 查找所有与当前line_i距离<=dist_limit且有重叠部分的平行线line_j，有多层重叠时取距离最近的一段组成墙，墙中线=重叠部分的中线
     walls:list[Wall]=[]
     for line in line_group:
-        line.upper_domain=Domain1d(line.s.to_vec3d().dot(unit_vector),line.e.to_vec3d().dot(unit_vector),const._MAX_VAL)
-        line.lower_domain=line.upper_domain.copy()
+        line.upper_interval=Interval1d(line.s.to_vec3d().dot(unit_vector),line.e.to_vec3d().dot(unit_vector),const._MAX_VAL)
+        line.lower_interval=line.upper_interval.copy()
     for i,line_i in enumerate(line_group):
         dist_i=line_i.s.to_vec3d().dot(normal_vector)
         for j in range(i+1,len(line_group)):
@@ -160,14 +160,14 @@ def find_walls_from_parallel_lines(line_group:list[LineSeg],wall_width_limit:flo
             dist=dist_j-dist_i
             if dist>wall_width_limit[1]+const.TOL_DIST:
                 break
-            if line_i.upper_domain.is_overlap(line_j.upper_domain):
+            if line_i.upper_interval.is_overlap(line_j.upper_interval):
                 # line_i.upper_lines.append(line_j)
                 # line_j.lower_lines.append(line_i)
-                intersection=line_i.upper_domain*line_j.upper_domain
-                line_i.upper_domain+=intersection.copy(h=dist)
+                intersection=line_i.upper_interval*line_j.upper_interval
+                line_i.upper_interval+=intersection.copy(h=dist)
     walls=[]
     for line_i in line_group:
-        walls+=get_walls_from_domain(line_i)
+        walls+=get_walls_from_interval(line_i)
 
     # 处理并排的墙
     for i in range(len(walls)-1):
@@ -179,33 +179,33 @@ def find_walls_from_parallel_lines(line_group:list[LineSeg],wall_width_limit:flo
             dist=dist_j-dist_i
             if dist>wall_width_limit[1]+const.TOL_DIST: break
             if (abs(wall_i.lw+wall_j.lw-dist)<const.TOL_DIST
-                and wall_i.domain.is_overlap(wall_j.domain)):
-                intersection=wall_i.domain*wall_j.domain
-                wall_i.upper_domain+=intersection
-                wall_j.lower_domain+=intersection
+                and wall_i.interval.is_overlap(wall_j.interval)):
+                intersection=wall_i.interval*wall_j.interval
+                wall_i.upper_interval+=intersection
+                wall_j.lower_interval+=intersection
     for i in range(1,len(walls)-1):
         wall_i=walls[i]
-        if wall_i.upper_domain.is_overlap(wall_i.lower_domain):
-            intersection=wall_i.upper_domain*wall_j.lower_domain
-            wall_i.domain-=intersection
+        if wall_i.upper_interval.is_overlap(wall_i.lower_interval):
+            intersection=wall_i.upper_interval*wall_j.lower_interval
+            wall_i.interval-=intersection
     return walls
 
-def get_walls_from_domain(line:Wall)->list[Wall]:
+def get_walls_from_interval(line:Wall)->list[Wall]:
     """根据重叠区间求墙基线"""
     walls=[]
-    if isinstance(line.upper_domain,Domain1d):
-        line.upper_domain=MultiDomain1d([line.upper_domain])
+    if isinstance(line.upper_interval,Interval1d):
+        line.upper_interval=MultiInterval1d([line.upper_interval])
     unit_vector=line.to_vec3d().unit()
-    for sub_dom in line.upper_domain.items:
-        if sub_dom.value==const._MAX_VAL or sub_dom.value<const.TOL_DIST: continue
+    for sub_intv in line.upper_interval._items:
+        if sub_intv.value==const._MAX_VAL or sub_intv.value<const.TOL_DIST: continue
         s_pos=line.s.to_vec3d().dot(unit_vector)
-        s_vector=line.s.to_vec3d()+unit_vector*(sub_dom.l-s_pos)
-        e_vector=line.s.to_vec3d()+unit_vector*(sub_dom.r-s_pos)
-        new_baseline=LineSeg(Node(s_vector.x,s_vector.y),Node(e_vector.x,e_vector.y)).offset(sub_dom.value/2)
-        new_wall=Wall(new_baseline.s,new_baseline.e,lw=sub_dom.value/2,rw=sub_dom.value/2)
-        new_wall.upper_domain=sub_dom.copy(value=const._MAX_VAL)
-        new_wall.lower_domain=sub_dom.copy(value=const._MAX_VAL)
-        new_wall.domain=sub_dom.copy(value=0)
+        s_vector=line.s.to_vec3d()+unit_vector*(sub_intv.l-s_pos)
+        e_vector=line.s.to_vec3d()+unit_vector*(sub_intv.r-s_pos)
+        new_baseline=LineSeg(Node(s_vector.x,s_vector.y),Node(e_vector.x,e_vector.y)).offset(sub_intv.value/2)
+        new_wall=Wall(new_baseline.s,new_baseline.e,lw=sub_intv.value/2,rw=sub_intv.value/2)
+        new_wall.upper_interval=sub_intv.copy(value=const._MAX_VAL)
+        new_wall.lower_interval=sub_intv.copy(value=const._MAX_VAL)
+        new_wall.interval=sub_intv.copy(value=0)
         new_wall.linked_lines=[]
         for l in new_wall.linked_lines:
             l.linked_walls.append(new_wall)
@@ -219,21 +219,21 @@ def remove_watch_window_and_railing(watch_lines:list[LineSeg],
     groups=group_lines_by_angle(watch_lines)
     removed_lines=set()  # 记录需要删除的
     for lines,unit_vector,normal_vector in zip(*groups):
-        domains={line:Domain1d(line.s.to_vec3d().dot(unit_vector),line.e.to_vec3d().dot(unit_vector),0) for line in lines}
+        intervals={line:Interval1d(line.s.to_vec3d().dot(unit_vector),line.e.to_vec3d().dot(unit_vector),0) for line in lines}
         for head in range(len(lines)-2):
-            dom_head=domains[lines[head]]
+            intv_head=intervals[lines[head]]
             for tail in range(head+2,len(lines)):
                 # 如果平行距离>limit，就不继续增加tail了
                 if lines[tail].s.to_vec3d().dot(normal_vector)-lines[head].s.to_vec3d().dot(normal_vector)>wall_width_limit[1]+const.TOL_DIST: 
                     break
                 # 如果不重叠，就不枚举中间的线了
-                dom_tail=domains[lines[tail]]
-                if (dom_head*dom_tail).is_empty(): 
+                intv_tail=intervals[lines[tail]]
+                if (intv_head*intv_tail).is_empty(): 
                     continue
                 # 枚举中间的线，如果和head&tail都重叠，就标记为删除
                 for i in range(head+1,tail):
-                    dom_i=domains[lines[i]]
-                    if not (dom_i*dom_head).is_empty() and not (dom_i*dom_tail).is_empty():
+                    intv_i=intervals[lines[i]]
+                    if not (intv_i*intv_head).is_empty() and not (intv_i*intv_tail).is_empty():
                         removed_lines.add(lines[i])
     return list(filter(lambda line:line not in removed_lines,watch_lines)), list(removed_lines)
 def find_butress(wall_outline_loops:list[Loop])->set[LineSeg]:
@@ -294,7 +294,7 @@ def find_opening_regions(butresses:set[LineSeg],
                 others_idx=range(i-1,-1,-1)
             for j in others_idx:
                 other=lines[j]
-                if (domains[line].is_overlap(domains[other], include_endpoints=False)  # 有重叠部分
+                if (intervals[line].is_overlap(intervals[other], include_endpoints=False)  # 有重叠部分
                     and other.to_vec3d().unit().dot(line.to_vec3d().unit())<0  # 且方向相对
                     and other.projection(line.s).dist(line.s)>const.TOL_DIST  # 且不共线（防止面域没闭合的情况）
                 ):
@@ -341,12 +341,12 @@ def find_opening_regions(butresses:set[LineSeg],
     groups=group_lines_by_angle(wall_lines)
     # groups=group_lines_by_angle(all_lines)
     for lines,unit_vector,normal_vector in zip(*groups):
-        # 初始化domain
-        domains:dict[LineSeg,Domain1d]={}
+        # 初始化interval
+        intervals:dict[LineSeg,Interval1d]={}
         for line in lines:
             l=line.s.to_vec3d().dot(unit_vector)
             r=line.e.to_vec3d().dot(unit_vector)
-            domains[line]=Domain1d(l,r,0) if r>l else Domain1d(r,l,0)
+            intervals[line]=Interval1d(l,r,0) if r>l else Interval1d(r,l,0)
         # 先找成对的垛子
         match_butress_lines(is_pair_butress)
         # 再找单个的垛子

@@ -35,11 +35,11 @@ class Downloader:
     def execute(self,start:int=0,count:int=0,timeout:float=10)->None:
         with open(self.info_path,encoding="utf8") as f:
             info=json.load(f)
-        for i,j_obj in enumerate(info,start=start):
+        for i,j_obj in enumerate(info[start:],start=start):
             # obj=self.data_type.from_dict(j_obj)
             obj=self.data_type(**j_obj)
             self._download_item(item_id=getattr(obj,self.id_attr),timeout=timeout)
-            if i==start+count-1: break
+            if i==count-1: break
         with open(self.failed_ids_path,"w") as f:
             json.dump(self.failed_ids,f,ensure_ascii=False)
         print(f"{i+1-len(self.failed_ids)} items downloaded successfully, {len(self.failed_ids)} items failed.")

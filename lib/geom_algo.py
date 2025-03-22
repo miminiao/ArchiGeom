@@ -6,18 +6,18 @@ from typing import Callable
 
 
 from lib.linalg import Vec3d
-from lib.domain import Domain1d
+from lib.interval import Interval1d
 from lib.geom import (
-    Node,Edge,LineSeg,Arc,Loop,Polygon,
-    GeomUtil
+    Node,Edge,LineSeg,Arc,Circle,Loop,Polygon,
+    GeomUtil,
     )
-from lib.utils import Timer,Constant,ListTool
+from lib.utils import Timer,Constant as Const,ListTool,ComparerInjector
 from lib.index import STRTree,SegmentTree, TreeNode
 
 
 class GeomAlgo(ABC):
     def __init__(self) -> None:
-        self.const=Constant.get()
+        self.const=Const.get()
     @abstractmethod
     def _preprocess(self)->None: ...
     @abstractmethod
@@ -33,7 +33,7 @@ class MaxRectAlgo(GeomAlgo):  # TODO
             covered_points: list[list[Node]] = None,
             precision: float = -1.0,
             cut_depth=1,
-            const:Constant=None,
+            const:Const=None,
         ) -> None:
         """多边形与坐标轴平行的最大内接矩形
 
@@ -43,7 +43,7 @@ class MaxRectAlgo(GeomAlgo):  # TODO
             covered_points (list[list[Node]], optional): 第1..order大矩形必须包含的点坐标，没有则对应位置=None. Defaults to None.
             precision (float, optional): 斜线的xy分割网格尺寸，单位mm；-1.0即不分割. Defaults to -1.0.
             cut_depth (int, optional): 切割深度，即网格的层数，大于1时，精度无效. Defaults to 1.
-            const (Constants, optional): 误差控制常量. Defaults to Constants.DEFAULT.
+            const (Const, optional): 误差控制常量. Defaults to Const.DEFAULT.
         """
         super().__init__(const)
         self.poly=poly
@@ -319,8 +319,12 @@ class BreakEdgeAlgo(GeomAlgo):  # ✅
             edge_groups (list[Edge]|list[list[Edge]]): 待打断的一组线段. | 若干个分组，每组包含若干条线段.
         """
         super().__init__()
-        self.edge_groups=edge_groups
-        self._is_group=True
+        if len(edge_groups)>0 and isinstance(edge_groups[0],Edge):
+            self._is_group=False
+            self.edge_groups=[edge_groups]        
+        else:
+            self.edge_groups=edge_groups
+            self._is_group=True
         self.res=None
     def get_result(self)->list[Edge]|list[list[Edge]]:
         """获取打断的结果.
@@ -337,10 +341,6 @@ class BreakEdgeAlgo(GeomAlgo):  # ✅
     def _preprocess(self)->None:
         """预处理"""
         super()._preprocess()
-        # 没有分组的情况
-        if len(self.edge_groups)>0 and isinstance(self.edge_groups[0],Edge):
-            self._is_group=False
-            self.edge_groups=[self.edge_groups]
         # 去除0线段
         self.edge_groups=[[edge for edge in group if not edge.is_zero()] for group in self.edge_groups]
     def _postprocess(self)->None:
@@ -393,9 +393,9 @@ class BreakEdgeAlgo(GeomAlgo):  # ✅
                     pre=p
             broken_lines.append(new_group)
         return broken_lines
-class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
+class MergeEdgeAlgo(GeomAlgo):  # [TODO]: 圆弧
     def __init__(self,edges:list[Edge],break_at_intersections:bool=False,compare:Callable[[Edge,Edge],int]=None) -> None:
-        """合并重叠的线段
+        """合并重叠的线段。使用Const.TOL_DIST判断区间端点精度。
 
         Args:
             edges (list[Edge]): 待合并的线段.
@@ -404,11 +404,11 @@ class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
         """
         super().__init__()
         self.edges=edges[:]
-        self.merged:list[Edge]=[]        
+        self.merged:list[Edge]=[]
         self.break_at_intersections=break_at_intersections
-        self.compare=compare or (lambda a,b:0)
+        self.compare=compare
     def get_result(self)->list[Edge]:
-        """获取合并后的线段
+        """获取合并后的线段.
 
         Returns:
             list[Edge]: 合并后的线段.
@@ -432,11 +432,11 @@ class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
         for group in parallel_arc_groups:
             collinear_arc_groups+=self._group_collinear_from_parallel_arcs(group)            
         # 3.合并重叠的线段
-        for group in collinear_line_groups:
-            # self.merged+=self._merge_collinear_lines(group)
-            self.merged+=self._merge_collinear_lines_by_segtree(group)
-        for group in collinear_arc_groups:
-            self.merged+=self._merge_collinear_lines(group)
+        with ComparerInjector(Edge,self.compare,override_ops=True):
+            for group in collinear_line_groups:
+                self.merged+=self._merge_collinear_lines(group)
+            for group in collinear_arc_groups:
+                self.merged+=self._merge_collinear_arcs(group)
         # 4.后处理
         self._postprocess()
         return self.merged
@@ -453,8 +453,8 @@ class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
         """线段按角度分组"""
         # 先将线段角度转换到[0,pi)范围内
         for i,line in enumerate(lines):
-            if (math.pi<=line.angle+self.const.TOL_ANG<math.pi*2):
-                lines[i]=line.opposite()        
+            if Const.cmp_ang(line.angle,math.pi)>=0 and Const.cmp_ang(line.angle,math.pi*2)<0:
+                lines[i]=line.opposite()
         # 角度在误差范围内的分为一组
         line_groups=[]
         lines.sort(key=lambda line:line.angle)
@@ -469,7 +469,11 @@ class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
         return line_groups
     def _group_parallel_arcs(self,arcs:list[Arc])->list[list[Arc]]:  # ✅OK
         """圆弧按圆心分组"""
-        # 角度在误差范围内的分为一组        
+        # 先将圆弧转换为逆时针
+        for i,arc in enumerate(arcs):
+            if arc.bulge<0:
+                arcs[i]=arc.opposite()
+        # 圆心在误差范围内的分为一组
         centers:list[Node]=[]
         center_dict:dict[Node,list[Arc]]={}
         for arc in arcs:
@@ -481,7 +485,7 @@ class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
         arc_groups=list(center_dict.values())
         return arc_groups
     def _group_collinear_from_parallel_lines(self,lines:list[LineSeg]):
-        """将平行直线按共线分组，组内按起点排序"""
+        """将平行直线按共线分组"""
         # 找一根最长的，作为方向向量
         longest_edge=max(lines,key=lambda edge:edge.length)
         # 沿法向量（右转90度）排序
@@ -503,12 +507,9 @@ class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
                     new_group.append(line)
                 else: 
                     collinear_groups.append([line])
-        # 组内按起点排序
-        for group in collinear_groups:
-            group.sort(key=lambda line:line.s.to_vec3d().dot(unit_vector))
         return collinear_groups
     def _group_collinear_from_parallel_arcs(self,arcs:list[Arc]):
-        """将平行圆弧按共圆分组，组内按起点角度逆时针角度排序"""
+        """将平行圆弧按共圆分组"""
         # 按半径排序
         arcs.sort(key=lambda arc:arc.radius)
         # 分组
@@ -521,81 +522,58 @@ class MergeEdgeAlgo(GeomAlgo):  # TODO: 圆弧
                 current_radius=arc.radius
             else:
                 new_group.append(arc)
-        # 组内按角度逆时针排序
-        for group in collinear_groups:
-            # 将圆弧转为逆时针方向
-            for i,arc in enumerate(group):
-                if arc.bulge<0:
-                    group[i]=arc.opposite()
-            group.sort(key=lambda arc:arc.angles[0])
         return collinear_groups
-    def _merge_collinear_lines(self,unmerged_lines:list[Edge]):
-        """顺序合并排好序的共线的线段"""
-        lines=unmerged_lines.copy()
-        # 找一根最长的，作为方向向量
-        longest_line=max(lines,key=lambda line:line.length)
-        unit_vector=longest_line.to_vec3d().unit()
-        proj=lambda p:p.to_vec3d().dot(unit_vector)
-        i=1 # 当前待合并的线段index
-        while i<len(lines): 
-            # 每次循环将当前的lines[i]线段合并到左侧。当新增/改变了任何线段起点时，需要维护lines有序
-            # 意味着i左侧的lines[0..i-1]已完成合并，互相没有交集
-            # 并确保当前lines[i]只可能与lines[i-1]有交集，和lines[0..i-2]都没有交集
-            l1,r1=proj(lines[i-1].s),proj(lines[i-1].e)
-            l2,r2=proj(lines[i].s),proj(lines[i].e)
-            if l2>r1+self.const.TOL_DIST: # 1.没有交集，就不合并直接加入；不影响lines有序性
-                i+=1
-            elif r2<=r1+self.const.TOL_DIST: # 2.完全包含(含端点重合)，先比较优先级
-                match self.compare(lines[i],lines[i-1]):
-                    case 0|-1: # 2.1.线段i的优先级和i-1相等或者较低，就不参与合并直接被消掉；不影响lines有序性
-                        lines.pop(i)
-                    case 1: # 2.2.线段i优先级较高，就把线段i-1切三段，把中间一段消掉；需要维护lines有序性
-                        line_1=copy(lines[i-1])
-                        line_1.s,line_1.e=lines[i-1].s,lines[i].s
-                        line_3=copy(lines[i-1])
-                        line_3.s,line_3.e=lines[i].e,lines[i-1].e
-                        if not line_1.is_zero():  
-                            lines[i-1]=line_1
-                        else:  # 被切没了的情况
-                            lines.pop(i-1) 
-                            i-=1
-                        if not line_3.is_zero(): # 新增的这段影响lines顺序，插入排序
-                            _,pos=ListTool.search_value(lines,proj(line_3.s),key=lambda line:proj(line.s))
-                            lines.insert(pos,line_3)
-                        i+=1
-            elif r2>r1+self.const.TOL_DIST: # 3.相交且需要延长，先比较优先级
-                match self.compare(lines[i],lines[i-1]):
-                    case 0: # 3.1.线段i的优先级和i-1相等，就直接延长线段i-1，并删掉线段i；不影响lines有序性
-                        lines[i-1].s,lines[i-1].e=lines[i-1].s,lines[i].e
-                        lines.pop(i)
-                    case 1: # 3.2.线段i的优先级较高，就切割线段i-1；不影响lines有序性
-                        lines[i-1].s,lines[i-1].e=lines[i-1].s,lines[i].s
-                        if not lines[i-1].is_zero():
-                            i+=1
-                        else:  # 被切没了的情况
-                            lines.pop(i-1)
-                    case -1: # 3.3.线段i的优先级较低，就切割线段i；可能影响lines顺序
-                        lines[i].s,lines[i].e=lines[i-1].e,lines[i].e
-                        new_pos=i
-                        while new_pos<len(lines)-1 and proj(lines[new_pos].s)>proj(lines[new_pos+1].s)+self.const.TOL_DIST:  # 重新排序
-                            lines[new_pos],lines[new_pos+1]=lines[new_pos+1],lines[new_pos]
-                            new_pos+=1
-                        if new_pos==i: i+=1  # 对顺序没影响的情况
-        return lines
-    def _merge_collinear_lines_by_segtree(self,unmerged_lines:list[Edge]):
-        """用线段树合并共线的线段"""
-        # 找一根最长的，作为方向向量
-        longest=max(unmerged_lines,key=lambda line:line.length)
-        o=longest.s.to_vec3d()
-        u=longest.to_vec3d().unit()
-        proj=lambda p:(p.to_vec3d()-o).dot(u)
-        domains=[Domain1d(proj(line.s),proj(line.e),0) for line in unmerged_lines]
-        seg_tree=SegmentTree(domains)
-        merged_domains=seg_tree.get_united_leaves()
+    def _merge_collinear_lines(self,lines:list[LineSeg]):
+        """合并共线的线段"""
+        # 找一根最长的作为基准，全部按照arc_length param构建为Interval1d，然后合并
+        longest=max(lines,key=lambda line:line.length)
+        proj=lambda p:longest.get_param(p,arc_length=True)
+        intvs=[Interval1d(proj(line.s),proj(line.e),line) for line in lines]
+        if self.compare is None:
+            merged_intvs=Interval1d.union(intvs)
+        else:
+            merged_intvs=Interval1d.union(intvs,ignore_value=False)
+            # merged_intvs=SegmentTree(intervals).get_united_leaves()  # 用线段树
         merged_lines=[]
-        for dom in merged_domains:
-            merged_lines.append(LineSeg(Node.from_vec3d(o+u*dom.l),Node.from_vec3d(o+u*dom.r)))
+        d=longest.length
+        for intv in merged_intvs:
+            merged_lines.append(longest.slice_between(longest.point_at(intv.l/d),longest.point_at(intv.r/d)))
         return merged_lines
+    def _merge_collinear_arcs(self,edges:list[Arc]):
+        """合并共线的圆弧"""
+        # 找一根最长的作为基准，全部构建为Interval1d，然后合并；
+        # 构建的时候注意可能出现跨越0点合并的情况，因此除了本身就
+        # 跨越0点的区间不需要之外，其他都需要在(-2pi,0]区间和[0,2pi)区间内构各建1次；
+        # 合并完之后，从0开始扫描角度为的2pi区间；如果有一段>2pi的弧，就构造一个圆；
+        baseline=max(edges,key=lambda edge:edge.length)
+        cir=baseline.radius*2*math.pi
+        intvs=[]
+        for edge in edges:
+            l=baseline.get_param(edge.s,arc_length=True)
+            r=baseline.get_param(edge.e,arc_length=True)
+            if r<l:  # 跨越0点，只用构建1次
+                intvs.append(Interval1d(l-cir,r,edge))
+            else:  # 没跨越0点，要构建2次
+                intvs.append(Interval1d(l,r,edge))
+                intvs.append(Interval1d(l-cir,r-cir,edge))
+        if self.compare is None:
+            merged_intvs=Interval1d.union(intvs)
+        else:
+            merged_intvs=Interval1d.union(intvs,ignore_value=False)
+            # merged_intvs=SegmentTree(intervals).get_united_leaves()  # 用线段树
+        # 整圆的情况
+        if len(merged_intvs)==1 and Const.cmp_dist(merged_intvs[0].r-merged_intvs[0].l,cir)>=0:
+            return [Circle(baseline.center,baseline.radius)]
+        merged_edges=[]
+        d=baseline.length
+        for start_i,intv in enumerate(merged_intvs):
+            if Const.cmp_dist(intv.l,0)<=0 and Const.cmp_dist(intv.r,0)>0:
+                start_param=intv.l
+                break
+        for intv in merged_intvs[start_i:]:
+            if intv.r-start_param>cir: break
+            merged_edges.append(baseline.slice_between(baseline.point_at(intv.l/d),baseline.point_at(intv.r/d)))
+        return merged_edges
 class FindConnectedGraphAlgo(GeomAlgo):
     def __init__(self,lines:list[Edge]) -> None:
         """求连通图

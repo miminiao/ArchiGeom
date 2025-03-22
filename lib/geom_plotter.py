@@ -3,7 +3,8 @@ import win32com.client
 import pythoncom
 import matplotlib.pyplot as plt
 from matplotlib.colors import TABLEAU_COLORS
-from lib.geom import Geom,Node,LineSeg,Arc,Edge,Polyedge,Loop,Polygon
+from lib.geom import Geom,Node,Edge,LineSeg,Circle,Arc,Polyedge,Loop,Polygon
+from lib.interval import Interval1d,MultiInterval1d
 from typing import Callable
 from time import time
 
@@ -40,6 +41,8 @@ class MPLPlotter(GeomPlotter):
             Polyedge:   cls._draw_polyedge,
             Loop:       cls._draw_loop,
             Polygon:    cls._draw_polygon,
+            Interval1d: cls._draw_interval1d,
+            MultiInterval1d: cls._draw_multi_interval1d,
         }
         colors=list(TABLEAU_COLORS)
         if isinstance(geoms,Geom): geoms=[geoms]
@@ -118,6 +121,25 @@ class MPLPlotter(GeomPlotter):
     @classmethod
     def _draw_text(cls,text:str,pos:Node,*args,**kwargs)->None:
         plt.text(pos.x,pos.y,text)
+    @classmethod
+    def _draw_interval1d(cls,intv:Interval1d,show_ref_lines:bool=False,show:bool=False,*args,**kwargs)->None:
+        plt.plot([intv.l,intv.r],[intv.value,intv.value])
+        if show_ref_lines:
+            plt.plot([intv.l,intv.l],[intv.value,0],'b--',linewidth=1)
+            plt.plot([intv.r,intv.r],[intv.value,0],'b--',linewidth=1)
+        if show:
+            ax = plt.gca()
+            ax.set_aspect(1)
+            plt.show()            
+    @classmethod
+    def _draw_multi_interval1d(cls,m_intv:MultiInterval1d,show_ref_lines:bool=False,show:bool=False,*args,**kwargs)->None:
+        for intv in m_intv:
+            cls._draw_interval1d(intv,show_ref_lines)
+        if show:
+            ax = plt.gca()
+            ax.set_aspect(1)
+            plt.show()
+
 class CADPlotter(GeomPlotter):
     _model_space=None
     _blocks=None
@@ -133,6 +155,7 @@ class CADPlotter(GeomPlotter):
             Node:       cls._draw_node,
             LineSeg:    cls._draw_edge,
             Arc:        cls._draw_edge,
+            Circle:     cls._draw_edge,
             Polyedge:   cls._draw_polyedge,
             Loop:       cls._draw_loop,
             Polygon:    cls._draw_polygon,
@@ -155,6 +178,9 @@ class CADPlotter(GeomPlotter):
         if isinstance(edge,LineSeg):
             s,e = cls._point_to_com(edge.s), cls._point_to_com(edge.e)
             ent=current_space.AddLine(s, e)
+        elif isinstance(edge,Circle):
+            center=cls._point_to_com(edge.center)
+            ent=current_space.AddCircle(center,edge.radius)
         elif isinstance(edge,Arc):
             center=cls._point_to_com(edge.center)
             ent=current_space.AddArc(center,edge.radius,*edge.angles)

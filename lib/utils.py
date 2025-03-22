@@ -108,22 +108,22 @@ class Constant:
         self.TOL_AREA=tol_area or self.DEFAULT.TOL_AREA
         self.TOL_ANG=tol_ang or self.DEFAULT.TOL_ANG
     @classmethod
-    def compare_val(cls,x:float,y:float)->int:
+    def cmp_val(cls,x:float,y:float)->int:
         if abs(x-y)<cls.TOL_VAL: return 0
         elif x>y: return 1
         else: return -1
     @classmethod        
-    def compare_dist(cls,x:float,y:float)->int:
+    def cmp_dist(cls,x:float,y:float)->int:
         if abs(x-y)<cls.TOL_DIST: return 0
         elif x>y: return 1
         else: return -1
     @classmethod
-    def compare_area(cls,x:float,y:float)->int:
+    def cmp_area(cls,x:float,y:float)->int:
         if abs(x-y)<cls.TOL_AREA: return 0
         elif x>y: return 1
         else: return -1
     @classmethod
-    def compare_ang(cls,x:float,y:float,periodic:bool=True)->int:
+    def cmp_ang(cls,x:float,y:float,periodic:bool=True)->int:
         """periodic==True时直接比较；periodic==False时先将x和y换算到[0,2pi)范围"""
         if not periodic:
             x%=TWO_PI
@@ -175,7 +175,7 @@ class ListTool:
             compare_func=lambda x,y:0 if abs(x-y)<tol else 1
         tmp=sorted(a)
         res=[tmp[0]]
-        for _,x in enumerate(tmp,start=1):
+        for x in tmp:
             if compare_func(x,res[-1])!=0:
                 res.append(x)
         return res
@@ -216,10 +216,10 @@ class StopRetry(BaseException):
         super().__init__(*args)
         self.cause=args[0]
 
-def retry(max_times:int=10,interval:float=0):
+def retry(max_times:int=10,delay:float=0):
     """Decorator: 失败后重试, 超过上限抛出错误.
 
-    Example:
+    Examples:
     >>> @retry()
     >>> def foo(): raise RuntimeError("bar")
     ...
@@ -242,7 +242,7 @@ def retry(max_times:int=10,interval:float=0):
                     print(e.__class__.__name__,":",e,". Retrying...")
                     last_err=e
                     retry_count+=1
-                    if interval>0: sleep(interval)
+                    if delay>0: sleep(delay)
             raise last_err
         return wrapper
     return decorator
@@ -251,15 +251,16 @@ class SupportsCompareWithTolerance(Protocol):
     _compare:Callable[[float,float],int]
 
 class SupportsCompare(Protocol):
+    """支持>,>=,<,<=比较"""
     def __lt__(self,other)->bool: ...
     def __gt__(self,other)->bool: ...
-    def __eq__(self,other)->bool: ...
     def __le__(self,other)->bool: ...
     def __ge__(self,other)->bool: ...
-    def __ne__(self,other)->bool: ...
 
 class ComparerInjector[T]:
     """比较器.
+
+    Examples: 
     - 作为上下文管理器: 
     >>> compare_wall=lambda x,y:Constant.compare_dist(x.width,y.width)
     >>> with Comparer(Wall,compare_wall,override_ops=True) as comparer:
@@ -268,7 +269,7 @@ class ComparerInjector[T]:
     """
     def __init__(self,cls:type[T],func:Callable[[T,T],int],override_ops:bool=False) -> None:
         self._cls=cls
-        self._func=func
+        self._func=func or (lambda x,y:0)
         self._override_ops=override_ops
 
     def __enter__(self):
@@ -288,17 +289,12 @@ class ComparerInjector[T]:
         if self._override_ops:
             self._cls.__lt__=lambda self,other: func(self,other)<0
             self._cls.__gt__=lambda self,other: func(self,other)>0
-            self._cls.__eq__=lambda self,other: func(self,other)==0
             self._cls.__le__=lambda self,other: func(self,other)<=0
             self._cls.__ge__=lambda self,other: func(self,other)>=0
-            self._cls.__ne__=lambda self,other: func(self,other)!=0
-            self._cls.__hash__=id(self)
     def _eject(self)->None:
         delattr(self._cls,"_compare")
         if self._override_ops:
             delattr(self._cls,"__lt__")
             delattr(self._cls,"__gt__")
-            delattr(self._cls,"__eq__")
             delattr(self._cls,"__le__")
             delattr(self._cls,"__ge__")
-            delattr(self._cls,"__ne__")

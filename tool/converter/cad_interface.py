@@ -5,7 +5,7 @@ from tool.converter.cad_object import CADEntity,CADBlockDef
 from lib.utils import retry,StopRetry
 
 class CADInterface:
-    @retry(interval=0.1)
+    @retry(delay=0.1)
     def __init__(self, file_path:Path|str=None, version:int=23) -> None:
         """CAD图纸读取接口.
 
@@ -63,5 +63,5 @@ if __name__=="__main__":
     doc=CADInterface()
     cad_objects=doc.get_cad_objects()
     # doc.close()
-    with open("./tool/converter/output/case_7.json",'w',encoding="utf8") as f:
+    with open("./tool/converter/output/case_16.json",'w',encoding="utf8") as f:
         json.dump(cad_objects,f,ensure_ascii=False,default=dumper)

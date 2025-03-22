@@ -1,6 +1,6 @@
 import math
 from lib.utils import Constant,ListTool
-from lib.domain import Domain1d,MultiDomain1d
+from lib.interval import Interval1d,MultiInterval1d
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from lib.geom import Geom,Node
@@ -282,16 +282,17 @@ class STRTree[T:Geom]:
 
 class SegmentTree[T]:
     """线段树"""
-    def __init__(self,segs:list[Domain1d[T]]) -> None:
+    def __init__(self,segs:list[Interval1d[T]]) -> None:
+        """用Interval1d构造线段树，端点的比较使用Interval1d._compare"""
         # 用所有区间的端点建立树结构，然后把区间逐个插到树里
-        self._compare=Domain1d._compare
+        self._compare=Interval1d._compare
         endpoints=[]
         for seg in segs: endpoints.extend([seg.l,seg.r])
         self.endpoints=ListTool.sort_and_dedup(endpoints,compare_func=self._compare)
         # self.endpoints.sort()
         self.root=self._construct_tree(0,len(self.endpoints)-1)
         for seg in segs: self.insert(self.root,seg)
-    def _construct_tree(self,l:int,r:int)->_BinaryTreeNode[Domain1d]:
+    def _construct_tree(self,l:int,r:int)->_BinaryTreeNode[Interval1d]:
         """建立树结构.
 
         Args:
@@ -299,10 +300,10 @@ class SegmentTree[T]:
             r (int): 当前根节点的右端点index.
 
         Returns:
-            TreeNode[Domain1d]: 当前根节点.
+            TreeNode[Interval1d]: 当前根节点.
         """
         if l==r: return None
-        node=_BinaryTreeNode(Domain1d(self.endpoints[l],self.endpoints[r],None))
+        node=_BinaryTreeNode(Interval1d(self.endpoints[l],self.endpoints[r],None))
         if r-l==1: return node
         node.child=[self._construct_tree(l,(l+r)//2),
                     self._construct_tree((l+r)//2,r),
@@ -310,16 +311,16 @@ class SegmentTree[T]:
         for ch in node.child: ch.parent=node
         return node
     @classmethod
-    def _update_value(self,node:_BinaryTreeNode[Domain1d])->None:
+    def _update_value(self,node:_BinaryTreeNode[Interval1d])->None:
         if node.parent is None or node.parent.obj.value is None: return
         if node.obj.value is None or node.parent.obj.value>node.obj.value:
             node.obj.value=node.parent.obj.value
-    def insert(self,root:_BinaryTreeNode[Domain1d],seg:Domain1d)->None:
+    def insert(self,root:_BinaryTreeNode[Interval1d],seg:Interval1d)->None:
         """向根为root的子树中插入一段新的线段.
 
         Args:
-            root (_BinaryTreeNode[Domain1d]): 当前树根.
-            seg (Domain1d): 新线段.
+            root (_BinaryTreeNode[Interval1d]): 当前树根.
+            seg (Interval1d): 新线段.
         """
         self._update_value(root)  # lazy-update当前结点的value
         if root.obj.value is not None and seg.value<=root.obj.value:  # 新线段没现在的大，就不用看了
@@ -332,19 +333,19 @@ class SegmentTree[T]:
         if self._compare(seg.r,root.rch.obj.l)>0:
             self.insert(root.rch,seg)
     @classmethod
-    def _traverse_leaves(cls,root:_BinaryTreeNode[Domain1d],res:list[Domain1d])->None:
+    def _traverse_leaves(cls,root:_BinaryTreeNode[Interval1d],res:list[Interval1d])->None:
         cls._update_value(root)  # lazy-update当前结点的value
         if len(root.child)==0:
             res.append(root.obj)
         else:
             cls._traverse_leaves(root.child[0],res)
             cls._traverse_leaves(root.child[1],res)
-    def get_united_leaves(self)->list[Domain1d]:
+    def get_united_leaves(self)->list[Interval1d]:
         """获取叶子结点区间合并的结果"""
-        leaves:list[Domain1d]=[]
+        leaves:list[Interval1d]=[]
         self._traverse_leaves(self.root,leaves)
         res=[leaves[0]]
-        for _,node in enumerate(leaves,start=1):
+        for node in leaves:
             if node.value==res[-1].value:
                 res[-1].r=node.r
             else:

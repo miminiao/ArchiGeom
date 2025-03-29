@@ -285,10 +285,10 @@ class SegmentTree[T]:
     def __init__(self,segs:list[Interval1d[T]]) -> None:
         """用Interval1d构造线段树，端点的比较使用Interval1d._compare"""
         # 用所有区间的端点建立树结构，然后把区间逐个插到树里
-        self._compare=Interval1d._compare
+        self._compare=Interval1d._cmp
         endpoints=[]
         for seg in segs: endpoints.extend([seg.l,seg.r])
-        self.endpoints=ListTool.sort_and_dedup(endpoints,compare_func=self._compare)
+        self.endpoints=ListTool.distinct(endpoints,cmp_func=self._compare)
         # self.endpoints.sort()
         self.root=self._construct_tree(0,len(self.endpoints)-1)
         for seg in segs: self.insert(self.root,seg)

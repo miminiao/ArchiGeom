@@ -1,11 +1,8 @@
 import math
-from lib.utils import Constant
+from lib.utils import Constant as Const
 import numpy as np
 class Tensor:
     dim:tuple[int,...]
-    @property
-    def const(self)->Constant:
-        return Constant.get()
 class Vector(Tensor):...
 class Vec3d(Vector):
     dim=(3,1)
@@ -31,7 +28,7 @@ class Vec3d(Vector):
     def __truediv__(self,divider:float)->"Vec3d":
         return Vec3d(self.x/divider,self.y/divider,self.z/divider)
     def equals(self,other:"Vec3d")->bool:
-        return (self-other).length<self.const.TOL_DIST
+        return (self-other).length<Const.TOL_DIST
     def dot(self,other:"Vec3d")->float:
         return self.x*other.x+self.y*other.y+self.z*other.z
     def cross(self,other:"Vec3d")->"Vec3d":
@@ -40,16 +37,16 @@ class Vec3d(Vector):
     def length(self)->float:
         return (self.x**2+self.y**2+self.z**2)**0.5
     def is_zero(self,is_unit=False)->bool:
-        if is_unit: return self.length<self.const.TOL_VAL
-        else: return self.length<self.const.TOL_DIST
+        if is_unit: return self.length<Const.TOL_VAL
+        else: return self.length<Const.TOL_DIST
     @property
     def angle(self)->float:
         """角度范围[0,2pi), 含误差"""
-        if self.length<self.const.TOL_VAL: return 0
+        if self.length<Const.TOL_VAL: return 0
         cosX=self.x/self.length
         cosY=self.y/self.length 
         angle=math.acos(cosX) if cosY>=0 else 2*math.pi-math.acos(cosX)
-        if 2*math.pi-angle<self.const.TOL_ANG: angle-=2*math.pi
+        if 2*math.pi-angle<Const.TOL_ANG: angle-=2*math.pi
         return angle
     def unit(self)->"Vec3d":
         return self/self.length

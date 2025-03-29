@@ -25,6 +25,7 @@ FIND_LOOP=(ROOT+"find_loop/",10)
     ids=[f"case_{i}" for i in range(1,COVER_NODE[1]+1)],
 )
 def test_loop_covers_node(case):
+    """测试Loop覆盖点"""
     inputs=read_case(COVER_NODE,case["in"],hook_mode="cad")
     loop=[g for g in inputs if isinstance(g,(Polyedge,Loop))][0]
     points=[g.center for g in inputs if isinstance(g,Arc) and g.angles[0]==0]    
@@ -56,6 +57,7 @@ def _loop_covers_node(loop:Loop,points:list[Node])->tuple[list[int],list[int]]:
     ids=[f"case_{i}" for i in range(1,COVER_EDGE[1]+1)],
 )
 def test_loop_covers_edge(case):
+    """测试Loop覆盖边"""
     inputs=read_case(COVER_EDGE,case["in"],hook_mode="cad")
     loop=[g for g in inputs if isinstance(g,(Polyedge,Loop))][0]
     edges=[g for g in inputs if isinstance(g,Edge)]
@@ -87,6 +89,7 @@ def _loop_covers_edge(loop:Loop,edges:list[Edge])->tuple[list[int],list[int]]:
     ids=[f"case_{i}" for i in range(1,COVER_LOOP[1]+1)],
 )
 def test_loop_covers_loop(case)->None:
+    """测试Loop覆盖Loop"""
     inputs=read_case(COVER_LOOP,case["in"],hook_mode="cad")
     loops=[g for g in inputs if isinstance(g,Loop)]
     coveres=_loop_covers_loop(loops)
@@ -110,7 +113,7 @@ def _loop_covers_loop(loops:list[Loop]):
     ids=[f"case_{i}" for i in range(1,REBUILD_LOOP[1]+1)],
 )
 def test_rebuild_loop(case)->None:
-    """重建Loop有向图拓扑，保留反向边"""
+    """测试重建Loop有向图拓扑，保留反向边"""
     inputs=read_case(REBUILD_LOOP,case["in"],hook_mode="cad")
     loops=[g for g in inputs if isinstance(g,Loop)]
     res=_rebuild_loop(loops)
@@ -144,7 +147,7 @@ def _rebuild_loop(loops:list[Loop]):
     ids=[f"case_{i}" for i in range(1,REBUILD_AND_CANCEL_LOOP[1]+1)],
 )
 def test_rebuild_and_cancel_loop(case)->None:
-    """重建Loop有向图拓扑，去除反向边"""
+    """测试重建Loop有向图拓扑，去除反向边"""
     inputs=read_case(REBUILD_AND_CANCEL_LOOP,case["in"],hook_mode="cad")
     loops=[g for g in inputs if isinstance(g,Loop)]
     res=_rebuild_and_cancel_loop(loops)
@@ -170,7 +173,7 @@ def _rebuild_and_cancel_loop(loops:list[Loop]):
     ids=[f"case_{i}" for i in range(1,FIND_LOOP[1]+1)],
 )
 def test_find_loop(case):
-    """用边集重建无向图拓扑（找环）"""
+    """测试用边集重建无向图拓扑（找环）"""
     inputs=read_case(FIND_LOOP,case["in"],hook_mode="cad")
     polys=[g for g in inputs if isinstance(g,(Polyedge,Loop))]
     edges=[g for g in inputs if isinstance(g,Edge)]

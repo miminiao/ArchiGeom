@@ -327,7 +327,7 @@ if __name__=="__main__":
         geoms=json.load(f,object_hook=JsonLoader.from_cad_obj)
     roof_boundaries=[geom for geom in geoms if isinstance(geom,Loop)]
     drain_points=[geom for geom in geoms if isinstance(geom,Node)]
-    roofs=BooleanOperation._pair_loops(roof_boundaries)
+    roofs=BooleanOperation._rebuild_loop_topology(roof_boundaries)
     res=FindDrainingPlan(roofs,drain_points).get_result()
 
 

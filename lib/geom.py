@@ -1,7 +1,7 @@
 #%%
 import numpy as np
 import math
-import copy
+from copy import copy,deepcopy
 from enum import Enum
 from abc import ABC,abstractmethod
 from typing import Self,Generator,overload
@@ -58,7 +58,7 @@ class Geom(ABC):
         ...
     
 class Node(Geom):
-    """几何点|拓扑结点"""
+    """点"""
     _dumper_ignore=["edge_out","edge_in"]
     def __init__(self, x:float, y:float, z:float=None) -> None:
         super().__init__()
@@ -73,23 +73,27 @@ class Node(Geom):
         return self.equals(other)
     def __hash__(self)->int:
         return id(self)
-    def __add__(self,other:Vec3d)->"Node":
+    def __add__(self,other:Vec3d)->Self:
         return Node.from_vec3d(self.to_vec3d()+other)
-    def __sub__(self,other:Vec3d)->"Node":
+    def __sub__(self,other:Vec3d)->Self:
         return Node.from_vec3d(self.to_vec3d()-other)
+    def __copy__(self)->Self: 
+        return Node(self.x,self.y,self.z)
+    def __deepcopy__(self):
+        return Node(self.x,self.y,self.z)
     @classmethod
-    def from_array(cls,arr:np.ndarray) -> "Node":
+    def from_array(cls,arr:np.ndarray) -> Self:
         if arr.shape==(2,):
             return cls(arr[0],arr[1])
         else: return None
     @classmethod
-    def from_vec3d(cls,vec:Vec3d) -> "Node":
+    def from_vec3d(cls,vec:Vec3d) -> Self:
         return cls(vec.x,vec.y)
-    def get_mbb(self) -> tuple["Node", "Node"]:
+    def get_mbb(self) -> tuple[Self, Self]:
         return (self,self)
-    def equals(self, other:"Node") -> bool:
+    def equals(self, other:Self) -> bool:
         return isinstance(other,Node) and self.dist(other)<Const.TOL_DIST
-    def dist(self, other:"Node") -> bool:
+    def dist(self, other:Self) -> bool:
         return ((self.x-other.x)**2+(self.y-other.y)**2)**0.5
     def to_array(self) ->np.ndarray:
         return np.array([self.x,self.y])
@@ -320,6 +324,8 @@ class Line(Geom):  # [TODO]: 把LineSeg直线相关的方法搬过来
         if angle>=math.pi: angle-=math.pi
         if math.pi-angle<Const.TOL_ANG: angle-=math.pi
         return angle
+    def is_parallel(self,other):
+        ...
 class Ray(Geom):  # [TODO]: 实现LineSeg相关的方法
     """射线"""
     def __init__(self,origin:Node,direction:Vec3d):
@@ -886,6 +892,10 @@ class Circle(Arc):
         return self.equals(other)
     def __hash__(self) ->int:
         return id(self)
+    def __copy__(self)->Self:
+        return Circle(self.center,self.radius)
+    def __deepcopy__(self)->Self:
+        return Circle(deepcopy(self.center),self.radius)
     def get_mbb(self):
         return (Node(self.center.x-self.radius,self.center.y-self.radius),
                 Node(self.center.x+self.radius,self.center.y+self.radius))
@@ -897,20 +907,19 @@ class Circle(Arc):
         
 class Polyedge(Geom):
     """多段线"""
-    def __init__(self,nodes:list[Node],bulges:list[float]=None,deepcopy:bool=False):
+    def __init__(self,nodes:list[Node],bulges:list[float]=None):
         """从顶点+凸度构造多段线
 
         Args:
             nodes (list[Node]): 顶点
             bulges (list[float]): 后一条边的凸度
-            deepcopy (bool, optional): Defaults to False.
         """
         bulges=bulges or [0]*len(nodes)
         if not (len(nodes)>=2 and len(nodes)==len(bulges)): 
             raise ValueError("Node/bulge numbers not matching.")
-        self.nodes:list[Node]=nodes[:] if not deepcopy else copy.deepcopy(self.nodes)
+        self.nodes:list[Node]=nodes[:]
         self.bulges:list[int]=bulges[:]
-        # edges不是内蕴属性，应该现场计算比较好
+        # edges不是intrinsic属性，现场计算比较好
         # self.edges:list[Edge]=[]
         # for i in range(len(self.nodes)-1):
         #     s,e,bulge=self.nodes[i],self.nodes[i+1],nodes[i][1]
@@ -925,17 +934,15 @@ class Polyedge(Geom):
     def equal(self,other:"Polyedge")->bool:
         return isinstance(other,Polyedge) and self.nodes==other.nodes and self.bulges==self.bulges
     @classmethod
-    def from_edges(cls,edges:list[LineSeg|Arc],deepcopy:bool=False) -> "Polyedge":
+    def from_edges(cls,edges:list[LineSeg|Arc]) -> "Polyedge":
         """从边构造多段线
 
         Args:
             edges (list[LineSeg | Arc]): 要求依次严格首尾相连(s is e)
-            deepcopy (bool, optional): Defaults to False.
         """
         for i in edges:
             if not (i==0 or edges[i].s is edges[i-1].e): raise ValueError("Edges not continuous.")
         nodes=[edge.s for edge in edges]+[edges[-1].e]
-        if deepcopy: nodes=copy.deepcopy(nodes)
         bulges=[edge.bulge if isinstance(edge,Arc) else 0 for edge in edges]+[0]
         return cls([tup for tup in zip(nodes,bulges)])
     def close(self)->"Loop":
@@ -970,35 +977,38 @@ class Polyedge(Geom):
 class Loop(Polyedge):
     """环(Closed PolyEdge)"""
     _dumper_ignore=["prepared"]
-    def __init__(self,nodes:list[Node],bulges:list[float]=None,deepcopy:bool=False,prepare:bool=True):
-        """从顶点+凸度构造环
+    def __init__(self,nodes:list[Node],bulges:list[float]=None,prepare:bool=False):
+        """从顶点+凸度构造环.
 
         Args:
-            nodes (list[Node]): 顶点
-            bulges (list[float]): 后一条边的凸度
-            deepcopy (bool, optional): Defaults to False.
+            nodes (list[Node]): 顶点.
+            bulges (list[float]): 后一条边的凸度.
+            prepare (bool, optional): 是否构造边集的搜索树. Defaults to True.
         """
-        super().__init__(nodes,bulges,deepcopy)
+        super().__init__(nodes,bulges)
         self.prepared=None
         if prepare: self.prepare()
-    def __len__(self)->int: return len(self.nodes)
+    def __len__(self)->int: 
+        return len(self.nodes)
+    def __copy__(self)->Self:
+        return Loop(self.nodes,self.bulges)
+    def __deepcopy__(self)->Self:
+        return Loop(deepcopy(self.nodes),self.bulges)
     @property
     def is_closed(self)->bool:return True
     @classmethod
-    def from_edges(cls,edges:list[LineSeg|Arc],deepcopy:bool=False) -> "Loop":
+    def from_edges(cls,edges:list[LineSeg|Arc],prepare:bool=False) -> "Loop":
         """从边构造环
 
         Args:
             edges (list[LineSeg | Arc]): 要求依次严格首尾相连(s is e)
-            deepcopy (bool, optional): Defaults to False.
         """
         for i in range(len(edges)):
             if edges[i].s is not edges[i-1].e: raise ValueError("Edges not continuous.")
         nodes=[edge.s for edge in edges]
-        if deepcopy: nodes=copy.deepcopy(nodes)
         bulges=[edge.bulge if isinstance(edge,Arc) else 0 for edge in edges]
-        return cls(nodes,bulges)
-    def prepare(self)->None:
+        return cls(nodes,bulges,prepare=prepare)
+    def prepare(self)->None:  # [TODO]: 替换求交算法中的引用
         # if self.prepared is not None: return
         self.prepared=STRTree(list(self.edges))
     def is_identical(self,other:"Loop")->bool:
@@ -1007,20 +1017,25 @@ class Loop(Polyedge):
         self.nodes.reverse()
         self.nodes=self.nodes[-1:]+self.nodes[:-1]  # 保持起点不变
         self.bulges.reverse()
+    def reversed(self) -> Self:
+        return Loop(self.nodes[0:1]+self.nodes[-1:0:-1],self.bulges[::-1])
     @property
     def length(self)->float:
-        return sum([edge.length for edge in self.edges])
+        if hasattr(self,"_length"): return self._length
+        self._length=sum([edge.length for edge in self.edges])
+        return self._length
     @property
     def area(self) -> float:
-        s=0
+        if hasattr(self,"_area"): return self._area
+        self._area=0
         for edge in self.edges:
             bow_area=0
             if isinstance(edge,Arc) and not edge.is_zero():
                 vs=edge.s.to_vec3d()-edge.center.to_vec3d()
                 ve=edge.e.to_vec3d()-edge.center.to_vec3d()
                 bow_area=edge.radian/2*edge.radius**2-0.5*(vs.cross(ve).dot(Vec3d.Z))
-            s+=(edge.s.x*edge.e.y-edge.s.y*edge.e.x)/2+bow_area
-        return s
+            self._area+=(edge.s.x*edge.e.y-edge.s.y*edge.e.x)/2+bow_area
+        return self._area
     def get_centroid(self)->Node:  # 需测试 TODO
         """重心"""
         # 划分成三角形然后重心加权
@@ -1273,7 +1288,7 @@ class Loop(Polyedge):
         return self._covers_polyedge(other.shell,count_mode)
     def _contains_polygon(self,other:"Polygon",count_mode:str="or")->bool:  # ok
         return self._contains_polyedge(other.shell,count_mode)    
-    def fillet(self,radius:float,mode:str="amap",quad_segs:int=16)->"Loop":
+    def fillet(self,radius:float,mode:str="amap",quad_segs:int=16)->"Loop": 
         """倒圆角.
 
         Parameters
@@ -1310,12 +1325,12 @@ class Loop(Polyedge):
 
 class Polygon(Geom): 
     """多边形"""
-    def __init__(self,shell:Loop,holes:list[Loop]=None,deepcopy:bool=False,make_valid:bool=True,prepare:bool=True) -> None:
+    def __init__(self,shell:Loop,holes:list[Loop]=None,make_valid:bool=True,prepare:bool=False) -> None:
         super().__init__()
         holes=holes or []
         if not (isinstance(shell,Loop) and all([isinstance(hole,Loop) for hole in holes])): raise TypeError()
-        self.shell=shell if not deepcopy else copy.deepcopy(shell)
-        self.holes=holes[:] if not deepcopy else copy.deepcopy(holes)
+        self.shell=shell
+        self.holes=holes[:]
         if make_valid: 
             self._make_valid()
         else: self.is_valid=False
@@ -1323,12 +1338,12 @@ class Polygon(Geom):
     def _make_valid(self)->None:  # ok
         from lib.geom_algo import BooleanOperation
         # 1.修正内外环方向
-        if self.shell.area<0: self.shell.reverse()
-        for hole in self.holes: 
-            if hole.area>0: hole.reverse()        
+        if self.shell.area<0: self.shell=self.shell.reversed()
+        for i,hole in enumerate(self.holes): 
+            if hole.area>0: self.holes[i]=hole.reversed()
         # 2.判断polygon有效性iff重建拓扑关系之后的正环数量==1
         cond=lambda depth:depth==1  # Loop union
-        valid_polygon=BooleanOperation._pair_loops(self.all_loops,condition=cond)
+        valid_polygon=BooleanOperation._rebuild_loop_topology(self.all_loops,condition=cond)
         if len(valid_polygon)==1:
             self.shell=valid_polygon[0].shell
             self.holes=valid_polygon[0].holes
@@ -1339,6 +1354,10 @@ class Polygon(Geom):
         self.shell.prepare()
         for hole in self.holes:
             hole.prepare()
+    def __copy__(self)->Self:
+        return Polygon(self.shell,self.holes,make_valid=False)
+    def __deepcopy__(self)->Self:
+        return Polygon(deepcopy(self.shell),deepcopy(self.holes),make_valid=False)
     def get_mbb(self) -> tuple[Node, Node]:
         return self.shell.get_mbb()
     def to_array(self)->tuple[np.ndarray,np.ndarray]:
@@ -1348,10 +1367,15 @@ class Polygon(Geom):
         return [self.shell]+self.holes
     @property
     def area(self)->float:  # ok
-        return sum([ring.area for ring in self.all_loops])
+        if hasattr(self,"_area"): return self._area
+        self._area=sum([ring.area for ring in self.all_loops])
+        return self._area
     @property
     def edges(self)->Generator[Edge,None,None]:
         for loop in self.all_loops: yield from loop.edges
+    @property
+    def nodes(self)->Generator[Node,None,None]:
+        for loop in self.all_loops: yield from loop.nodes
     def is_identical_to(self,other:"Polygon")->bool:
         if not (len(self.holes)==len(other.holes) and
                 self.shell.is_identical(other.shell)):
@@ -1516,4 +1540,3 @@ class GeomUtil:
         return node.edge_out[i]
     
 
- 

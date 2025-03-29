@@ -62,6 +62,11 @@ if __name__=="__main__":
     # doc=CADInterface(r"C:\Users\Administrator\Desktop\a.dwg")
     doc=CADInterface()
     cad_objects=doc.get_cad_objects()
+
+    # a=list(filter(lambda o:o.object_name=="hatch" and o.color==251,cad_objects))
+    # b=list(filter(lambda o:o.object_name=="hatch" and o.color==5,cad_objects))
+    # cad_objects=[a,b]
+
     # doc.close()
     with open("./tool/converter/output/case_16.json",'w',encoding="utf8") as f:
         json.dump(cad_objects,f,ensure_ascii=False,default=dumper)

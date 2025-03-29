@@ -1,3 +1,5 @@
+"""测试查找树相关操作"""
+
 import pytest
 from lib.index import BST,_BSTNode,AVLTree,SegmentTree
 from tests.utils import read_case,write_stdout
@@ -10,6 +12,7 @@ SEG_TREE=(ROOT+"seg_tree/",5)
 
 input_num=1000
 def test_bst_insert():
+    """测试bst插入"""
     inputs=[random.randint(0,input_num) for _ in range(input_num)]
     bst=BST(inputs)
     res=bst.traverse()
@@ -18,6 +21,7 @@ def test_bst_insert():
     for node in bst.traverse_nodes():
         assert node.get_root()==bst.root    
 def test_bst_find():
+    """测试bst查找"""
     inputs=[random.randint(0,input_num) for _ in range(input_num)]
     bst=BST(inputs)
     for i in range(input_num):
@@ -25,6 +29,7 @@ def test_bst_find():
         assert node is not None
     assert bst.find(-1) is None
 def test_bst_remove():
+    """测试bst删除"""
     inputs=[random.randint(0,input_num) for _ in range(input_num)]
     bst=BST(inputs)
     random.shuffle(inputs)
@@ -34,16 +39,19 @@ def test_bst_remove():
         std=sorted(inputs[i+1:])
         assert res==std
 def test_l_rotete():
+    """测试bst左旋"""
     inputs=[2,1,4,3,5]
-    avl=AVLTree(inputs)
+    avl=BST(inputs)
     avl.root=avl.root._l_rotate()
     assert avl.root.obj==4 and avl.traverse()==[1,2,3,4,5]
 def test_r_rotete():
+    """测试bst右旋"""
     inputs=[4,5,2,3,1]
-    avl=AVLTree(inputs)
+    avl=BST(inputs)
     avl.root=avl.root._r_rotate()
     assert avl.root.obj==2 and avl.traverse()==[1,2,3,4,5]    
 def test_avl_insert():
+    """测试avl插入"""
     inputs=[random.randint(0,input_num) for _ in range(input_num)]
     avl=AVLTree(inputs)
     res=avl.traverse()
@@ -53,6 +61,7 @@ def test_avl_insert():
         assert abs(_BSTNode.get_h(node.lch)-_BSTNode.get_h(node.rch))<=1
         assert node.get_root()==avl.root
 def test_avl_remove():
+    """测试avl删除"""
     inputs=[random.randint(0,input_num) for _ in range(input_num)]
     avl=AVLTree(inputs)
     random.shuffle(inputs)
@@ -66,6 +75,7 @@ def test_avl_remove():
             assert node.get_root()==avl.root
 
 def random_test_segtree():
+    """测试线段树合并区间（随机）"""
     intvs=[]
     limits=(0,10000,1000)
     random.seed(0)
@@ -100,6 +110,7 @@ def random_test_segtree():
     ids=[f"case_{i}" for i in range(1,SEG_TREE[1]+1)],
 )
 def test_segtree(case):
+    """测试线段树合并区间"""
     intvs=read_case(SEG_TREE,case["in"])
     segtree=SegmentTree(intvs)
     merged_intvs=segtree.get_united_leaves()

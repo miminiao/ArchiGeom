@@ -9,7 +9,6 @@ ROOT="./tests/interval/"
 
 INTERVAL_UNION=(ROOT+"interval_union/",5)
 
-# 测试单区间并集(取高)
 @pytest.mark.parametrize('case',[
     {"in":[[0,1,1],[0.5,1.5,2]],"out":[[0,0.5,1],[0.5,1.5,2]]},
     {"in":[[0.5,1.5,2],[0,1,1]],"out":[[0,0.5,1],[0.5,1.5,2]]},
@@ -22,6 +21,7 @@ INTERVAL_UNION=(ROOT+"interval_union/",5)
     {"in":[[0,1,2],[1,2,2]],"out":[[0,2,2]]},
     ])
 def test_add_higher(case):
+    """测试单区间并集(取高)"""
     a=Interval1d(*case["in"][0])
     b=Interval1d(*case["in"][1])
     if len(case["out"])==1:
@@ -30,7 +30,6 @@ def test_add_higher(case):
         c=MultiInterval1d([Interval1d(*intv) for intv in case["out"]])
     assert a+b==c
 
-# 测试单区间并集(取矮)
 @pytest.mark.parametrize('case',[
     {"in":[[0,1,1],[0.5,1.5,2]],"out":[[0,1,1],[1,1.5,2]]},
     {"in":[[0.5,1.5,2],[0,1,1]],"out":[[0,1,1],[1,1.5,2]]},
@@ -43,6 +42,7 @@ def test_add_higher(case):
     {"in":[[0,1,2],[1,2,2]],"out":[[0,2,2]]},
     ])
 def test_add_lower(case):
+    """测试单区间并集(取矮)"""
     a=Interval1d(*case["in"][0])
     a.value=-a.value
     b=Interval1d(*case["in"][1])
@@ -54,7 +54,6 @@ def test_add_lower(case):
         c=MultiInterval1d([Interval1d(l,r,-v) for l,r,v in case["out"]])
     assert a+b==c
 
-# 测试单区间差集
 @pytest.mark.parametrize('case',[
     {"in":[[0,1,1],[0.5,1.5,2]],"out":[[0,0.5,1]]},
     {"in":[[0.5,1.5,2],[0,1,1]],"out":[[1,1.5,2]]},
@@ -66,6 +65,7 @@ def test_add_lower(case):
     {"in":[[0.5,1.5,1],[0,2,2]],"out":[[1,0,0]]},
     ])
 def test_sub(case):
+    """测试单区间差集"""
     a=Interval1d(*case["in"][0])
     b=Interval1d(*case["in"][1])
     if len(case["out"])==1:
@@ -74,7 +74,6 @@ def test_sub(case):
         c=MultiInterval1d([Interval1d(*intv) for intv in case["out"]])
     assert a-b==c
 
-# 测试单区间交集(取高)
 @pytest.mark.parametrize('case',[
     {"in":[[0,1,1],[0.5,1.5,2]],"out":[[0.5,1,1]]},
     {"in":[[0.5,1.5,2],[0,1,1]],"out":[[0.5,1,1]]},
@@ -87,6 +86,7 @@ def test_sub(case):
     {"in":[[0,1,2],[1,2,2]],"out":[[1,0,0]]},    
     ])
 def test_mul_higher(case):
+    """测试单区间交集(取高)"""
     a=Interval1d(*case["in"][0])
     b=Interval1d(*case["in"][1])
     if len(case["out"])==1:
@@ -95,7 +95,6 @@ def test_mul_higher(case):
         c=MultiInterval1d([Interval1d(*intv) for intv in case["out"]])
     assert a*b==c
 
-# 测试单区间交集(取矮)
 @pytest.mark.parametrize('case',[
     {"in":[[0,1,1],[0.5,1.5,2]],"out":[[0.5,1,2]]},
     {"in":[[0.5,1.5,2],[0,1,1]],"out":[[0.5,1,2]]},
@@ -107,6 +106,7 @@ def test_mul_higher(case):
     {"in":[[0.5,1.5,1],[0,2,2]],"out":[[0.5,1.5,2]]},
     ])
 def test_mul_lower(case):
+    """测试单区间交集(取矮)"""
     a=Interval1d(*case["in"][0])
     a.value=-a.value
     b=Interval1d(*case["in"][1])
@@ -118,7 +118,6 @@ def test_mul_lower(case):
         c=MultiInterval1d([Interval1d(l,r,-v) for l,r,v in case["out"]])
     assert a*b==c
 
-# 测试多区间并集(取高)
 @pytest.mark.parametrize('case',[
     {"in":[[[0,1,1],[1.5,3,1],[3.5,4.5,1]],[[0.5,2,2],[2.5,4,2]]],"out":[[0,0.5,1],[0.5,2,2],[2,2.5,1],[2.5,4,2],[4,4.5,1]]},
     {"in":[[[1.5,2,2],[4,4.5,2]],[[0,1,1],[2.5,3.5,1]]],"out":[[0,1,1],[1.5,2,2],[2.5,3.5,1],[4,4.5,2]]},
@@ -128,6 +127,7 @@ def test_mul_lower(case):
     {"in":[[[0,2,2],[2.5,3.5,1]],[[0.5,1.5,1],[2,4,2]]],"out":[[0,4,2]]},
     ])
 def test_multi_add_higher(case):
+    """测试多区间并集(取高)"""
     a=MultiInterval1d([Interval1d(*intv) for intv in case["in"][0]])
     b=MultiInterval1d([Interval1d(*intv) for intv in case["in"][1]])
     if len(case["out"])==1:
@@ -136,7 +136,6 @@ def test_multi_add_higher(case):
         c=MultiInterval1d([Interval1d(*intv) for intv in case["out"]])
     assert a+b==c
 
-# 测试多区间并集(取矮)
 @pytest.mark.parametrize('case',[
     {"in":[[[0,1,1],[1.5,3,1],[3.5,4.5,1]],[[0.5,2,2],[2.5,4,2]]],"out":[[0,1,1],[1,1.5,2],[1.5,3,1],[3,3.5,2],[3.5,4.5,1]]},
     {"in":[[[1.5,2,2],[4,4.5,2]],[[0,1,1],[2.5,3.5,1]]],"out":[[0,1,1],[1.5,2,2],[2.5,3.5,1],[4,4.5,2]]},
@@ -146,6 +145,7 @@ def test_multi_add_higher(case):
     {"in":[[[0,2,2],[2.5,3.5,1]],[[0.5,1.5,1],[2,4,2]]],"out":[[0,0.5,2],[0.5,1.5,1],[1.5,2.5,2],[2.5,3.5,1],[3.5,4,2]]},
     ])
 def test_multi_add_lower(case):
+    """测试多区间并集(取矮)"""
     a=MultiInterval1d([Interval1d(l,r,-v) for l,r,v in case["in"][0]])
     b=MultiInterval1d([Interval1d(l,r,-v) for l,r,v in case["in"][1]])
     if len(case["out"])==1:
@@ -155,7 +155,6 @@ def test_multi_add_lower(case):
         c=MultiInterval1d([Interval1d(l,r,-v) for l,r,v in case["out"]])
     assert a+b==c
 
-# 测试多区间差集
 @pytest.mark.parametrize('case',[
     {"in":[[[0,1,1],[1.5,3,1],[3.5,4.5,1]],[[0.5,2,2],[2.5,4,2]]],"out":[[0,0.5,1],[2,2.5,1],[4,4.5,1]]},
     {"in":[[[1.5,2,2],[4,4.5,2]],[[0,1,1],[2.5,3.5,1]]],"out":[[1.5,2,2],[4,4.5,2]]},
@@ -165,6 +164,7 @@ def test_multi_add_lower(case):
     {"in":[[[0,2,2],[2.5,3.5,1]],[[0.5,1.5,1],[2,4,2]]],"out":[[0,0.5,2],[1.5,2,2]]},
     ])
 def test_multi_sub(case):
+    """测试多区间差集"""
     a=MultiInterval1d([Interval1d(*intv) for intv in case["in"][0]])
     b=MultiInterval1d([Interval1d(*intv) for intv in case["in"][1]])
     if len(case["out"])==1:
@@ -173,7 +173,6 @@ def test_multi_sub(case):
         c=MultiInterval1d([Interval1d(*intv) for intv in case["out"]])
     assert a-b==c
 
-# 测试多区间交集(取高)
 @pytest.mark.parametrize('case',[
     {"in":[[[0,1,1],[1.5,3,1],[3.5,4.5,1]],[[0.5,2,2],[2.5,4,2]]],"out":[[0.5,1,1],[1.5,2,1],[2.5,3,1],[3.5,4,1]]},
     {"in":[[[1.5,2,2],[4,4.5,2]],[[0,1,1],[2.5,3.5,1]]],"out":[[1,0,0]]},
@@ -183,6 +182,7 @@ def test_multi_sub(case):
     {"in":[[[0,2,2],[2.5,3.5,1]],[[0.5,1.5,1],[2,4,2]]],"out":[[0.5,1.5,1],[2.5,3.5,1]]},
     ])
 def test_multi_mul_higher(case):
+    """测试多区间交集(取高)"""
     a=MultiInterval1d([Interval1d(*intv) for intv in case["in"][0]])
     b=MultiInterval1d([Interval1d(*intv) for intv in case["in"][1]])
     if len(case["out"])==1:
@@ -191,7 +191,6 @@ def test_multi_mul_higher(case):
         c=MultiInterval1d([Interval1d(*intv) for intv in case["out"]])
     assert a*b==c
 
-# 测试多区间交集(取矮)
 @pytest.mark.parametrize('case',[
     {"in":[[[0,1,1],[1.5,3,1],[3.5,4.5,1]],[[0.5,2,2],[2.5,4,2]]],"out":[[0.5,1,2],[1.5,2,2],[2.5,3,2],[3.5,4,2]]},
     {"in":[[[1.5,2,2],[4,4.5,2]],[[0,1,1],[2.5,3.5,1]]],"out":[[1,0,0]]},
@@ -201,6 +200,7 @@ def test_multi_mul_higher(case):
     {"in":[[[0,2,2],[2.5,3.5,1]],[[0.5,1.5,1],[2,4,2]]],"out":[[0.5,1.5,2],[2.5,3.5,2]]},    
     ])
 def test_multi_mul_lower(case):
+    """测试多区间交集(取矮)"""
     a=MultiInterval1d([Interval1d(l,r,-v) for l,r,v in case["in"][0]])
     b=MultiInterval1d([Interval1d(l,r,-v) for l,r,v in case["in"][1]])
     if len(case["out"])==1:
@@ -210,7 +210,6 @@ def test_multi_mul_lower(case):
         c=MultiInterval1d([Interval1d(l,r,-v) for l,r,v in case["out"]])
     assert a*b==c
 
-# 测试多区间重叠判断
 @pytest.mark.parametrize('case',[
     {"in":[[[0,1,1],[2,4,1],[5,7,1]],[[3,6,2]]],"out":True},
     {"in":[[[3,6,2]],[[0,1,1],[2,4,1],[5,7,1]]],"out":True},
@@ -221,12 +220,13 @@ def test_multi_mul_lower(case):
     ])
 # @pytest.mark.timeout(5)
 def test_multi_overlap(case):
+    """测试多区间重叠判断"""
     a=MultiInterval1d([Interval1d(*intv) for intv in case["in"][0]])
     b=MultiInterval1d([Interval1d(*intv) for intv in case["in"][1]])
     assert a.is_overlap(b,include_endpoints=True)==case["out"]
 
-# 测试n个区间合并
 def random_test_intv_union():
+    """测试n个区间合并（随机）"""
     intvs=[]
     limits=(0,10000,1000)
     random.seed(1)
@@ -259,6 +259,7 @@ def random_test_intv_union():
     ids=[f"case_{i}" for i in range(1,INTERVAL_UNION[1]+1)],
 )
 def test_intv_union(case):
+    """测试n个区间合并"""
     intvs=read_case(INTERVAL_UNION,case["in"])
     merged_intvs=Interval1d.union(intvs,ignore_value=False)
     if __name__=="__main__":

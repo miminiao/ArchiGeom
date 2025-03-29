@@ -1,23 +1,22 @@
 from abc import ABC, abstractmethod
 import math
 import numpy as np
-from copy import copy
 from typing import Callable
-
 
 from lib.linalg import Vec3d
 from lib.interval import Interval1d
 from lib.geom import (
-    Node,Edge,LineSeg,Arc,Circle,Loop,Polygon,
+    Node,Edge,Line,LineSeg,Arc,Circle,Loop,Polygon,
     GeomUtil,
     )
 from lib.utils import Timer,Constant as Const,ListTool,ComparerInjector
 from lib.index import STRTree,SegmentTree, TreeNode
 
+from lib.geom_plotter import CADPlotter as plt
+
 
 class GeomAlgo(ABC):
-    def __init__(self) -> None:
-        self.const=Const.get()
+    def __init__(self) -> None: ...
     @abstractmethod
     def _preprocess(self)->None: ...
     @abstractmethod
@@ -45,7 +44,7 @@ class MaxRectAlgo(GeomAlgo):  # TODO
             cut_depth (int, optional): 切割深度，即网格的层数，大于1时，精度无效. Defaults to 1.
             const (Const, optional): 误差控制常量. Defaults to Const.DEFAULT.
         """
-        super().__init__(const)
+        super().__init__()
         self.poly=poly
         self.order=order
         self.covered_points=covered_points
@@ -108,8 +107,8 @@ class MaxRectAlgo(GeomAlgo):  # TODO
         Returns:
             tuple[list[float], list[float]]: x和y方向的切割点坐标
         """
-        edges = poly.edges()
-        nodes = poly.nodes()
+        edges = poly.edges
+        nodes = poly.nodes
         int_nodes = self._intersection_nodesXY(edges, nodes)  # 用所有顶点xy切割边
         mbb=poly.shell.get_mbb()
         int_gridX, int_gridY = self._intersection_gridXY(
@@ -122,8 +121,8 @@ class MaxRectAlgo(GeomAlgo):  # TODO
             more_nodes += new_nodes
         x = [node.x for node in nodes + int_nodes + int_gridY + more_nodes]
         y = [node.y for node in nodes + int_nodes + int_gridX + more_nodes]
-        ListTool.sort_and_dedup(x)
-        ListTool.sort_and_dedup(y)
+        ListTool.distinct(x)
+        ListTool.distinct(y)
         return x, y
     
     def _intersection_nodesXY(self, edges: list[Edge], nodes: list[Node]) -> list[Node]:
@@ -131,37 +130,37 @@ class MaxRectAlgo(GeomAlgo):  # TODO
         intersections = []
         for node in nodes:
             nextL, nextR, nextU, nextD = (None,)*4  # 只切割上下左右最近的边
-            minL, minR, minU, minD = (self.const.MAX_VAL,)*4
+            minL, minR, minU, minD = (Const.MAX_VAL,)*4
             for edge in edges:
                 if (
-                    abs(edge.s.x - edge.e.x) < self.const.TOL_DIST
-                    or abs(edge.s.y - edge.e.y) < self.const.TOL_DIST
+                    abs(edge.s.x - edge.e.x) < Const.TOL_DIST
+                    or abs(edge.s.y - edge.e.y) < Const.TOL_DIST
                 ):
                     continue  # 横平竖直不用切
-                new_node, p = edge.point_at(x=node.x)
-                if p is not None and p > 0 + self.const.TOL_VAL and p + self.const.TOL_VAL < 1:
+                new_node= edge.intersection(Line(node,Vec3d(0,1,0)))
+                if p is not None and p > 0 + Const.TOL_VAL and p + Const.TOL_VAL < 1:
                     if (
-                        new_node.y > node.y + self.const.TOL_DIST
+                        new_node.y > node.y + Const.TOL_DIST
                         and new_node.y - node.y < minU
                     ):
                         minU = new_node.y - node.y
                         nextU = new_node
                     if (
-                        new_node.y + self.const.TOL_DIST < node.y
+                        new_node.y + Const.TOL_DIST < node.y
                         and node.y - new_node.y < minD
                     ):
                         minD = node.y - new_node.y
                         nextD = new_node
                 new_node, p = edge.point_at(y=node.y)
-                if p is not None and p > 0 + self.const.TOL_VAL and p + self.const.TOL_VAL < 1:
+                if p is not None and p > 0 + Const.TOL_VAL and p + Const.TOL_VAL < 1:
                     if (
-                        new_node.x > node.x + self.const.TOL_DIST
+                        new_node.x > node.x + Const.TOL_DIST
                         and new_node.x - node.x < minR
                     ):
                         minR = new_node.x - node.x
                         nextR = new_node
                     if (
-                        new_node.x + self.const.TOL_DIST < node.x
+                        new_node.x + Const.TOL_DIST < node.x
                         and node.x - new_node.x < minL
                     ):
                         minL = node.x - new_node.x
@@ -180,7 +179,7 @@ class MaxRectAlgo(GeomAlgo):  # TODO
         self, bounds: list[float], edges: list[Edge], precision: float = -1.0
     ) -> tuple[list[Node], list[Node]]:
         """用定距网格切割斜边"""
-        if precision > self.const.TOL_VAL:
+        if precision > Const.TOL_VAL:
             ibounds = [math.ceil(bound / precision) for bound in bounds]
         else:
             ibounds = [0] * 4
@@ -189,24 +188,24 @@ class MaxRectAlgo(GeomAlgo):  # TODO
         nodesX, nodesY = [], []
         for edge in edges:
             if (
-                abs(edge.s.x - edge.e.x) < self.const.TOL_DIST
-                or abs(edge.s.y - edge.e.y) < self.const.TOL_DIST
+                abs(edge.s.x - edge.e.x) < Const.TOL_DIST
+                or abs(edge.s.y - edge.e.y) < Const.TOL_DIST
             ):
                 continue  # 横平竖直不用切
             for xi in x:
                 new_node, p = edge.point_at(x=xi)
-                if p is not None and p > 0 + self.const.TOL_VAL and p + self.const.TOL_VAL < 1:
+                if p is not None and p > 0 + Const.TOL_VAL and p + Const.TOL_VAL < 1:
                     nodesX.append(new_node)
             for yi in y:
                 new_node, p = edge.point_at(y=yi)
-                if p is not None and p > 0 + self.const.TOL_VAL and p + self.const.TOL_VAL < 1:
+                if p is not None and p > 0 + Const.TOL_VAL and p + Const.TOL_VAL < 1:
                     nodesY.append(new_node)
         return nodesX, nodesY
 
     @Timer
     def _get_01matrix(self, poly: Polygon, x: list[float], y: list[float]) -> np.ndarray:
         """计算每个cell是否在多边形内。cellInside[0,:]=cellInside[:,0]=cellInside[m,:]=cellInside[:,n]=False"""
-        poly = Polygon(*poly.offset(dist=-self.const.TOL_DIST).to_array())
+        poly = Polygon(*poly.offset(dist=-Const.TOL_DIST).to_array())
         m, n = len(x), len(y)
         ptmat = np.zeros((m, n), dtype=bool)
         for i in range(m):
@@ -238,7 +237,7 @@ class MaxRectAlgo(GeomAlgo):  # TODO
         for k in range(order):
             if len(covered_points[k]) == 0:
                 continue
-            mini, minj, maxi, maxj = self.const.MAX_VAL, self.const.MAX_VAL, 0, 0
+            mini, minj, maxi, maxj = Const.MAX_VAL, Const.MAX_VAL, 0, 0
             for l in range(len(covered_points[k])):
                 if (
                     covered_points[k][l].x < x[0]
@@ -248,8 +247,8 @@ class MaxRectAlgo(GeomAlgo):  # TODO
                 ):
                     idx_covered_points[k] = (0, 0, 0, 0)
                     break
-                flagi, i = ListTool.search_value(x, covered_points[k][l].x)
-                flagj, j = ListTool.search_value(y, covered_points[k][l].y)
+                flagi, i = ListTool.bsearch(x, covered_points[k][l].x)
+                flagj, j = ListTool.bsearch(y, covered_points[k][l].y)
                 mini, minj, maxi, maxj = (
                     min(mini, i),
                     min(minj, j),
@@ -282,7 +281,7 @@ class MaxRectAlgo(GeomAlgo):  # TODO
                 l[i, j] = l[i, j - 1] + 1 if cell_inside[i, j] else 0
             for j in range(n - 1, 0, -1):
                 r[i, j] = r[i, j + 1] + 1 if cell_inside[i, j] else 0
-        maxs = -self.const.MAX_VAL
+        maxs = -Const.MAX_VAL
         u0, l0, d0, r0 = 0, 0, -1, -1
         # lw、rw表示从当前格子向上u[i,j]个格子到顶，然后再向左、向右最多能扩展多少个格子
         lw, rw = np.zeros((m, n + 1), dtype=int), np.zeros((m, n + 1), dtype=int)
@@ -373,7 +372,6 @@ class BreakEdgeAlgo(GeomAlgo):  # ✅
                     break_points[line].extend(intersection)
                     break_points[other].extend(intersection)
         return break_points
-    
     def _get_break_points_by_scanning(self)->dict[Edge:list[Node]]:  # TODO
         """获取线段上的断点，没有排序，也没有去重"""
         all_edges=sum(self.edge_groups,[])
@@ -458,9 +456,9 @@ class MergeEdgeAlgo(GeomAlgo):  # [TODO]: 圆弧
         # 角度在误差范围内的分为一组
         line_groups=[]
         lines.sort(key=lambda line:line.angle)
-        current_angle=-self.const.MAX_VAL
+        current_angle=-Const.MAX_VAL
         for line in lines:
-            if line.angle-current_angle>self.const.TOL_ANG:  # !parallel
+            if line.angle-current_angle>Const.TOL_ANG:  # !parallel
                 new_group=[line]
                 line_groups.append(new_group)
                 current_angle=line.angle
@@ -491,19 +489,19 @@ class MergeEdgeAlgo(GeomAlgo):  # [TODO]: 圆弧
         # 沿法向量（右转90度）排序
         unit_vector=longest_edge.to_vec3d().unit() # 单位向量
         normal_vector=unit_vector.cross(Vec3d(0,0,1)) # 法向量
-        lines.sort(key=lambda line:line.s.to_vec3d().dot(normal_vector))            
+        lines.sort(key=lambda line:line.s.to_vec3d().dot(normal_vector))
         # 分组
         collinear_groups:list[list[LineSeg]]=[]
-        current_dist=-self.const.MAX_VAL
+        current_dist=-Const.MAX_VAL
         for line in lines:
             dist_s=line.s.to_vec3d().dot(normal_vector) # 投影
-            if dist_s-current_dist>self.const.TOL_DIST: # !collinear
+            if dist_s-current_dist>Const.TOL_DIST: # !collinear
                 new_group=[line]
                 collinear_groups.append(new_group)
                 current_dist=dist_s
             else: 
                 dist_e=line.e.to_vec3d().dot(normal_vector)
-                if abs(dist_e-current_dist)<self.const.TOL_DIST:  # 端点投影距离也在范围内的才算共线
+                if abs(dist_e-current_dist)<Const.TOL_DIST:  # 端点投影距离也在范围内的才算共线
                     new_group.append(line)
                 else: 
                     collinear_groups.append([line])
@@ -516,7 +514,7 @@ class MergeEdgeAlgo(GeomAlgo):  # [TODO]: 圆弧
         collinear_groups:list[list[Arc]]=[]
         current_radius=0
         for arc in arcs:
-            if arc.radius-current_radius>self.const.TOL_DIST: # !collinear
+            if arc.radius-current_radius>Const.TOL_DIST: # !collinear
                 new_group=[arc]
                 collinear_groups.append(new_group)
                 current_radius=arc.radius
@@ -616,10 +614,10 @@ class FindConnectedGraphAlgo(GeomAlgo):
             current_line=q[head]
             head+=1
             for node in [current_line.s,current_line.e]:
-                neighbor_lines=rt.query(node.get_mbb(),tol=self.const.TOL_DIST*2)
+                neighbor_lines=rt.query(node.get_mbb(),tol=Const.TOL_DIST*2)
                 for line in neighbor_lines:
                     if line not in visited_lines:
-                        if node.dist(line.s)<self.const.TOL_DIST or node.dist(line.e)<self.const.TOL_DIST:
+                        if node.dist(line.s)<Const.TOL_DIST or node.dist(line.e)<Const.TOL_DIST:
                             q.append(line)
                             visited_lines.add(line)
         return res
@@ -660,7 +658,7 @@ class FindOutlineAlgo(GeomAlgo):  # TODO: 圆弧
             start_node=start_edge.s
         else:
             start_node=intersections[0]
-        return LineSeg(Node(start_node.x-self.const.TOL_DIST*2,start_node.y),start_node)
+        return LineSeg(Node(start_node.x-Const.TOL_DIST*2,start_node.y),start_node)
     def _find_outline(self,rt_edges:STRTree ,start_edge:Edge)->Loop: 
         """顺着start_edge逆时针找一圈外轮廓"""
         outline:list[Edge]=[]
@@ -668,7 +666,7 @@ class FindOutlineAlgo(GeomAlgo):  # TODO: 圆弧
         this_node=pre_edge.e
         while True: # 每次循环从pre_edge出发，找下一条边，直到回到起点
             # 搜索与当前出发点临近的边
-            nearest_edges=rt_edges.query(this_node.get_mbb(),tol=self.const.TOL_DIST) 
+            nearest_edges=rt_edges.query(this_node.get_mbb(),tol=Const.TOL_DIST) 
             # 求当前顶点到这些边的端点的连线的集合
             for edge in nearest_edges:
                 if not this_node.is_on_edge(edge): continue
@@ -679,7 +677,7 @@ class FindOutlineAlgo(GeomAlgo):  # TODO: 圆弧
             # 从this_node出发，找到pre_edge的下一条边
             new_edge=GeomUtil.find_next_edge_out(this_node,pre_edge)
             # 求所有与new_edge可能相交的线
-            nearest_edges=rt_edges.query(new_edge.get_mbb(),tol=self.const.TOL_DIST)
+            nearest_edges=rt_edges.query(new_edge.get_mbb(),tol=Const.TOL_DIST)
             # 遍历相交的线，取距离最近的一个交点(起点除外)，作为下一个顶点
             min_param_dist=1
             next_node=new_edge.e
@@ -746,7 +744,7 @@ class FindLoopAlgo(GeomAlgo):  # ✅
             self.edges=sum([node.edge_out for node in self.nodes],[])
     def _pop_opposite(self,edge:Edge):
         op=edge.opposite()
-        i=ListTool.find_first(edge.e.edge_out,lambda x:x==op)
+        i=ListTool.first(edge.e.edge_out,lambda x:x==op)
         return edge.e.edge_out.pop(i) if i!=-1 else None
     def get_result(self)->list[Loop]:
         self._preprocess()
@@ -790,10 +788,10 @@ class BooleanOperation:
     """多边形布尔运算"""
     @classmethod
     def union(cls,geoms:list[Polygon])->list[Polygon]:
-        """布尔并
+        """布尔并.
 
         Args:
-            geoms (list[Polygon]): 要求并的多边形.
+            geoms (list[Polygon]): 待合并的多边形.
 
         Returns:
             list[Polygon]: 并集.
@@ -801,10 +799,10 @@ class BooleanOperation:
         # 正负配对，只取最外层的
         all_loops=sum([list(geom.all_loops) for geom in geoms],[])
         cond=lambda depth:depth==1
-        return cls._pair_loops(all_loops,condition=cond)
+        return cls._rebuild_loop_topology(all_loops,condition=cond)
     @classmethod
     def intersection(cls,geoms:list[Polygon])->list[Polygon]:
-        """布尔交
+        """布尔交.
 
         Args:
             geoms (list[Polygon]): 要求交的多边形.
@@ -815,28 +813,25 @@ class BooleanOperation:
         # 正负配对，只取第N层的
         all_loops=sum([list(geom.all_loops) for geom in geoms],[])
         cond=lambda depth:depth==len(geoms)
-        return cls._pair_loops(all_loops,condition=cond)
+        return cls._rebuild_loop_topology(all_loops,condition=cond)
     @classmethod
-    def difference(cls,subjects:Polygon|list[Polygon],objects:Polygon|list[Polygon])->list[Polygon]:
-        """布尔差 (subjects - objects)
+    def difference(cls,a:Polygon|list[Polygon],b:Polygon|list[Polygon])->list[Polygon]:
+        """布尔差 (a-b). 入参为list时会先合并.
 
         Args:
-            subjects (Polygon|list[Polygon]): 被减去的多边形.
-            objects (Polygon|list[Polygon]): 减去的多边形.
+            a (Polygon|list[Polygon]): 被减数.
+            b (Polygon|list[Polygon]): 减数.
 
         Returns:
-            list[Polygon]: 差集
+            list[Polygon]: 差集.
         """
-        if isinstance(subjects,Polygon):
-            subjects=[subjects]
-        if isinstance(objects,Polygon):
-            objects=[objects]
-        # 反转objects的方向，然后求并
-        subject_loops=sum([list(geom.all_loops) for geom in subjects],[])
-        object_loops=sum([list(geom.all_loops) for geom in objects],[])
-        reversed_loops=[loop.reversed() for loop in object_loops]
+        if isinstance(a,list): a=cls.union(a)
+        if isinstance(b,list): b=cls.union(b)
+        # 反转b的方向，然后求并
+        all_loops=[loop for plg in a for loop in plg.all_loops]
+        all_loops.extend([loop.reversed() for plg in b for loop in plg.all_loops])
         cond=lambda depth:depth==1
-        return cls._pair_loops(subject_loops+reversed_loops,condition=cond)
+        return cls._rebuild_loop_topology(all_loops,condition=cond)
     @classmethod
     def _loop2polygon(cls,rebuilt_loops:list[Loop],condition:Callable[[int],bool]=None)->list[Polygon]:
         """环按照覆盖关系组成多边形"""
@@ -852,12 +847,12 @@ class BooleanOperation:
         )
         return polygons
     @classmethod
-    def _pair_loops(cls,loops:list[Loop],condition:Callable[[int],bool]=None)->list[Polygon]:
-        """重建所有环的拓扑，并按条件组合成Polygon
+    def _rebuild_loop_topology(cls,loops:list[Loop],condition:Callable[[int],bool]=None)->list[Polygon]:
+        """重建所有环的拓扑，并按条件组合成Polygon.
 
         Args:
             loops (list[Loop]): 待重建的环.
-            condition (Callable[[int],bool]): 组合成多边形的条件. Defaults to (int)->True.
+            condition (Callable[[int],bool]): 组合成多边形的条件. Defaults to (depth:int)->True.
 
         Returns:
             list[Polygon]: 配对的环组成的多边形.
@@ -866,10 +861,24 @@ class BooleanOperation:
         all_edges=sum([list(loop.edges) for loop in loops],[])
         rebuilt_loops=FindLoopAlgo(all_edges,directed=True,cancel_out_opposite=True).get_result()
         return cls._loop2polygon(rebuilt_loops,condition)
-
+    @classmethod
+    def _sort_cover_tree(cls,i:TreeNode[Loop]):
+        """对于父子完全重合的loop，根据爷爷的方向，调整正负关系"""
+        # 完全重叠时，要尽可能使相邻层级不同向：
+        # 当爸爸和爷爷同向时，就检查所有的儿子，如果有重叠且方向不同的，就交换爸爸和儿子
+        # ++- -> +-+ 或 --+ -> -+-
+        ai=i.obj and i.obj.area
+        ap=i.parent and i.parent.obj and i.parent.obj.area
+        if ai is not None and (ap is None or ap>0)^(ai<0):
+            for j in i.child:
+                aj=j.obj.area
+                if abs(ai)-abs(aj)<Const.TOL_AREA and j.obj.covers(i.obj) and (ai>0)^(aj<0):
+                    i.obj,j.obj=j.obj,i.obj
+                    break
+        for j in i.child: cls._sort_cover_tree(j)
     @classmethod
     def _build_loop_tree(cls,loops:list[Loop])->TreeNode[Loop]:
-        """根据覆盖关系构建树
+        """根据覆盖关系构建树.
 
         Args:
             loops (list[Loop]): 要求不得self-cross，也不能互相cross；否则需要先执行FindLoopAlgo.
@@ -877,33 +886,20 @@ class BooleanOperation:
         Returns:
             TreeNode[Loop]: 虚拟的树根，root.obj=None.
         """
-        loops.sort(key=lambda loop:abs(loop.area),reverse=True)  # 按面积排序，确保循环的时候每个TreeNode都有正确的parent
-        t =[TreeNode(loop) for loop in loops]  # 把loop都变成TreeNode
-        for i in range(len(t)-1):
-            for j in range(i+1,len(t)):
-                ni,nj=t[i],t[j]
-                ci=ni.obj.covers(nj.obj)
-                cj=nj.obj.covers(ni.obj)
-                if not ci and not cj:  # 没有覆盖关系时，跳过
-                    continue
-                elif ci and cj:  # 互相覆盖(重合)的时候，取ni.parent的相反方向的环作为外环
-                    if ni.parent is None or ni.parent.obj.area>0:  # ni.parent是正环，就让负的覆盖正的，保证正-负-正的关系
-                        if ni.obj.area>0 and nj.obj.area<0:
-                            ni.obj,nj.obj=nj.obj,ni.obj
-                    else:  # ni.parent是负环，就让正的覆盖负的，保证负-正-负的关系
-                        if ni.obj.area<0 and nj.obj.area>0:
-                            ni.obj,nj.obj=nj.obj,ni.obj
-                # 已按面积排序，不会出现cj&~ci的情况
-                # 此时确保i覆盖j
-                nj.parent=ni
+        # 按面积排序，从小到大找到的第一个能覆盖自己的，就是自己的parent
+        loops.sort(key=lambda loop:abs(loop.area))
+        t =[TreeNode(loop) for loop in loops]
+        for i in range(1,len(t)):
+            for j in range(i):
+                if t[j].parent is not None: continue
+                if t[i].obj.covers(t[j].obj): t[j].parent=t[i]
         root=TreeNode(None)
         for i in t:
-            if i.parent is not None:
-                i.parent.child.append(i)
-            else:
-                i.parent=root
-                root.child.append(i)
-        return root
+            if i.parent is None: i.parent=root
+            i.parent.child.append(i)
+        # 对于父子完全重合的loop，根据爷爷的方向，调整正负关系
+        cls._sort_cover_tree(root)
+        return root    
     @classmethod
     def _traverse_loop_tree(cls,root:TreeNode[Loop],depth:int,condition:Callable[[int],bool],stack:list[TreeNode],out_polygons:list[Polygon])->list[Loop]:
         """遍历Loop的覆盖关系树，按条件返回配对关系.
@@ -911,30 +907,30 @@ class BooleanOperation:
         Args:
             root (TreeNode[Loop]): 当前结点.
             depth (int): 当前结点的深度.
-            condition (Callable[[int],bool]): _description_
-            stack (list[TreeNode]): _description_
+            condition (Callable[[int],bool]): 配对条件:(depth:int)->bool.
+            stack (list[TreeNode]): 当前loop栈.
             out_polygons (list[Polygon]): 配对的Polygon.
 
         Returns:
             list[TreeNode]: 配对的后代.
         """
+        # 按照括号配对原则：
+        # 1. 遇shell则depth+1入栈
+        # 2. 遇hole则寻找最近的且depth相同的祖先shell配对，然后depth-1不入栈
+        # 返回满足condition的shells，组成polygon
+        root.depth=depth
         root.holes=[]
         for child in root.child:
-            if child.obj.area>0:
-                new_stack=stack[:]+[child]
-                new_depth=depth+1
-            else:
-                new_stack=stack[:]
-                new_depth=depth-1
-                if len(stack)>0 and stack[-1].obj.area>0:
-                    shell=new_stack.pop()
-                    shell.holes.append(child.obj)  # 直接配对
-                else:
-                    new_stack.append(child)
-            cls._traverse_loop_tree(child,new_depth,condition,new_stack,out_polygons)
-
+            if child.obj.area>0:  # shell
+                stack.append(child)
+                cls._traverse_loop_tree(child,depth+1,condition,stack,out_polygons)
+                stack.pop()
+            else:  # hole
+                for i in range(len(stack)-1,-1,-1):
+                    if stack[i].depth==depth:
+                        stack[i].holes.append(child.obj)
+                        break
+                cls._traverse_loop_tree(child,depth-1,condition,stack,out_polygons)
         if condition(depth) and root.obj is not None and root.obj.area>0:
             out_polygons.append(Polygon(shell=root.obj, holes=root.holes, make_valid=False))
-
-
 

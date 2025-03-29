@@ -18,6 +18,7 @@ MEARGE_EDGE=(ROOT+"merge_edge/",9)
     ids=[f"case_{i}" for i in range(1,BREAK_EDGE[1]+1)],
 )
 def test_break_edge(case):
+    """测试边打断"""
     inputs=read_case(BREAK_EDGE,case["in"],hook_mode="cad")
     res=BreakEdgeAlgo(inputs).get_result()
     if __name__=="__main__":
@@ -33,6 +34,7 @@ def test_break_edge(case):
     ids=[f"case_{i}" for i in range(1,MEARGE_EDGE[1]+1)],
 )
 def test_merge_edge(case):
+    """测试边合并"""
     edges=read_case(MEARGE_EDGE,case["in"],hook_mode="cad")
     res=MergeEdgeAlgo(edges,break_at_intersections=False).get_result()
     if __name__=="__main__":
@@ -48,6 +50,7 @@ def test_merge_edge(case):
     ids=[f"case_{i}" for i in range(1,FIND_OUTLINE[1]+1)],
 )
 def test_find_outline(case):
+    """测试单连通分量外轮廓"""
     edges=read_case(FIND_OUTLINE,case["in"],hook_mode="cad")
     res=FindOutlineAlgo(edges).get_result()
     comp=Const.cmp_area
@@ -64,7 +67,7 @@ if __name__=="__main__":
         for i in [3]:
         # for i in range(1,FIND_OUTLINE[1]+1):
             test_find_outline({"in":f"case_{i}","out":f"out_{i}"})
-    if 1:
+    if 0:
         for i in [5]:
         # for i in range(1,BREAK_EDGE[1]+1):
             test_break_edge({"in":f"case_{i}","out":f"out_{i}"})            

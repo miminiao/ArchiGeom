@@ -1,15 +1,15 @@
 from abc import ABC
 from typing import Callable,Self
-from lib.utils import Constant,SupportsCompareWithTolerance,SupportsCompare,ListTool
+from lib.utils import Constant,SupportsCompareFunc,SupportsCompareOps,ListTool
 
-class Interval[T:SupportsCompare](ABC,SupportsCompareWithTolerance):
+class Interval[T:SupportsCompareOps](ABC,SupportsCompareFunc):
     """区间基类"""
-    _compare=Constant.DEFAULT.cmp_dist
+    _cmp=Constant.cmp_dist
     """区间端点值的比较方法"""
 
     def __init__(self) -> None: ...
 
-class Interval1d[T:SupportsCompare](Interval[T]):
+class Interval1d[T:SupportsCompareOps](Interval[T]):
     def __init__(self,l:float,r:float,value:T) -> None:
         """描述一个带有附加值的一维区间.
 
@@ -27,7 +27,7 @@ class Interval1d[T:SupportsCompare](Interval[T]):
     def __eq__(self,other:Self)->bool:
         if not isinstance(other,Interval1d): return False
         if self.is_empty() and other.is_empty():return True
-        return self._compare(self.l,other.l)==0 and self._compare(self.r,other.r)==0 and self.value==other.value
+        return self._cmp(self.l,other.l)==0 and self._cmp(self.r,other.r)==0 and self.value==other.value
     def __add__(self,other:"Self|MultiInterval1d")->"Self|MultiInterval1d":
         """区间合并"""
         if isinstance(other,MultiInterval1d):
@@ -74,17 +74,17 @@ class Interval1d[T:SupportsCompare](Interval[T]):
             return other.is_overlap(self)
         if self.is_empty() or other.is_empty(): return False
         base=0 if include_endpoints else 1
-        return self._compare(self.r,other.l)>=base and self._compare(other.r,self.l)>=base
+        return self._cmp(self.r,other.l)>=base and self._cmp(other.r,self.l)>=base
     def is_empty(self)->bool:
         """判断区间是否为空，l==r的情况也返回True"""
-        return self._compare(self.l,self.r)>=0
+        return self._cmp(self.l,self.r)>=0
     def copy(self,value:T=None)->"Self":
         """返回与当前区间相同、值为value的区间"""
         return Interval1d(self.l,self.r,value or self.value)
     def contains_point(self,point:float,include_endpoints:bool=True)->bool:
         """点在区间范围内"""
         base=0 if include_endpoints else 1
-        return self._compare(point,self.l)>=base and self._compare(self.r,point)>=base
+        return self._cmp(point,self.l)>=base and self._cmp(self.r,point)>=base
     @classmethod
     def union(cls,intervals:list[Self],ignore_value:bool=True)->"MultiInterval1d[T]":
         """多个区间合并。ignore_value时，顺序遍历合并；否则二路归并"""
@@ -94,7 +94,7 @@ class Interval1d[T:SupportsCompare](Interval[T]):
             intervals.sort(key=lambda intv:intv.l)
             res=[intervals[0]]
             for intv in intervals:
-                if cls._compare(intv.l,res[-1].r)<=0:  # 有重叠部分就延长
+                if cls._cmp(intv.l,res[-1].r)<=0:  # 有重叠部分就延长
                     res[-1].r=max(res[-1].r,intv.r)
                 else:  #　没有重叠部分就新加一段
                     res.append(intv)
@@ -112,7 +112,7 @@ class Interval1d[T:SupportsCompare](Interval[T]):
             res=l+r
             return res
     
-class MultiInterval1d[T:SupportsCompare](Interval[T]):
+class MultiInterval1d[T:SupportsCompareOps](Interval[T]):
     """描述一组互无交集的Interval1d"""
     def __init__(self,items:list[Interval1d]):
         self._items=sorted(items,key=lambda interval:interval.l)
@@ -134,20 +134,20 @@ class MultiInterval1d[T:SupportsCompare](Interval[T]):
         """扫描线处理区间交并差"""
         endpoints=[]
         for intv in self._items+other._items: endpoints.extend([intv.l,intv.r])
-        endpoints=ListTool.sort_and_dedup(endpoints,compare_func=self._compare)
+        endpoints=ListTool.distinct(endpoints,cmp_func=self._cmp)
         # 从左到右扫描，ij记录下一个与扫描线相交的区间index
         res=[]
         i,j=0,0
         for event_pt in endpoints:
             i_value,j_value=None,None
             # 扫描到区间内就取区间的value，扫描到右端点就离开此区间
-            if i<len(self) and self._compare(event_pt,self[i].r)==0:
+            if i<len(self) and self._cmp(event_pt,self[i].r)==0:
                 i+=1
-            if i<len(self) and self._compare(event_pt,self[i].l)>=0:
+            if i<len(self) and self._cmp(event_pt,self[i].l)>=0:
                 i_value=self[i].value
-            if j<len(other) and self._compare(event_pt,other[j].r)==0:
+            if j<len(other) and self._cmp(event_pt,other[j].r)==0:
                 j+=1
-            if j<len(other) and self._compare(event_pt,other[j].l)>=0:
+            if j<len(other) and self._cmp(event_pt,other[j].l)>=0:
                 j_value=other[j].value
             # next_value: 以扫描线为左端点的区间value
             next_value=get_next_value(i_value,j_value)
@@ -207,9 +207,9 @@ class MultiInterval1d[T:SupportsCompare](Interval[T]):
             other=MultiInterval1d([other])
         i,j=0,0
         while True:
-            while i<len(self) and self._compare(self[i].r,other[j].l)<0: i+=1
+            while i<len(self) and self._cmp(self[i].r,other[j].l)<0: i+=1
             if i==len(self): return False
-            while j<len(other) and self._compare(other[j].r,self[i].l)<0: j+=1
+            while j<len(other) and self._cmp(other[j].r,self[i].l)<0: j+=1
             if j==len(other): return False
             if self[i].is_overlap(other[j],include_endpoints=include_endpoints):
                 return True

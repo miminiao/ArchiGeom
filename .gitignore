@@ -6,6 +6,7 @@ output/
 data/
 *.err
 *.lnk
+*.chw
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

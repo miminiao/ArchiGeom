@@ -1,11 +1,12 @@
 import math
 from lib.utils import Constant,ListTool
 from lib.interval import Interval1d,MultiInterval1d
-from typing import TYPE_CHECKING
+from typing import Self,Callable,TYPE_CHECKING
 if TYPE_CHECKING:
     from lib.geom import Geom,Node
 
 class TreeNode[T]:
+    """树结点"""
     def __init__(self,obj:T,parent:"TreeNode[T]"=None,child:list["TreeNode[T]"]=None) -> None:
         self.obj:T=obj
         self.parent:"TreeNode[T]"=parent
@@ -16,52 +17,54 @@ class TreeNode[T]:
             node=node.parent
         return node
 class _BinaryTreeNode[T](TreeNode[T]):
-    def __init__(self,obj:T,parent:"_BinaryTreeNode[T]"=None,child:list["_BinaryTreeNode[T]"]=None) -> None:
-        super().__init__(obj, parent, child)
+    """二叉树结点"""
+    def __init__(self, obj:T, parent:Self=None, lch:Self=None, rch:Self=None) -> None:
+        super().__init__(obj, parent, [lch,rch])
     @property
-    def lch(self)->"_BSTNode[T]":
+    def lch(self)->"_BSTreeNode[T]":
         return self.child[0]
     @lch.setter
-    def lch(self,node:"_BSTNode[T]")->None:
+    def lch(self,node:"_BSTreeNode[T]")->None:
         self.child[0]=node
     @property
-    def rch(self)->"_BSTNode[T]":
+    def rch(self)->"_BSTreeNode[T]":
         return self.child[1]    
     @rch.setter
-    def rch(self,node:"_BSTNode[T]")->None:
+    def rch(self,node:"_BSTreeNode[T]")->None:
         self.child[1]=node
-class _BSTNode[T](_BinaryTreeNode[T]):
-    def __init__(self, obj: T, parent: "_BSTNode[T]" = None, lch: "_BSTNode[T]" = None, rch:"_BSTNode[T]" = None) -> None:
-        self.child:list["_BSTNode[T]"]
+class _BSTreeNode[T](_BinaryTreeNode[T]):
+    """二叉搜索树结点"""
+    def __init__(self, obj: T, parent: "_BSTreeNode[T]" = None, lch: "_BSTreeNode[T]" = None, rch:"_BSTreeNode[T]" = None) -> None:
+        self.child:list["_BSTreeNode[T]"]
         super().__init__(obj,parent,[lch,rch])
         self.count=1  # 结点上存储的数据数量
         self._h=1  # 树高
     @classmethod
-    def get_h(cls,node:"_BSTNode[T]")->int:
+    def get_h(cls,node:"_BSTreeNode[T]")->int:
         """计算根为root的树高，需确保子树都已经计算好树高"""
         return 0 if node is None else node._h
     def update_h(self)->None:
         """更新树高，需确保子树都已经计算好树高"""
-        self._h=1+max(_BSTNode.get_h(self.lch),_BSTNode.get_h(self.rch))
-    def get_pred(self)->"_BSTNode[T]":
+        self._h=1+max(_BSTreeNode.get_h(self.lch),_BSTreeNode.get_h(self.rch))
+    def get_pred(self)->"_BSTreeNode[T]":
         """前驱结点"""
         pred=self.lch
         while pred.rch is not None:
             pred=pred.rch
         return pred
-    def get_succ(self)->"_BSTNode[T]":
+    def get_succ(self)->"_BSTreeNode[T]":
         """后继结点"""
         succ=self.rch
         while succ.lch is not None:
             succ=succ.lch
         return succ
-    def _l_rotate(self)->"_BSTNode[T]":
+    def _l_rotate(self)->"_BSTreeNode[T]":
         """左旋，返回旋转后原位置上的节点"""
         return self._rotate(0)
-    def _r_rotate(self)->"_BSTNode[T]":
+    def _r_rotate(self)->"_BSTreeNode[T]":
         """右旋，返回旋转后原位置上的节点"""
         return self._rotate(1)
-    def _rotate(self,i:int)->"_BSTNode[T]":
+    def _rotate(self,i:int)->"_BSTreeNode[T]":
         """旋转，返回旋转后原位置上的节点，i=0->左旋，i=1->右旋"""
         if self.child[1-i] is None: return self
         new_node=self.child[1-i]
@@ -77,23 +80,23 @@ class _BSTNode[T](_BinaryTreeNode[T]):
         new_node.update_h()
         return new_node
 
-class BST[T]:
+class BSTree[T]:
     """二叉搜索树"""
     def __init__(self,objs:list[T]=None) -> None:
         if objs is None: objs=[]
-        self.root:_BSTNode[T]=None
+        self.root:_BSTreeNode[T]=None
         for obj in objs:
             self.insert(obj)
     def traverse(self)->list[T]:
         """顺序遍历值"""
         return [node.obj for node in self.traverse_nodes()]
-    def traverse_nodes(self)->list[_BSTNode[T]]:
+    def traverse_nodes(self)->list[_BSTreeNode[T]]:
         """顺序遍历节点"""
         res=[]
         self._traverse(self.root,res)
         return res
     @classmethod
-    def _traverse(cls,root:_BSTNode[T],res:list[_BSTNode[T]])->None:
+    def _traverse(cls,root:_BSTreeNode[T],res:list[_BSTreeNode[T]])->None:
         """顺序遍历根为root的子树，结果存入res"""
         if root is None: return
         cls._traverse(root.lch,res)
@@ -103,9 +106,9 @@ class BST[T]:
         """将值obj插入树中"""
         self.root=self._insert(obj,self.root)
     @classmethod
-    def _insert(cls,obj:T,root:_BSTNode[T],parent:_BSTNode[T]=None)->_BSTNode[T]:
+    def _insert(cls,obj:T,root:_BSTreeNode[T],parent:_BSTreeNode[T]=None)->_BSTreeNode[T]:
         """将值obj插入到根为root的子树中，返回根结点"""
-        if root is None: return _BSTNode(obj,parent=parent)
+        if root is None: return _BSTreeNode(obj,parent=parent)
         if obj<root.obj:
             root.lch=cls._insert(obj,root.lch,parent=root)
         elif obj>root.obj:
@@ -114,12 +117,12 @@ class BST[T]:
             root.count+=1
         root.update_h()
         return root
-    def find(self,obj:T)->_BSTNode[T]|None:
+    def find(self,obj:T)->_BSTreeNode[T]|None:
         """查找值为obj的结点"""
         if self.root is None: return None
         return self._find(obj,self.root)
     @classmethod
-    def _find(cls,obj:T,root:_BSTNode[T])->_BSTNode[T]|None:
+    def _find(cls,obj:T,root:_BSTreeNode[T])->_BSTreeNode[T]|None:
         """在根为root的子树中查找值为obj的结点"""
         if obj==root.obj: 
             return root
@@ -131,7 +134,7 @@ class BST[T]:
         if self.root is None: return
         self.root=self._remove(obj,self.root)
     @classmethod
-    def _remove(cls,obj:T,root:_BSTNode[T])->_BSTNode[T]:
+    def _remove(cls,obj:T,root:_BSTreeNode[T])->_BSTreeNode[T]:
         """在根为root的子树中删除值为obj的结点，返回删除后的树根"""
         if root is None: return None
         if obj<root.obj:
@@ -158,35 +161,35 @@ class BST[T]:
         root.update_h()
         return root
     
-class AVLTree[T](BST[T]):
+class AVLTree[T](BSTree[T]):
     """AVL树"""
     def __init__(self, objs:list[T]=None) -> None:
         super().__init__(objs)
     @classmethod
-    def _maintain_balance(cls,root:_BSTNode[T])->_BSTNode[T]:
+    def _maintain_balance(cls,root:_BSTreeNode[T])->_BSTreeNode[T]:
         """维护root结点处的平衡"""
         if root is None: return None
-        if _BSTNode.get_h(root.lch)-_BSTNode.get_h(root.rch)>1:
-            if _BSTNode.get_h(root.lch.lch)>=_BSTNode.get_h(root.lch.rch):
+        if _BSTreeNode.get_h(root.lch)-_BSTreeNode.get_h(root.rch)>1:
+            if _BSTreeNode.get_h(root.lch.lch)>=_BSTreeNode.get_h(root.lch.rch):
                 root=root._r_rotate()
             else:
                 root.lch=root.lch._l_rotate()
                 root=root._r_rotate()
-        elif _BSTNode.get_h(root.rch)-_BSTNode.get_h(root.lch)>1:
-            if _BSTNode.get_h(root.rch.rch)>=_BSTNode.get_h(root.rch.lch):
+        elif _BSTreeNode.get_h(root.rch)-_BSTreeNode.get_h(root.lch)>1:
+            if _BSTreeNode.get_h(root.rch.rch)>=_BSTreeNode.get_h(root.rch.lch):
                 root=root._l_rotate()
             else:
                 root.rch=root.rch._r_rotate()
                 root=root._l_rotate()
         return root
     @classmethod
-    def _insert(cls,obj:T,root:_BSTNode[T],parent:_BSTNode[T]=None)->_BSTNode[T]:
+    def _insert(cls,obj:T,root:_BSTreeNode[T],parent:_BSTreeNode[T]=None)->_BSTreeNode[T]:
         """将值obj插入到根为root的子树中，返回根结点"""
         root=super()._insert(obj,root,parent=parent)
         root=cls._maintain_balance(root)
         return root
     @classmethod
-    def _remove(cls,obj:T,root:_BSTNode[T])->_BSTNode[T]:
+    def _remove(cls,obj:T,root:_BSTreeNode[T])->_BSTreeNode[T]:
         """在根为root的子树中删除值为obj的结点，返回删除后的树根"""
         root=super()._remove(obj,root)
         root=cls._maintain_balance(root)
@@ -209,8 +212,9 @@ class DSU[T]:
     def find(self,obj:T)->"_DSUNode[T]":
         return self._nodes[obj].get_root()
 
-class _STRNode[T:Geom](TreeNode):
-    def __init__(self,geom:T=None,child:list["_STRNode[T]"]=None) -> None:
+class _STRTreeNode[T:Geom](TreeNode):
+    """STR树结点"""
+    def __init__(self,geom:T=None,child:list["_STRTreeNode[T]"]=None) -> None:
         from lib.geom import Geom
         super().__init__(geom,None,child)
         self.mbb=geom.get_mbb() if geom is not None else Geom.merge_mbb([ch.mbb for ch in child])
@@ -226,7 +230,7 @@ class STRTree[T:Geom]:
         """
         self.geoms=geoms
         # 初始化叶子结点：几何图形的包围盒
-        child_treenodes=[_STRNode(geom,None) for geom in geoms]  
+        child_treenodes=[_STRTreeNode(geom,None) for geom in geoms]  
         if len(geoms)==0: return
         # 每次循环自底向上构建一层树结构，直到最顶层一个根节点
         while True:
@@ -250,7 +254,7 @@ class STRTree[T:Geom]:
                     if b>=len(col): break
                     tile=col[b:t] if t<=len(col) else col[b:]
                     # 为每个tile构建新的父节点
-                    new_parent_node=_STRNode(geom=None,child=tile)
+                    new_parent_node=_STRTreeNode(geom=None,child=tile)
                     for node in tile: node.parent=new_parent_node
                     parent_treenodes.append(new_parent_node)
             if len(parent_treenodes)==1:  # 到根节点停止
@@ -258,7 +262,7 @@ class STRTree[T:Geom]:
                 break
             else:  # 否则继续构建上一层
                 child_treenodes=parent_treenodes
-    def query(self,extent:tuple["Node","Node"],tol:float=0,tree_node:_STRNode=None) -> list[T]:
+    def query(self,extent:tuple["Node","Node"],tol:float=0,tree_node:_STRTreeNode=None) -> list[T]:
         """框选查询.
 
         Args:
@@ -281,27 +285,22 @@ class STRTree[T:Geom]:
         return res        
 
 class SegmentTree[T]:
-    """线段树"""
+    """线段树.
+
+    Args:
+        segs (list[Interval1d[T]]): 用于构造线段树的线段。端点的比较使用Interval1d._cmp.
+    """
     def __init__(self,segs:list[Interval1d[T]]) -> None:
-        """用Interval1d构造线段树，端点的比较使用Interval1d._compare"""
         # 用所有区间的端点建立树结构，然后把区间逐个插到树里
-        self._compare=Interval1d._cmp
+        self._cmp=Interval1d._cmp
         endpoints=[]
         for seg in segs: endpoints.extend([seg.l,seg.r])
-        self.endpoints=ListTool.distinct(endpoints,cmp_func=self._compare)
+        self.endpoints=ListTool.distinct(endpoints,cmp_func=self._cmp)
         # self.endpoints.sort()
         self.root=self._construct_tree(0,len(self.endpoints)-1)
         for seg in segs: self.insert(self.root,seg)
     def _construct_tree(self,l:int,r:int)->_BinaryTreeNode[Interval1d]:
-        """建立树结构.
-
-        Args:
-            l (int): 当前根节点的左端点index.
-            r (int): 当前根节点的右端点index.
-
-        Returns:
-            TreeNode[Interval1d]: 当前根节点.
-        """
+        """在segs[l..r]上建立树结构，返回根节点"""
         if l==r: return None
         node=_BinaryTreeNode(Interval1d(self.endpoints[l],self.endpoints[r],None))
         if r-l==1: return node
@@ -325,12 +324,12 @@ class SegmentTree[T]:
         self._update_value(root)  # lazy-update当前结点的value
         if root.obj.value is not None and seg.value<=root.obj.value:  # 新线段没现在的大，就不用看了
             return
-        if self._compare(seg.l,root.obj.l)<=0 and self._compare(seg.r,root.obj.r)>=0:  # 新线段覆盖当前节点，就刷新当前节点
+        if self._cmp(seg.l,root.obj.l)<=0 and self._cmp(seg.r,root.obj.r)>=0:  # 新线段覆盖当前节点，就刷新当前节点
             root.obj.value=seg.value
             return
-        if self._compare(seg.l,root.lch.obj.r)<0:
+        if self._cmp(seg.l,root.lch.obj.r)<0:
             self.insert(root.lch,seg)
-        if self._compare(seg.r,root.rch.obj.l)>0:
+        if self._cmp(seg.r,root.rch.obj.l)>0:
             self.insert(root.rch,seg)
     @classmethod
     def _traverse_leaves(cls,root:_BinaryTreeNode[Interval1d],res:list[Interval1d])->None:
@@ -352,3 +351,20 @@ class SegmentTree[T]:
                 res.append(node)
         res=[obj for obj in res if obj.value is not None]
         return res
+class _KDTreeNode[T](_BinaryTreeNode):
+    def __init__(self, obj, dim:int, parent:Self=None, lch:Self=None, rch:Self=None):
+        super().__init__(obj, parent, lch, rch)
+        self.dim=dim  # 当前结点的切割方向
+class KDTree[T]:
+    """k-d树"""
+    def __init__(self, nodes:list[Node], dim:int=2):
+        self.dim=dim
+        self._key=[lambda node:node[i] for i in range(dim)]
+        self.root=self._construct_tree(nodes[:],0)
+    def _construct_tree(self,nodes:list[Node],current_dim:int)->_KDTreeNode:
+        """在nodes上建立kdtree，返回切割方向为current_dim的根结点"""
+        if len(nodes)==1: return _KDTreeNode(nodes[0],dim=current_dim)
+        m=len(nodes)//2
+        median_idx=ListTool.get_nth(nodes,m,self._key[current_dim])  # 中位数的index
+        nodes[median_idx],nodes[len(nodes)//2]=nodes[len(nodes)//2],nodes[median_idx]
+        return _KDTreeNode()

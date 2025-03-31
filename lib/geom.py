@@ -67,6 +67,8 @@ class Node(Geom):
         self.z=z or 0
         self.edge_out:list[Edge]=[]
         self.edge_in:list[Edge]=[]
+    def __getitem__(self,i:int)->float:
+        return (self.x,self.y,self.z)[i]
     def __repr__(self) -> str:
         return f"Node({round(self.x,2)},{round(self.y,2)})"
     def __eq__(self,other):

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import math
 import numpy as np
 from typing import Callable
+from queue import PriorityQueue
 
 from lib.linalg import Vec3d
 from lib.interval import Interval1d
@@ -13,7 +14,9 @@ from lib.utils import Timer,Constant as Const,ListTool,ComparerInjector
 from lib.index import STRTree,SegmentTree, TreeNode
 
 from lib.geom_plotter import CADPlotter as plt
-
+import os
+if os.environ.get("DEBUG",False):
+    print("debugging")
 
 class GeomAlgo(ABC):
     def __init__(self) -> None: ...
@@ -375,7 +378,15 @@ class BreakEdgeAlgo(GeomAlgo):  # ✅
     def _get_break_points_by_scanning(self)->dict[Edge:list[Node]]:  # TODO
         """获取线段上的断点，没有排序，也没有去重"""
         all_edges=sum(self.edge_groups,[])
-        break_points=...
+        event_q=PriorityQueue()
+        def cmp(a:Node,b:Node)->int:
+            if a.y>b.y or a.y==b.y and a.x>b.x: return 1
+            elif a.y<b.y or a.y==b.y and a.x<b.x: return -1
+            else: return 0
+        with ComparerInjector(Node,cmp,override_ops=True):
+            for edge in all_edges:
+                event_q.put(edge.s,edge.e)
+            break_points=...
         return break_points    
     def _rebuild_lines(self,break_points:dict[Edge,list[Node]])->list[list[Edge]]:
         """根据断点重构线段"""

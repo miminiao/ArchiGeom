@@ -231,22 +231,54 @@ class ListTool:
             int: x的index(找到了) / 应该插入到的index(没找到).
         """
         cmp_func=cmp_func or (lambda a,b: a-b)
-        l, r = 0, len(a) - 1
-        while l <= r:
-            m = (l + r) // 2
-            if cmp_func(x,a[m])==0:
-                return True, m
-            elif cmp_func(x,a[m])<0:
-                r = m - 1
-            else:
-                l = m + 1
+        l,r=0,len(a)-1
+        while l<=r:
+            m=(l+r)//2
+            match cmp_func(x,a[m]):
+                case t if t<0: r=m-1
+                case t if t>0: l=m+1
+                case 0: return True, m
         return False, l
     @staticmethod
-    def first(a:list, cond:Callable[[Any],bool])->int:
-        """在a中查找第1个满足cond条件的对象的index"""
+    def first[T](a:list[T],/,*,cond:Callable[[T],bool])->int:
+        """在list中查找第0个满足cond条件的对象的index"""
         for i,item in enumerate(a):
             if cond(item): return i
         return -1
+    @staticmethod
+    def get_nth[T](a:list[T],n:int,/,*,key:Callable[[T],float]=None)->int:
+        """在list中查找第n小的元素的index，n starts from 0"""
+        idx=list(range(len(a)))
+        key=key or (lambda x:x)
+        return ListTool._get_nth(a[:],idx,n,key=key,l=0,r=len(a)-1)
+    @staticmethod
+    def _get_nth[T](a:list[T],idx:list[int],n:int,/,*,key:Callable[[T],float],l:int,r:int)->int:
+        # 参照快速排序，但每次只需要递归包含第n位的一侧
+        if l==r: return idx[l]
+        i,j,mid=l,r,a[(l+r)//2]
+        while i<j:
+            while i<r and a[i]<mid: i+=1
+            while l<j and a[j]>mid: j-=1
+            if i<=j:
+                a[i],a[j]=a[j],a[i]
+                idx[i],idx[j]=idx[j],idx[i]
+                i,j=i+1,j-1
+        if j+1==n==i-1 or i==j==n: return idx[n]  # 第n位已确定
+        if n<=j and l<=j: return ListTool._get_nth(a,idx,n,key=key,l=l,r=j)
+        if n>=i and i<=r: return ListTool._get_nth(a,idx,n,key=key,l=i,r=r)
+    @staticmethod
+    def qsort(a:list,/,*,l:int=None,r:int=None):
+        l=l or 0
+        r=r or len(a)-1
+        i,j,mid=l,r,a[(l+r)//2]
+        while i<j:
+            while i<r and a[i]<mid: i+=1
+            while l<j and a[j]>mid: j-=1
+            if i<=j:
+                a[i],a[j]=a[j],a[i]
+                i,j=i+1,j-1
+        if l<j: ListTool.qsort(a,l=l,r=j)
+        if i<r: ListTool.qsort(a,l=i,r=r)
 
 class StopRetry(Exception):
     """Exception用于提前中止retry.

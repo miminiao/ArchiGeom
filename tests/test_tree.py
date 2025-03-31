@@ -1,7 +1,7 @@
 """测试查找树相关操作"""
 
 import pytest
-from lib.index import BST,_BSTNode,AVLTree,SegmentTree
+from lib.index import BSTree,_BSTreeNode,AVLTree,SegmentTree
 from tests.utils import read_case,write_stdout
 from lib.interval import Interval1d
 import random
@@ -14,7 +14,7 @@ input_num=1000
 def test_bst_insert():
     """测试bst插入"""
     inputs=[random.randint(0,input_num) for _ in range(input_num)]
-    bst=BST(inputs)
+    bst=BSTree(inputs)
     res=bst.traverse()
     std=sorted(inputs)
     assert res==std
@@ -23,7 +23,7 @@ def test_bst_insert():
 def test_bst_find():
     """测试bst查找"""
     inputs=[random.randint(0,input_num) for _ in range(input_num)]
-    bst=BST(inputs)
+    bst=BSTree(inputs)
     for i in range(input_num):
         node=bst.find(inputs[i])
         assert node is not None
@@ -31,7 +31,7 @@ def test_bst_find():
 def test_bst_remove():
     """测试bst删除"""
     inputs=[random.randint(0,input_num) for _ in range(input_num)]
-    bst=BST(inputs)
+    bst=BSTree(inputs)
     random.shuffle(inputs)
     for i in range(input_num):
         bst.remove(inputs[i])
@@ -41,13 +41,13 @@ def test_bst_remove():
 def test_l_rotete():
     """测试bst左旋"""
     inputs=[2,1,4,3,5]
-    avl=BST(inputs)
+    avl=BSTree(inputs)
     avl.root=avl.root._l_rotate()
     assert avl.root.obj==4 and avl.traverse()==[1,2,3,4,5]
 def test_r_rotete():
     """测试bst右旋"""
     inputs=[4,5,2,3,1]
-    avl=BST(inputs)
+    avl=BSTree(inputs)
     avl.root=avl.root._r_rotate()
     assert avl.root.obj==2 and avl.traverse()==[1,2,3,4,5]    
 def test_avl_insert():
@@ -58,7 +58,7 @@ def test_avl_insert():
     std=sorted(inputs)
     assert res==std
     for node in avl.traverse_nodes():
-        assert abs(_BSTNode.get_h(node.lch)-_BSTNode.get_h(node.rch))<=1
+        assert abs(_BSTreeNode.get_h(node.lch)-_BSTreeNode.get_h(node.rch))<=1
         assert node.get_root()==avl.root
 def test_avl_remove():
     """测试avl删除"""
@@ -71,7 +71,7 @@ def test_avl_remove():
         std=sorted(inputs[i+1:])
         assert res==std
         for node in avl.traverse_nodes():
-            assert abs(_BSTNode.get_h(node.lch)-_BSTNode.get_h(node.rch))<=1
+            assert abs(_BSTreeNode.get_h(node.lch)-_BSTreeNode.get_h(node.rch))<=1
             assert node.get_root()==avl.root
 
 def random_test_segtree():

@@ -357,14 +357,22 @@ class _KDTreeNode[T](_BinaryTreeNode):
         self.dim=dim  # 当前结点的切割方向
 class KDTree[T]:
     """k-d树"""
-    def __init__(self, nodes:list[Node], dim:int=2):
+    def __init__(self, nodes:list["Node"], dim:int=2):
         self.dim=dim
         self._key=[lambda node:node[i] for i in range(dim)]
         self.root=self._construct_tree(nodes[:],0)
-    def _construct_tree(self,nodes:list[Node],current_dim:int)->_KDTreeNode:
+    def _construct_tree(self,nodes:list["Node"],current_dim:int)->_KDTreeNode:
         """在nodes上建立kdtree，返回切割方向为current_dim的根结点"""
         if len(nodes)==1: return _KDTreeNode(nodes[0],dim=current_dim)
-        m=len(nodes)//2
-        median_idx=ListTool.get_nth(nodes,m,self._key[current_dim])  # 中位数的index
-        nodes[median_idx],nodes[len(nodes)//2]=nodes[len(nodes)//2],nodes[median_idx]
-        return _KDTreeNode()
+        # 以中位数作为root
+        key=self._key[current_dim]
+        idx=ListTool.get_nth(nodes,len(nodes)//2,key)
+        median=nodes[idx]
+        root=_KDTreeNode(median,current_dim)
+        l_nodes,r_nodes=[],[]
+        for node in nodes:
+            if node is median: continue
+            if key(node)<key(median): l_nodes.append(node)
+            else
+        root.lch=
+        return 

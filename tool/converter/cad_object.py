@@ -1,3 +1,5 @@
+"""CAD对象类型定义. 天正对象属性基于T20V8"""
+
 import math
 from abc import ABC
 from typing import Protocol,runtime_checkable,Self,Literal

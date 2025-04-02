@@ -1,7 +1,7 @@
 import math
 from lib.utils import Constant,ListTool
 from lib.interval import Interval1d,MultiInterval1d
-from typing import Self,Callable,TYPE_CHECKING
+from typing import Self,Callable,Literal,TYPE_CHECKING
 if TYPE_CHECKING:
     from lib.geom import Geom,Node
 
@@ -32,11 +32,22 @@ class _BinaryTreeNode[T](TreeNode[T]):
     @rch.setter
     def rch(self,node:"_BSTreeNode[T]")->None:
         self.child[1]=node
+    def traverse(self,callback:Callable[[Self],None], order:Literal['pre','in','post']="pre")->None:
+        if order=='pre': 
+            callback(self)
+        if self.lch is not None:
+            self.lch.traverse(callback=callback,order=order)
+        if order=='in': 
+            callback(self)
+        if self.rch is not None:
+            self.rch.traverse(callback=callback,order=order)
+        if order=='post': 
+            callback(self)
 class _BSTreeNode[T](_BinaryTreeNode[T]):
     """二叉搜索树结点"""
     def __init__(self, obj: T, parent: "_BSTreeNode[T]" = None, lch: "_BSTreeNode[T]" = None, rch:"_BSTreeNode[T]" = None) -> None:
         self.child:list["_BSTreeNode[T]"]
-        super().__init__(obj,parent,[lch,rch])
+        super().__init__(obj,parent,lch,rch)
         self.count=1  # 结点上存储的数据数量
         self._h=1  # 树高
     @classmethod
@@ -262,11 +273,11 @@ class STRTree[T:Geom]:
                 break
             else:  # 否则继续构建上一层
                 child_treenodes=parent_treenodes
-    def query(self,extent:tuple["Node","Node"],tol:float=0,tree_node:_STRTreeNode=None) -> list[T]:
+    def query(self,box:tuple["Node","Node"],tol:float=0,tree_node:_STRTreeNode=None) -> list[T]:
         """框选查询.
 
         Args:
-            extent (tuple[Node,Node]): 范围矩形左下右上.
+            box (tuple[Node,Node]): 范围矩形左下右上.
             tol (float, optional): 外扩距离. Defaults to 0.
             tree_node (_STRNode, optional): 开始查询的结点. Defaults to None->self._root.
 
@@ -277,11 +288,11 @@ class STRTree[T:Geom]:
         if tree_node.obj is not None:
             return [tree_node.obj]
         res=[]
-        qmin,qmax=extent
+        qmin,qmax=box
         for ch in tree_node.child:
             chmin,chmax=ch.mbb
             if (qmin.x<=chmax.x+tol) and (chmin.x<=qmax.x+tol) and (qmin.y<=chmax.y+tol) and (chmin.y<=qmax.y+tol):
-                res=res+self.query(extent,tol,ch)
+                res=res+self.query(box,tol,ch)
         return res        
 
 class SegmentTree[T]:
@@ -334,7 +345,7 @@ class SegmentTree[T]:
     @classmethod
     def _traverse_leaves(cls,root:_BinaryTreeNode[Interval1d],res:list[Interval1d])->None:
         cls._update_value(root)  # lazy-update当前结点的value
-        if len(root.child)==0:
+        if root.lch is None and root.rch is None:
             res.append(root.obj)
         else:
             cls._traverse_leaves(root.child[0],res)
@@ -351,11 +362,11 @@ class SegmentTree[T]:
                 res.append(node)
         res=[obj for obj in res if obj.value is not None]
         return res
-class _KDTreeNode[T](_BinaryTreeNode):
-    def __init__(self, obj, dim:int, parent:Self=None, lch:Self=None, rch:Self=None):
+class _KDTreeNode(_BinaryTreeNode['Node']):
+    def __init__(self, obj:'Node', dim:int, parent:Self=None, lch:Self=None, rch:Self=None):
         super().__init__(obj, parent, lch, rch)
         self.dim=dim  # 当前结点的切割方向
-class KDTree[T]:
+class KDTree:
     """k-d树"""
     def __init__(self, nodes:list["Node"], dim:int=2):
         self.dim=dim
@@ -364,15 +375,24 @@ class KDTree[T]:
     def _construct_tree(self,nodes:list["Node"],current_dim:int)->_KDTreeNode:
         """在nodes上建立kdtree，返回切割方向为current_dim的根结点"""
         if len(nodes)==1: return _KDTreeNode(nodes[0],dim=current_dim)
-        # 以中位数作为root
         key=self._key[current_dim]
-        idx=ListTool.get_nth(nodes,len(nodes)//2,key)
-        median=nodes[idx]
+        # 以中位数作为root
+        median_idx=ListTool.get_nth(nodes,len(nodes)//2,key=key,all=False)
+        median=nodes[median_idx]
         root=_KDTreeNode(median,current_dim)
         l_nodes,r_nodes=[],[]
         for node in nodes:
-            if node is median: continue
-            if key(node)<key(median): l_nodes.append(node)
-            else
-        root.lch=
-        return 
+            if node.equals(median): continue
+            elif key(node)<key(median): l_nodes.append(node)
+            else: r_nodes.append(node)
+        if len(l_nodes)>0:
+            root.lch=self._construct_tree(l_nodes,(current_dim+1)%self.dim)
+            root.lch.parent=root
+        if len(r_nodes)>0:
+            root.rch=self._construct_tree(r_nodes,(current_dim+1)%self.dim)
+            root.rch.parent=root
+        return root
+    def query(self,box:tuple["Node","Node"],tol:float=0) -> list["Node"]:
+        ...
+
+

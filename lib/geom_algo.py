@@ -755,7 +755,7 @@ class FindLoopAlgo(GeomAlgo):  # ✅
             self.edges=sum([node.edge_out for node in self.nodes],[])
     def _pop_opposite(self,edge:Edge):
         op=edge.opposite()
-        i=ListTool.first(edge.e.edge_out,lambda x:x==op)
+        i=ListTool.first(edge.e.edge_out,cond=lambda x:x==op)
         return edge.e.edge_out.pop(i) if i!=-1 else None
     def get_result(self)->list[Loop]:
         self._preprocess()

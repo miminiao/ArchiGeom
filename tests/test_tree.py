@@ -129,5 +129,6 @@ def test_segtree(case):
         assert merged_intvs==std_out
 
 if __name__=="__main__":
+    if 0: test_bst_insert()
     if 0: random_test_segtree()
-    if 0: test_segtree(({"in":f"case_{1}","out":f"out_{1}"}))
+    if 1: test_segtree(({"in":f"case_{1}","out":f"out_{1}"}))

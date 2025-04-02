@@ -246,13 +246,32 @@ class ListTool:
             if cond(item): return i
         return -1
     @staticmethod
-    def get_nth[T](a:list[T],nth:int,/,*,key:Callable[[T],float]=None)->int:
-        """在list中查找第n小的元素的index，n starts from 0"""
+    def get_nth[T](a:list[T],n:int,/,*,key:Callable[[T],float]=None,all:bool=False)->int|list[int]:
+        """在list中查找第n小的元素的index.
+
+        Args:
+            a (list[T]): 待查找的列表.
+            n (int): 从小到大排序后的位置, 从0开始.
+            key (Callable[[T],float], optional): 排序key. Defaults to None.
+            all (bool, optional): 有多个时返回所有indexes. Defaults to False.
+
+        Returns:
+            int|list[int]: 第n小的元素的index. 当all==True时, 返回所有indexes (list[int]).
+        """
+        if n<0 or n>len(a)-1: raise IndexError(f'list index "{n}" out of range')
         idx=list(range(len(a)))
         key=key or (lambda x:x)
-        return ListTool._get_nth(a[:],idx,nth,key=key,l=0,r=len(a)-1)
+        res=ListTool._get_nth(a[:],idx,n,key=key,l=0,r=len(a)-1)
+        if all:
+            res=[res]
+            for i,item in enumerate(a): 
+                if i==res[0]: continue
+                if key(item)==key(a[res[0]]):
+                    res.append(i)
+        return res
+        
     @staticmethod
-    def _get_nth[T](a:list[T],idx:list[int],nth:int,l:int,r:int,key:Callable[[T],float])->int:
+    def _get_nth[T](a:list[T],idx:list[int],n:int,l:int,r:int,key:Callable[[T],float])->int:
         # 参照快速排序，但每次只需要递归包含第n位的一侧, 均摊时间O(n)
         if l==r: return idx[l]
         i,j,mid=l,r,key(a[(l+r)//2])
@@ -264,9 +283,9 @@ class ListTool:
                 idx[i],idx[j]=idx[j],idx[i]
                 i,j=i+1,j-1
             else: break
-        if j+1==nth==i-1: return idx[nth]  # 第n位已确定在中间
-        elif nth<=j and l<=j: return ListTool._get_nth(a,idx,nth,l,j,key=key)  # 第n位在左边
-        elif nth>=i and i<=r: return ListTool._get_nth(a,idx,nth,i,r,key=key)  # 第n位在右边
+        if j+1==n==i-1: return idx[n]  # 第n位已确定在中间
+        elif n<=j and l<=j: return ListTool._get_nth(a,idx,n,l,j,key=key)  # 第n位在左边
+        elif n>=i and i<=r: return ListTool._get_nth(a,idx,n,i,r,key=key)  # 第n位在右边
     @staticmethod
     def qsort[T](a:list[T],/,*,key:Callable[[T],float]=None):
         """排序"""

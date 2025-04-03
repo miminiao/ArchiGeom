@@ -1,7 +1,8 @@
 """测试查找树相关操作"""
 
 import pytest
-from lib.index import BSTree,_BSTreeNode,AVLTree,SegmentTree
+from lib.geom import Node
+from lib.index import BSTree,_BSTreeNode,AVLTree,SegmentTree,KDTree,_KDTreeNode
 from tests.utils import read_case,write_stdout
 from lib.interval import Interval1d
 import random
@@ -128,7 +129,30 @@ def test_segtree(case):
         std_out=read_case(SEG_TREE,case["out"])
         assert merged_intvs==std_out
 
+def draw_cutline(node: _KDTreeNode):
+    import matplotlib.pyplot as plt
+    if node.dim==0:
+        x=[node.obj.x,node.obj.x]
+        y=[max(node.space.miny,0),min(node.space.maxy,1000)]
+    elif node.dim==1: 
+        y=[node.obj.y,node.obj.y]
+        x=[max(node.space.minx,0),min(node.space.maxx,1000)]
+    plt.plot(x,y,color='k',alpha=0.3)
+
+def random_test_kdtree():
+    """随机测试kd树"""
+    n=100
+    limits=1000
+    nodes=[Node(random.random()*limits,random.random()*limits) for i in range(n)]
+    kdtree=KDTree(nodes)
+    
+    import matplotlib.pyplot as plt
+    plt.scatter([node.x for node in nodes],[node.y for node in nodes])
+    kdtree._root.traverse(callback=lambda treenode:draw_cutline(treenode))
+    plt.show()
+
 if __name__=="__main__":
     if 0: test_bst_insert()
     if 0: random_test_segtree()
-    if 1: test_segtree(({"in":f"case_{1}","out":f"out_{1}"}))
+    if 0: test_segtree(({"in":f"case_{1}","out":f"out_{1}"}))
+    if 1: random_test_kdtree()

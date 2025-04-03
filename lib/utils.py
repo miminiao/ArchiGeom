@@ -262,12 +262,12 @@ class ListTool:
         idx=list(range(len(a)))
         key=key or (lambda x:x)
         res=ListTool._get_nth(a[:],idx,n,key=key,l=0,r=len(a)-1)
-        if all:
-            res=[res]
-            for i,item in enumerate(a): 
-                if i==res[0]: continue
-                if key(item)==key(a[res[0]]):
-                    res.append(i)
+        if not all: return res
+        res=[res]
+        for i,item in enumerate(a): 
+            if i==res[0]: continue
+            if key(item)==key(a[res[0]]):
+                res.append(i)
         return res
         
     @staticmethod

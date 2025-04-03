@@ -1,18 +1,20 @@
+from __future__ import annotations
+
 import math
 from lib.utils import Constant,ListTool
 from lib.interval import Interval1d,MultiInterval1d
 from typing import Self,Callable,Literal,TYPE_CHECKING
 if TYPE_CHECKING:
-    from lib.geom import Geom,Node,Box
+    from lib.geom import Geom,Node,Box,Circle
 
 class TreeNode[T]:
     """树结点"""
-    def __init__(self,obj:T,parent:"TreeNode[T]"=None,child:list["TreeNode[T]"]=None) -> None:
+    def __init__(self,obj:T,parent:Self=None,child:list[Self]=None) -> None:
         self.obj:T=obj
-        self.parent:"TreeNode[T]"=parent
-        self.child:list["TreeNode[T]"] =child[:] if child is not None else []
-
-    def get_root(node:"TreeNode[T]")->"TreeNode[T]":
+        self.parent:Self=parent
+        self.child:list[Self] =child[:] if child is not None else []
+    def get_root(self)->Self:
+        node=self
         while node.parent is not None:
             node=node.parent
         return node
@@ -21,18 +23,24 @@ class _BinaryTreeNode[T](TreeNode[T]):
     def __init__(self, obj:T, parent:Self=None, lch:Self=None, rch:Self=None) -> None:
         super().__init__(obj, parent, [lch,rch])
     @property
-    def lch(self)->"_BSTreeNode[T]":
+    def lch(self)->Self:
         return self.child[0]
     @lch.setter
-    def lch(self,node:"_BSTreeNode[T]")->None:
+    def lch(self,node:Self)->None:
         self.child[0]=node
     @property
-    def rch(self)->"_BSTreeNode[T]":
+    def rch(self)->Self:
         return self.child[1]    
     @rch.setter
-    def rch(self,node:"_BSTreeNode[T]")->None:
+    def rch(self,node:Self)->None:
         self.child[1]=node
-    def traverse(self,callback:Callable[[Self],None], order:Literal['pre','in','post']="pre")->None:
+    def traverse(self,callback:Callable[[Self],None], order:Literal['pre','in','post']='pre')->None:
+        """遍历二叉树.
+
+        Args:
+            callback (Callable[[Self],None]): 遍历时对结点的操作.
+            order (Literal['pre','in','post'], optional): 前序/中序/后续. Defaults to 'pre'.
+        """
         if order=='pre': 
             callback(self)
         if self.lch is not None:
@@ -45,40 +53,39 @@ class _BinaryTreeNode[T](TreeNode[T]):
             callback(self)
 class _BSTreeNode[T](_BinaryTreeNode[T]):
     """二叉搜索树结点"""
-    def __init__(self, obj: T, parent: "_BSTreeNode[T]" = None, lch: "_BSTreeNode[T]" = None, rch:"_BSTreeNode[T]" = None) -> None:
-        self.child:list["_BSTreeNode[T]"]
+    def __init__(self, obj:T, parent:Self=None, lch:Self=None, rch:Self=None) -> None:
         super().__init__(obj,parent,lch,rch)
         self.count=1  # 结点上存储的数据数量
         self._h=1  # 树高
     @classmethod
-    def get_h(cls,node:"_BSTreeNode[T]")->int:
+    def get_h(cls,node:Self)->int:
         """计算根为root的树高，需确保子树都已经计算好树高"""
         return 0 if node is None else node._h
     def update_h(self)->None:
         """更新树高，需确保子树都已经计算好树高"""
         self._h=1+max(_BSTreeNode.get_h(self.lch),_BSTreeNode.get_h(self.rch))
-    def get_pred(self)->"_BSTreeNode[T]":
+    def get_pred(self)->Self:
         """前驱结点"""
         pred=self.lch
         while pred.rch is not None:
             pred=pred.rch
         return pred
-    def get_succ(self)->"_BSTreeNode[T]":
+    def get_succ(self)->Self:
         """后继结点"""
         succ=self.rch
         while succ.lch is not None:
             succ=succ.lch
         return succ
-    def _l_rotate(self)->"_BSTreeNode[T]":
+    def _l_rotate(self)->Self:
         """左旋，返回旋转后原位置上的节点"""
         return self._rotate(0)
-    def _r_rotate(self)->"_BSTreeNode[T]":
+    def _r_rotate(self)->Self:
         """右旋，返回旋转后原位置上的节点"""
         return self._rotate(1)
-    def _rotate(self,i:int)->"_BSTreeNode[T]":
+    def _rotate(self,i:int)->Self:
         """旋转，返回旋转后原位置上的节点，i=0->左旋，i=1->右旋"""
         if self.child[1-i] is None: return self
-        new_node=self.child[1-i]
+        new_node:Self=self.child[1-i]
         self.child[1-i]=new_node.child[i]
         if self.child[1-i] is not None: self.child[1-i].parent=self
         new_node.parent=self.parent
@@ -209,7 +216,7 @@ class AVLTree[T](BSTree[T]):
 class _DSUNode[T](TreeNode[T]):
     def __init__(self, obj:T) -> None:
         super().__init__(obj)
-    def get_root(self)->"_DSUNode[T]":
+    def get_root(self)->Self:
         if self.parent is not None:
             self.parent=self.get_root(self.parent)
         return self.parent
@@ -225,20 +232,19 @@ class DSU[T]:
 
 class _STRTreeNode[T:Geom](TreeNode):
     """STR树结点"""
-    def __init__(self,geom:T=None,child:list["_STRTreeNode[T]"]=None) -> None:
+    def __init__(self,geom:T=None,child:list[Self]=None) -> None:
         from lib.geom import Box
         super().__init__(geom,None,child)
         self.aabb=geom.get_aabb() if geom is not None else Box.merge([ch.aabb for ch in child])
 
 class STRTree[T:Geom]:
-    """STR树"""
-    def __init__(self, geoms:list[T], node_capacity:int=10) -> None:
-        """以几何图形外包矩形构造一棵STR树.
+    """STR树 (离线). 以包围盒构造.
 
-        Args:
-            geoms (list[T:Geom]): 几何图形
-            node_capacity (int, optional): 划分子结点的数量. Defaults to 10.
-        """
+    Args:
+        geoms (list[T:Geom]): 几何图形.
+        node_capacity (int, optional): 划分子结点的数量. Defaults to 10.
+    """    
+    def __init__(self, geoms:list[T], node_capacity:int=10) -> None:
         self.geoms=geoms
         # 初始化叶子结点：几何图形的包围盒
         child_treenodes=[_STRTreeNode(geom,None) for geom in geoms]  
@@ -273,29 +279,30 @@ class STRTree[T:Geom]:
                 break
             else:  # 否则继续构建上一层
                 child_treenodes=parent_treenodes
-    def query(self,qbox:'Box',tol:float=0,tree_node:_STRTreeNode=None) -> list[T]:
+    def query(self,qbox:Box,root:_STRTreeNode=None) -> list[T]:
         """框选查询.
 
         Args:
             qbox (Box): 范围矩形.
-            tol (float, optional): 外扩距离. Defaults to 0.
-            tree_node (_STRNode, optional): 开始查询的结点. Defaults to None->self._root.
+            root (_STRNode, optional): 开始查询的结点. Defaults to None->self._root.
 
         Returns:
             list[T]: 查询到的几何图形.
         """
-        tree_node=tree_node or self._root
-        if tree_node.obj is not None:
-            return [tree_node.obj]
+        from lib.geom import Box,GeomRelation
+        root=root or self._root
+        if root.obj is not None:
+            return [root.obj]
         res=[]
-        for ch in tree_node.child:
-            chbox=ch.aabb
-            if (qbox.minx<=chbox.maxx+tol) and (chbox.minx<=qbox.maxx+tol) and (qbox.miny<=chbox.maxy+tol) and (chbox.miny<=qbox.maxy+tol):
-                res=res+self.query(qbox,tol,ch)
+        buffered=qbox.buffer(Constant.TOL_DIST*2)
+        for ch in root.child:
+            rel=Box.relation(buffered,ch.aabb)
+            if GeomRelation.Inside in rel:
+                res=res+self.query(qbox,ch)
         return res        
 
 class SegmentTree[T]:
-    """线段树.
+    """线段树 (离线).
 
     Args:
         segs (list[Interval1d[T]]): 用于构造线段树的线段。端点的比较使用Interval1d._cmp.
@@ -361,38 +368,74 @@ class SegmentTree[T]:
                 res.append(node)
         res=[obj for obj in res if obj.value is not None]
         return res
-class _KDTreeNode(_BinaryTreeNode['Node']):
-    def __init__(self, obj:'Node', dim:int, parent:Self=None, lch:Self=None, rch:Self=None):
+class _KDTreeNode(_BinaryTreeNode):
+    def __init__(self, obj:Node, dim:int, space:Box, parent:Self=None, lch:Self=None, rch:Self=None):
         super().__init__(obj, parent, lch, rch)
-        self.dim=dim  # 当前结点的切割方向
-        self.aabb=None
+        self.dim=dim  # 当前结点的切割维度
+        self.cut_line=None  # 当前结点的切割线
+        self.space=space  # 当前结点的空间包围盒
 class KDTree:
-    """k-d树"""
-    def __init__(self, nodes:list["Node"], dim:int=2):
-        self.dim=dim
-        self._key=[lambda node:node[i] for i in range(dim)]
-        self.root=self._construct_tree(nodes[:],0)
-    def _construct_tree(self,nodes:list["Node"],current_dim:int)->_KDTreeNode:
-        """在nodes上建立kdtree，返回切割方向为current_dim的根结点"""
-        if len(nodes)==1: return _KDTreeNode(nodes[0],dim=current_dim)
-        key=self._key[current_dim]
-        # 以中位数作为root
-        median_idx=ListTool.get_nth(nodes,len(nodes)//2,key=key,all=False)
+    """k-d树 (离线).
+    Args:
+        nodes (list[Node]): 待索引的点.
+        k (int, optional): 维度 in [1..3].
+    """
+    def __init__(self, nodes:list[Node], k:int=2):
+        from lib.geom import Box
+        self._key=[lambda p:p.x,lambda p:p.y,lambda p:p.z]  # 每个维度的排序key
+        self._half_spaces=[[Box.Xn,Box.Xp],[Box.Yn,Box.Yp],[Box.Zn,Box.Zp]]  # 每个维度的半空间包围盒
+        self._dim=k
+        self._root=self._construct_tree(nodes[:],0,Box())
+    def _construct_tree(self,nodes:list[Node], dim:int, space:Box)->_KDTreeNode:
+        """在nodes上建立kdtree，返回切割维度为dim的根结点"""
+        from lib.geom import Box
+        if len(nodes)==1: return _KDTreeNode(nodes[0],dim,space)
+        # 取dim方向的中位数作为root
+        key=self._key[dim]
+        median_idx:int=ListTool.get_nth(nodes,len(nodes)//2,key=key,all=False)
         median=nodes[median_idx]
-        root=_KDTreeNode(median,current_dim)
+        root=_KDTreeNode(median,dim,space)
+        # 与中位数的key比较, 划分左右子树
         l_nodes,r_nodes=[],[]
         for node in nodes:
             if node.equals(median): continue
             elif key(node)<key(median): l_nodes.append(node)
             else: r_nodes.append(node)
-        if len(l_nodes)>0:
-            root.lch=self._construct_tree(l_nodes,(current_dim+1)%self.dim)
-            root.lch.parent=root
-        if len(r_nodes)>0:
-            root.rch=self._construct_tree(r_nodes,(current_dim+1)%self.dim)
-            root.rch.parent=root
+        for i,ch_nodes in enumerate([l_nodes,r_nodes]):
+            if len(ch_nodes)>0:
+                next_dim=(dim+1)%self._dim
+                half_space=self._half_spaces[dim][i](key(median))  # 中位数所分割的半空间
+                new_space=Box.intersection([space,half_space])
+                root.child[i]=self._construct_tree(ch_nodes,next_dim,new_space)
+                root.child[i].parent=root
         return root
-    def query(self,box:tuple["Node","Node"],tol:float=0) -> list["Node"]:
+    def query_box(self,box:Box,tol:float=0,root:_KDTreeNode=None)->list[Node]:
+        """查询矩形范围内的点.
+
+        Args:
+            box (Box): _description_
+            tol (float, optional): _description_. Defaults to 0.
+
+        Returns:
+            list[Node]: _description_
+        """
+        from lib.geom import Box, GeomRelation
+        root=root or self._root
+        rel=Box.relation(box,root.space)
+        if rel==[GeomRelation.Inside]: 
+            ...
+    def query_circle(self,circle:Circle,tol:float=0)->list[Node]:
+        """查询圆形范围内的点.
+
+        Args:
+            circle (Circle): _description_
+            tol (float, optional): _description_. Defaults to 0.
+
+        Returns:
+            list[Node]: _description_
+        """
+    def knn(self,k:int,dist_func:Callable[[Node,Node],float]=None):
+        """查询k临近点"""
         ...
 
 

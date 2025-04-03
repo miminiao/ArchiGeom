@@ -361,7 +361,7 @@ class BreakEdgeAlgo(GeomAlgo):  # ✅
         break_points={line:[line.s,line.e] for line in all_edges} # 记录线段上的断点
         rt=STRTree(all_edges)
         for line in all_edges:
-            neighbors=rt.query(line.get_aabb(),tol=1.0)
+            neighbors=rt.query(line.get_aabb())
             for other in neighbors:
                 if other in visited[line]: continue # 这俩已经求过了，就不再算了
                 visited[line].add(other)
@@ -624,7 +624,7 @@ class FindConnectedGraphAlgo(GeomAlgo):
             current_line=q[head]
             head+=1
             for node in [current_line.s,current_line.e]:
-                neighbor_lines=rt.query(node.get_aabb(),tol=Const.TOL_DIST*2)
+                neighbor_lines=rt.query(node.get_aabb())
                 for line in neighbor_lines:
                     if line not in visited_lines:
                         if node.dist(line.s)<Const.TOL_DIST or node.dist(line.e)<Const.TOL_DIST:
@@ -677,7 +677,7 @@ class FindOutlineAlgo(GeomAlgo):
         this_node=pre_edge.e
         while True: # 每次循环从pre_edge出发，找下一条边，直到回到起点
             # 搜索与当前出发点临近的边
-            nearest_edges=rt_edges.query(this_node.get_aabb(),tol=Const.TOL_DIST) 
+            nearest_edges=rt_edges.query(this_node.get_aabb()) 
             # 求当前顶点到这些边的端点的连线的集合
             for edge in nearest_edges:
                 if not this_node.is_on_edge(edge): continue
@@ -688,7 +688,7 @@ class FindOutlineAlgo(GeomAlgo):
             # 从this_node出发，找到pre_edge的下一条边
             new_edge=GeomUtil.find_next_edge_out(this_node,pre_edge)
             # 求所有与new_edge可能相交的线
-            nearest_edges=rt_edges.query(new_edge.get_aabb(),tol=Const.TOL_DIST)
+            nearest_edges=rt_edges.query(new_edge.get_aabb())
             # 遍历相交的线，取距离最近的一个交点(起点除外)，作为下一个顶点
             min_param_dist=1
             next_node=new_edge.e

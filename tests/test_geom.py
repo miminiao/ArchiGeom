@@ -1,4 +1,4 @@
-#%% 圆弧mbb测试
+#%% 圆弧aabb测试
 if 0 and __name__=="__main__":
     # edge2=Edge(Node(-189.1,-219.0),Node(-169.4,-234.9)).opposite()
     # edge1=Edge(Node(-160.4,-233.5),Node(-139.5,-214.0)).opposite()
@@ -12,9 +12,9 @@ if 0 and __name__=="__main__":
     edges=arc.fit()
     for edge in edges:
         plt.plot(edge.to_array()[:,0], edge.to_array()[:,1],c='b')
-    mbb=arc.get_mbb()
-    plt.plot([mbb[0].x,mbb[1].x,mbb[1].x,mbb[0].x,mbb[0].x],
-             [mbb[0].y,mbb[0].y,mbb[1].y,mbb[1].y,mbb[0].y])
+    aabb=arc.get_aabb()
+    plt.plot([aabb[0].x,aabb[1].x,aabb[1].x,aabb[0].x,aabb[0].x],
+             [aabb[0].y,aabb[0].y,aabb[1].y,aabb[1].y,aabb[0].y])
     ax = plt.gca()
     ax.set_aspect(1) 
     plt.show()

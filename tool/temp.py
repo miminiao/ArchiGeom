@@ -9,5 +9,5 @@ if __name__=="__main__":
     
     import matplotlib.pyplot as plt
     plt.scatter([node.x for node in nodes],[node.y for node in nodes])
-
+    
     plt.show()

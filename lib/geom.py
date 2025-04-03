@@ -1,6 +1,7 @@
 #%%
 import numpy as np
 import math
+from math import inf as INF, pi as PI
 from copy import copy,deepcopy
 from enum import Enum
 from abc import ABC,abstractmethod
@@ -19,42 +20,9 @@ class GeomRelation(Enum):
 class Geom(ABC):
     _dumper_ignore=[]
     def __init__(self) -> None: ...
-    @staticmethod
-    def merge_mbb(mbbs:list[tuple["Node","Node"]]) -> tuple["Node","Node"]:
-        """合并包围盒，返回一堆包围盒的包围盒.
-
-        Args:
-            mbbs (list[tuple[Node,Node]]): 一堆包围盒.
-        Returns:
-            tuple[Node,Node]: 大包围盒.
-        """
-        if len(mbbs)==0: return None
-        max_val=Const.MAX_VAL
-        pmin=Node(max_val,max_val)
-        pmax=Node(-max_val,-max_val)
-        for mbb in mbbs:
-            pmin.x=min(pmin.x,mbb[0].x)
-            pmin.y=min(pmin.y,mbb[0].y)
-            pmax.x=max(pmax.x,mbb[1].x)
-            pmax.y=max(pmax.y,mbb[1].y)
-        return (pmin,pmax)
-    
-    @staticmethod
-    def mbb_relation(a:tuple["Node","Node"],b:tuple["Node","Node"])->list[GeomRelation]:
-        rel=[]
-        comp=Const.cmp_dist
-        if (comp(b[0].x,a[1].x)<0 and comp(b[0].y,a[1].y)<0 and
-            comp(b[1].x,a[0].x)>0 and comp(b[1].y,a[0].y)>0
-        ): 
-            rel.append(GeomRelation.Inside)
-        if (comp(b[0].x,a[0].x)<0 or comp(b[0].y,a[0].y)<0 or
-            comp(b[1].x,a[1].x)>0 or comp(b[1].y,a[1].y)>0
-        ): 
-            rel.append(GeomRelation.Outside)
-        return rel
     @abstractmethod
-    def get_mbb(self)->tuple["Node","Node"]:
-        """获取包围盒->(左下,右上)"""
+    def get_aabb(self)->'Box':
+        """获取AABB包围盒"""
         ...
     
 class Node(Geom):
@@ -91,8 +59,8 @@ class Node(Geom):
     @classmethod
     def from_vec3d(cls,vec:Vec3d) -> Self:
         return cls(vec.x,vec.y)
-    def get_mbb(self) -> tuple[Self, Self]:
-        return (self,self)
+    def get_aabb(self):
+        return Box(self.x,self.y,self.x,self.y)
     def equals(self, other:Self) -> bool:
         return isinstance(other,Node) and self.dist(other)<Const.TOL_DIST
     def dist(self, other:Self) -> bool:
@@ -104,6 +72,46 @@ class Node(Geom):
     def is_on_edge(self, edge:"Edge", include_endpoints:bool=True) ->bool:
         """点在曲线上"""
         return edge.touches_node(self,include_endpoints)
+    
+class Box(Geom):
+    """2D矩形,用于描述平面AABB包围盒"""
+    def __init__(self,minx:float=-INF,miny:float=-INF,maxx:float=INF,maxy:float=INF):
+        super().__init__()
+        self.minx,self.miny,self.maxx,self.maxy=minx,miny,maxx,maxy
+    def get_aabb(self): return self
+    def lb(self): return Node(self.minx,self.miny)  # 左下
+    def lt(self): return Node(self.minx,self.maxy)  # 左上
+    def rb(self): return Node(self.maxx,self.miny)  # 右下
+    def rt(self): return Node(self.maxx,self.maxy)  # 右上
+    @classmethod
+    def merge(cls,boxes:list[Self]) -> Self:
+        """合并包围盒，返回一堆包围盒的包围盒"""
+        if len(boxes)==0: return None
+        minx,miny,maxx,maxy=INF,INF,-INF,-INF
+        for box in boxes:
+            minx=min(minx,box.minx)
+            miny=min(miny,box.miny)
+            maxx=max(maxx,box.maxx)
+            maxy=max(maxy,box.maxy)
+        return cls(minx,miny,maxx,maxy)
+    @classmethod
+    def relation(cls,a:Self,b:Self)->list[GeomRelation]:
+        """包围盒的位置关系"""
+        rel=[]
+        comp=Const.cmp_dist
+        if (comp(b.minx,a.maxx)<0 and comp(b.miny,a.maxy)<0 and
+            comp(b.maxx,a.minx)>0 and comp(b.maxy,a.miny)>0
+        ): 
+            rel.append(GeomRelation.Inside)
+        if (comp(b.minx,a.minx)<0 or comp(b.miny,a.miny)<0 or
+            comp(b.maxx,a.maxx)>0 or comp(b.maxy,a.maxy)>0
+        ): 
+            rel.append(GeomRelation.Outside)
+        return rel    
+    @classmethod
+    def from_geoms(cls,geoms:list[Geom])->Self:
+        boxes=[geom.get_aabb() for geom in geoms]
+        return cls.merge(boxes)
 
 class Edge(Geom):  
     """边/曲线段"""
@@ -297,11 +305,11 @@ class Edge(Geom):
         return Node(prod[0]/prod[2],prod[1]/prod[2])
     @staticmethod
     def compare_curvature_by_radius(a:float,b:float)->int:
-        if (abs(a)==abs(b)==float("inf")
+        if (abs(a)==abs(b)==INF
                 or Const.cmp_dist(abs(a-b),0)==0): 
             return 0  # 直线
-        if abs(a)==float("inf"): return (b<0)*2-1
-        if abs(b)==float("inf"): return (a>0)*2-1
+        if abs(a)==INF: return (b<0)*2-1
+        if abs(b)==INF: return (a>0)*2-1
         return (a>b)*2-1 if a*b<0 else (a<b)*2-1
 class Line(Geom):  # [TODO]: 把LineSeg直线相关的方法搬过来
     """直线"""
@@ -309,22 +317,22 @@ class Line(Geom):  # [TODO]: 把LineSeg直线相关的方法搬过来
         super().__init__()
         self.origin=origin
         self.direction=direction.unit()
-    def get_mbb(self):
-        if abs(self.angle-math.pi/2)<Const.TOL_ANG: 
+    def get_aabb(self):
+        if abs(self.angle-PI/2)<Const.TOL_ANG: 
             x1=x2=self.origin.x
         else:
-            x1,x2=-math.inf,math.inf
+            x1,x2=-INF,INF
         if self.angle<Const.TOL_ANG: 
             y1=y2=self.origin.y
         else: 
-            y1,y2=-math.inf,math.inf
-        return (Node(x1,y1),Node(x2,y2))
+            y1,y2=-INF,INF
+        return Box(x1,y1,x2,y2)
     @property
     def angle(self)->float:
         """直线的角度, 范围[0,pi), 含误差"""
         angle=self.direction.angle
-        if angle>=math.pi: angle-=math.pi
-        if math.pi-angle<Const.TOL_ANG: angle-=math.pi
+        if angle>=PI: angle-=PI
+        if PI-angle<Const.TOL_ANG: angle-=PI
         return angle
     def is_parallel(self,other):
         ...
@@ -334,21 +342,21 @@ class Ray(Geom):  # [TODO]: 实现LineSeg相关的方法
         super().__init__()
         self.origin=origin
         self.direction=direction.unit()
-    def get_mbb(self):
+    def get_aabb(self):
         a=self.angle
-        if a<Const.TOL_ANG or abs(a-math.pi)<Const.TOL_ANG:  # ↔
+        if a<Const.TOL_ANG or abs(a-PI)<Const.TOL_ANG:  # ↔
             y1=y2=self.origin.y
-        elif a>math.pi:  # ⬇
-            y1,y2=-math.inf,self.origin
+        elif a>PI:  # ⬇
+            y1,y2=-INF,self.origin
         else:  # ⬆
-            y1,y2=self.origin.y,math.inf
-        if abs(a-math.pi/2)<Const.TOL_ANG or abs(a-math.pi/2*3)<Const.TOL_ANG:  # ↕
+            y1,y2=self.origin.y,INF
+        if abs(a-PI/2)<Const.TOL_ANG or abs(a-PI/2*3)<Const.TOL_ANG:  # ↕
             x1=x2=self.origin.x
-        elif math.pi/2<a<math.pi/2*3:  # ⬅
-            x1,x2=-math.inf,self.origin.x
+        elif PI/2<a<PI/2*3:  # ⬅
+            x1,x2=-INF,self.origin.x
         else:  # ➡
-            x1,x2=self.origin.x,math.inf
-        return (Node(x1,y1),Node(x2,y2))
+            x1,x2=self.origin.x,INF
+        return Box(x1,y1,x2,y2)
     @property
     def angle(self)->float:
         """射线的角度, 范围[0,2pi), 含误差"""
@@ -373,8 +381,9 @@ class LineSeg(Edge):
         if arr.shape==(2,2):
             return cls(Node.from_array(arr[0]),Node.from_array(arr[1]))
         else: return None
-    def get_mbb(self) -> tuple["Node", "Node"]:
-        return (Node(min(self.s.x,self.e.x),min(self.s.y,self.e.y)),Node(max(self.s.x,self.e.x),max(self.s.y,self.e.y)))
+    def get_aabb(self):
+        return Box(min(self.s.x,self.e.x), min(self.s.y,self.e.y),
+                   max(self.s.x,self.e.x), max(self.s.y,self.e.y))
     def reverse(self) -> None:
         self.s,self.e=self.e,self.s
     def opposite(self) -> "LineSeg":
@@ -478,9 +487,9 @@ class LineSeg(Edge):
     def tangent_at(self,t:float)->Vec3d:
         return self.to_vec3d().unit()
     def principal_normal_at(self,t:float)->Vec3d:
-        return self.to_vec3d().unit().rotate2d(math.pi/2)
+        return self.to_vec3d().unit().rotate2d(PI/2)
     def radius_at(self,t:float,signed:bool=False)->float:
-        return float("inf")
+        return INF
     def curvature_at(self,t:float,signed:bool=False)->float: 
         return 0
     def angle_to(self,other:"LineSeg")->float:
@@ -590,7 +599,7 @@ class LineSeg(Edge):
             vr2=p2.to_vec3d()-c.to_vec3d()
             # 圆心角 = 夹角, (-pi,pi]
             angle=self.angle_to(other)
-            if angle>math.pi: angle=angle-2*math.pi
+            if angle>PI: angle=angle-2*PI
             arc=Arc(p1,p2,math.tan(angle/4))
             return arc
 class Arc(Edge):
@@ -634,8 +643,8 @@ class Arc(Edge):
             start_angle,end_angle=end_angle,start_angle
             total_angle=-total_angle
         end_angle=start_angle+total_angle
-        if end_angle+Const.TOL_ANG>math.pi*2:
-            end_angle-=math.pi*2
+        if end_angle+Const.TOL_ANG>PI*2:
+            end_angle-=PI*2
         s=Node(center_point.x+radius*math.cos(start_angle),
                center_point.y+radius*math.sin(start_angle))
         e=Node(center_point.x+radius*math.cos(end_angle),
@@ -644,14 +653,14 @@ class Arc(Edge):
         # if abs(bulge)<Const.TOL_VAL: return LineSeg(s,e)
         # else: return cls(s,e,bulge)
         return cls(s,e,bulge)
-    def get_mbb(self) -> tuple[Node, Node]:
+    def get_aabb(self):
         x,y,z,r=self.center.x,self.center.y,self.center.z,self.radius
         left,right,top,bottom=Node(x-r,y,z),Node(x+r,y,z),Node(x,y+r,z),Node(x,y-r,z)
         pmin_x=left.x if self.touches_node(left) else min(self.s.x,self.e.x)
         pmin_y=bottom.y if self.touches_node(bottom) else min(self.s.y,self.e.y)
         pmax_x=right.x if self.touches_node(right) else max(self.s.x,self.e.x)
         pmax_y=top.y if self.touches_node(top) else max(self.s.y,self.e.y)
-        return (Node(pmin_x,pmin_y),Node(pmax_x,pmax_y))
+        return Box(pmin_x,pmin_y,pmax_x,pmax_y)
     def reverse(self)->None:
         self.s,self.e,self.bulge=self.e,self.s,-self.bulge
     def opposite(self) -> "Arc":
@@ -762,25 +771,25 @@ class Arc(Edge):
         v_p=p.to_vec3d()-self.center.to_vec3d()
         v_s=self.s.to_vec3d()-self.center.to_vec3d()
         radian_s2p=v_s.angle_to(v_p)
-        if self.bulge<0 and abs(radian_s2p)>Const.TOL_ANG: radian_s2p=radian_s2p-2*math.pi
+        if self.bulge<0 and abs(radian_s2p)>Const.TOL_ANG: radian_s2p=radian_s2p-2*PI
         t=radian_s2p/self.radian
         return t*l if arc_length else t
     def point_at(self,t:float) -> Node:
-        t_range=2*math.pi/self.radian  # 圆周的t的范围
+        t_range=2*PI/self.radian  # 圆周的t的范围
         t=t%t_range
         angle=self.angles[0]+t*self.radian  # 点的角度
         return Node(self.center.x+self.radius*math.cos(angle),self.center.y+self.radius*math.sin(angle))
     def tangent_at(self,t:float)->Vec3d:
-        t_range=2*math.pi/self.radian  # 圆周的t的范围
+        t_range=2*PI/self.radian  # 圆周的t的范围
         angle=self.angles[0]+t*self.radian  # 点的角度
         vec=Vec3d(math.cos(angle),math.sin(angle))
         tangent=Vec3d(0,0,1).cross(vec) if self.bulge>0 else vec.cross(Vec3d(0,0,1))
         return tangent
     def principal_normal_at(self,t:float)->Vec3d:
         if self.bulge>Const.TOL_VAL:
-            return self.tangent_at(t).rotate2d(math.pi/2)
+            return self.tangent_at(t).rotate2d(PI/2)
         else: 
-            return self.tangent_at(t).rotate2d(-math.pi/2)
+            return self.tangent_at(t).rotate2d(-PI/2)
     def radius_at(self,t:float,signed:bool=False)->float:
         if signed and self.bulge<0: 
             return -self.radius
@@ -831,7 +840,7 @@ class Arc(Edge):
             return Arc(p1,p2,math.tan(radian/4))
         else: return None
     def fit(self,quad_segs:int=16,min_segs:int=1) -> list[LineSeg]:
-        subdiv_num=max(min_segs,math.ceil(abs(self.radian/(math.pi/2)*quad_segs)))
+        subdiv_num=max(min_segs,math.ceil(abs(self.radian/(PI/2)*quad_segs)))
         if subdiv_num==0: return [LineSeg(self.s,self.e)]
         subdiv_radian=self.radian/subdiv_num
         nodes=[self.s]
@@ -865,11 +874,11 @@ class Circle(Arc):
     _dumper_ignore=["radian","bulge","angles"]
     def __init__(self,center:Node,radius:float) -> None:
         s=Node(center.x+radius,center.y)
-        super().__init__(s,s,math.inf)
+        super().__init__(s,s,INF)
         self._center=center
         self._radius=radius
-        self._radian=math.pi*2
-        self._angles=(0,math.pi*2)
+        self._radian=PI*2
+        self._angles=(0,PI*2)
     @property
     def center(self) -> Node:
         return self._center
@@ -887,7 +896,7 @@ class Circle(Arc):
         new_ins=cls(center,center.dist(start_point))
         new_ins.s=new_ins.e=start_point
         angle=(start_point.to_vec3d()-center.to_vec3d()).angle
-        new_ins.angles=(angle,angle+math.pi*2)
+        new_ins.angles=(angle,angle+PI*2)
     def __repr__(self) -> str:
         return f"Circle({self.center},{self.radius})"
     def __eq__(self,other):
@@ -898,14 +907,14 @@ class Circle(Arc):
         return Circle(self.center,self.radius)
     def __deepcopy__(self)->Self:
         return Circle(deepcopy(self.center),self.radius)
-    def get_mbb(self):
-        return (Node(self.center.x-self.radius,self.center.y-self.radius),
-                Node(self.center.x+self.radius,self.center.y+self.radius))
+    def get_aabb(self):
+        return Box(self.center.x-self.radius, self.center.y-self.radius,
+                   self.center.x+self.radius, self.center.y+self.radius)
     def equals(self,other:"Circle")->bool:
         return isinstance(other,Circle) and self.center.dist(other.center)+abs(self.radius-other.radius)<Const.TOL_DIST
     def to_halves(self)->list["Arc"]:
-        return [Arc.from_center_radius_angle(self.center,self.radius,0,math.pi),
-                Arc.from_center_radius_angle(self.center,self.radius,math.pi,math.pi)]
+        return [Arc.from_center_radius_angle(self.center,self.radius,0,PI),
+                Arc.from_center_radius_angle(self.center,self.radius,PI,PI)]
         
 class Polyedge(Geom):
     """多段线"""
@@ -949,8 +958,8 @@ class Polyedge(Geom):
         return cls([tup for tup in zip(nodes,bulges)])
     def close(self)->"Loop":
         return Loop(list(zip(self.nodes,self.bulges)))
-    def get_mbb(self) -> tuple[Node, Node]:
-        return Geom.merge_mbb([e.get_mbb() for e in self.edges])
+    def get_aabb(self):
+        return Box.merge([e.get_aabb() for e in self.edges])
     def to_array(self) -> np.ndarray:
         if self.is_closed:
             return np.array([node.to_array() for node in self.nodes]+[self.nodes[0].to_array()])
@@ -1092,7 +1101,7 @@ class Loop(Polyedge):
             if edge_offset.get_param(intersection)>1 and intersection.dist(edge_offset.e)<mitre_limit:  # 交点在后一段的终点之后，但是没有超过限制
                 return True
             return False
-        if mitre_limit is None: mitre_limit=Const.MAX_VAL
+        if mitre_limit is None: mitre_limit=INF
         new_nodes=[]
         pre_edge=self.edges[-1]
         pre_edge_offset=pre_edge.offset(comb_dist(pre_edge,dist))
@@ -1119,7 +1128,7 @@ class Loop(Polyedge):
         # 判断的时候每条线段的有效范围是[0,1)->[s,e)；只算头，不算尾巴
         for i,ei in enumerate(self.edges):
             if self.prepared is not None:
-                neighbors=self.prepared.query(ei.get_mbb(),tol=Const.TOL_DIST)
+                neighbors=self.prepared.query(ei.get_aabb(),tol=Const.TOL_DIST)
             else: neighbors=self.edges[i:]
             for ej in neighbors:
                 if ei is ej: continue
@@ -1135,7 +1144,8 @@ class Loop(Polyedge):
         """环覆盖其他对象"""
         if not (count_mode=="or" or count_mode=="xor"): 
             raise ValueError("Invalid count mode.")
-        if GeomRelation.Outside in Geom.mbb_relation(self.get_mbb(),other.get_mbb()):  # 包围盒不满足则不满足
+        rel=Box.relation(self.get_aabb(),other.get_aabb())
+        if GeomRelation.Outside in rel:  # 包围盒不满足则不满足
             return False
         if isinstance(other,Node):
             return self._covers_node(other,count_mode)
@@ -1160,12 +1170,11 @@ class Loop(Polyedge):
         return False    
     def _relation_with_node(self,other:Node,count_mode:str="or")->GeomRelation:
         """判断点和环的关系"""
-        rel=Geom.mbb_relation(self.get_mbb(),other.get_mbb())
-        if rel==[GeomRelation.Outside]:  # 包围盒不满足则不满足
-            return rel[0]
+        rel=Box.relation(self.get_aabb(),other.get_aabb())
+        if rel==[GeomRelation.Outside]: return rel[0]  # 包围盒不满足则不满足
         # 先判断是否在边界上
         if self.prepared is not None:
-            neighbor_edges=self.prepared.query(other.get_mbb(),tol=Const.TOL_DIST)
+            neighbor_edges=self.prepared.query(other.get_aabb(),tol=Const.TOL_DIST)
         else: neighbor_edges=self.edges
         for edge in neighbor_edges:
             if edge.touches_node(other):
@@ -1173,10 +1182,10 @@ class Loop(Polyedge):
         # 判断内外：射线法，计算环“真实”穿越射线的次数
         # 向上：+1；向下：-1；向上+终点 或 向下+起点：不计
         # 对于"xor"模式：偶数在外，奇数在内；对于"or"模式，0在外，非0在内
-        max_x=self.get_mbb()[1].x
-        ray=LineSeg(other,Node(max_x+Const.TOL_DIST*2,other.y))
+        maxx=self.get_aabb().maxx
+        ray=LineSeg(other,Node(maxx+Const.TOL_DIST*2,other.y))
         if self.prepared is not None:
-            neighbor_edges=self.prepared.query(ray.get_mbb(),tol=Const.TOL_DIST)
+            neighbor_edges=self.prepared.query(ray.get_aabb(),tol=Const.TOL_DIST)
         else: neighbor_edges=self.edges
         cross_count=0
         for edge in neighbor_edges:
@@ -1228,7 +1237,7 @@ class Loop(Polyedge):
               GeomRelation.Intersect:[]}
         break_points=[]
         if self.prepared is not None:
-            neighbor_edges=self.prepared.query(other.get_mbb(),tol=Const.TOL_DIST)
+            neighbor_edges=self.prepared.query(other.get_aabb(),tol=Const.TOL_DIST)
         else: neighbor_edges=self.edges
         for edge in neighbor_edges:
             if edge.s.is_on_edge(other): break_points.append(edge.s)
@@ -1360,8 +1369,8 @@ class Polygon(Geom):
         return Polygon(self.shell,self.holes,make_valid=False)
     def __deepcopy__(self)->Self:
         return Polygon(deepcopy(self.shell),deepcopy(self.holes),make_valid=False)
-    def get_mbb(self) -> tuple[Node, Node]:
-        return self.shell.get_mbb()
+    def get_aabb(self):
+        return self.shell.get_aabb()
     def to_array(self)->tuple[np.ndarray,np.ndarray]:
         return self.shell.to_array(),[hole.to_array() for hole in self.holes]
     @property
@@ -1393,7 +1402,7 @@ class Polygon(Geom):
         **Attention:**
             Polygon包含Loop的意思是包含边而非区域，要判断区域需构造Polygon
         """
-        rel=Geom.mbb_relation(self.get_mbb(),other.get_mbb())
+        rel=Box.relation(self.get_aabb(),other.get_aabb())
         if GeomRelation.Outside in rel: return False  # 包围盒不满足则不满足
         if isinstance(other,Node):
             if not self.shell.covers(other): return False
@@ -1419,7 +1428,7 @@ class Polygon(Geom):
 
     def contains(self,other:Geom)->bool: 
         """多边形包含其他对象. 注意：Polygon包含Loop的意思是包含边而非区域，要判断区域需构造Polygon"""
-        rel=Geom.mbb_relation(self.get_mbb(),other.get_mbb())
+        rel=Box.relation(self.get_aabb(),other.get_aabb())
         if GeomRelation.Outside in rel or GeomRelation.OnBoundary in rel: return False  # 包围盒不满足则不满足
         if isinstance(other,Node):
             if not self.shell.contains(other): return False
@@ -1455,7 +1464,7 @@ class Polygon(Geom):
         return ...
     def closest_point(self,other:Geom)->Node:
         if isinstance(other,Node):
-            min_dist=Const.MAX_VAL
+            min_dist=INF
             res=None
             for loop in self.all_loops:
                 for edge in loop.edges:

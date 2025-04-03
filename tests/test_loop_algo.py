@@ -127,7 +127,7 @@ def test_rebuild_loop(case)->None:
         assert all([_find_identical_loop(geom,std_tree) for geom in res])
 
 def _find_identical_loop(loop:Loop,std_out:STRTree[Loop])->bool:
-    neighbors=std_out.query(loop.get_mbb())
+    neighbors=std_out.query(loop.get_aabb())
     cmp=Const.cmp_area
     for std_loop in neighbors:
         if cmp(std_loop.area,loop.area)==0 and std_loop.covers(loop) and loop.covers(std_loop):

@@ -73,7 +73,7 @@ def test_polygon_inter(case):
         assert all([_find_identical_polygon(geom,std_tree) for geom in res])
 
 def _find_identical_polygon(polygon:Polygon,std_out:STRTree[Polygon])->bool:
-    neighbors=std_out.query(polygon.get_mbb())
+    neighbors=std_out.query(polygon.get_aabb())
     cmp=Const.cmp_area
     for std_polygon in neighbors:
         if cmp(std_polygon.area,polygon.area)==0 and std_polygon.covers(polygon) and polygon.covers(std_polygon):

@@ -3,7 +3,7 @@ from lib.utils import Constant,ListTool
 from lib.interval import Interval1d,MultiInterval1d
 from typing import Self,Callable,Literal,TYPE_CHECKING
 if TYPE_CHECKING:
-    from lib.geom import Geom,Node
+    from lib.geom import Geom,Node,Box
 
 class TreeNode[T]:
     """树结点"""
@@ -226,9 +226,9 @@ class DSU[T]:
 class _STRTreeNode[T:Geom](TreeNode):
     """STR树结点"""
     def __init__(self,geom:T=None,child:list["_STRTreeNode[T]"]=None) -> None:
-        from lib.geom import Geom
+        from lib.geom import Box
         super().__init__(geom,None,child)
-        self.mbb=geom.get_mbb() if geom is not None else Geom.merge_mbb([ch.mbb for ch in child])
+        self.aabb=geom.get_aabb() if geom is not None else Box.merge([ch.aabb for ch in child])
 
 class STRTree[T:Geom]:
     """STR树"""
@@ -250,7 +250,7 @@ class STRTree[T:Geom]:
             slice_num=math.ceil(parent_num**0.5)  # 划分子结点的行列数
             col_cap=math.ceil(child_num/slice_num)  # 每列的子节点数
             # 子节点按x排序后划分成slice_num列
-            child_treenodes.sort(key=lambda treenode: treenode.mbb[0].x)
+            child_treenodes.sort(key=lambda treenode: treenode.aabb.minx)
             parent_treenodes=[]
             for i in range(slice_num):
                 # 当前第i列的子节点们
@@ -259,7 +259,7 @@ class STRTree[T:Geom]:
                 col=child_treenodes[l:r] if r<=child_num else child_treenodes[l:]
                 # 每一列的子节点再按y排序后划分成slice_num个tile
                 tile_cap=math.ceil(len(col)/slice_num)
-                col.sort(key=lambda node: node.mbb[0].y)
+                col.sort(key=lambda node: node.aabb.miny)
                 for j in range(slice_num):
                     b,t=tile_cap*j,tile_cap*(j+1)
                     if b>=len(col): break
@@ -273,11 +273,11 @@ class STRTree[T:Geom]:
                 break
             else:  # 否则继续构建上一层
                 child_treenodes=parent_treenodes
-    def query(self,box:tuple["Node","Node"],tol:float=0,tree_node:_STRTreeNode=None) -> list[T]:
+    def query(self,qbox:'Box',tol:float=0,tree_node:_STRTreeNode=None) -> list[T]:
         """框选查询.
 
         Args:
-            box (tuple[Node,Node]): 范围矩形左下右上.
+            qbox (Box): 范围矩形.
             tol (float, optional): 外扩距离. Defaults to 0.
             tree_node (_STRNode, optional): 开始查询的结点. Defaults to None->self._root.
 
@@ -288,11 +288,10 @@ class STRTree[T:Geom]:
         if tree_node.obj is not None:
             return [tree_node.obj]
         res=[]
-        qmin,qmax=box
         for ch in tree_node.child:
-            chmin,chmax=ch.mbb
-            if (qmin.x<=chmax.x+tol) and (chmin.x<=qmax.x+tol) and (qmin.y<=chmax.y+tol) and (chmin.y<=qmax.y+tol):
-                res=res+self.query(box,tol,ch)
+            chbox=ch.aabb
+            if (qbox.minx<=chbox.maxx+tol) and (chbox.minx<=qbox.maxx+tol) and (qbox.miny<=chbox.maxy+tol) and (chbox.miny<=qbox.maxy+tol):
+                res=res+self.query(qbox,tol,ch)
         return res        
 
 class SegmentTree[T]:
@@ -366,6 +365,7 @@ class _KDTreeNode(_BinaryTreeNode['Node']):
     def __init__(self, obj:'Node', dim:int, parent:Self=None, lch:Self=None, rch:Self=None):
         super().__init__(obj, parent, lch, rch)
         self.dim=dim  # 当前结点的切割方向
+        self.aabb=None
 class KDTree:
     """k-d树"""
     def __init__(self, nodes:list["Node"], dim:int=2):

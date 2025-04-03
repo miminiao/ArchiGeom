@@ -63,7 +63,7 @@ def test_find_outline(case):
         assert comp(res.area,std_out[1])==0
 
 if __name__=="__main__":
-    if 0:
+    if 1:
         for i in [3]:
         # for i in range(1,FIND_OUTLINE[1]+1):
             test_find_outline({"in":f"case_{i}","out":f"out_{i}"})

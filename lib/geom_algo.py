@@ -28,6 +28,20 @@ class GeomAlgo(ABC):
     def _postprocess(self)->None: ...
 
 class MaxRectAlgo(GeomAlgo):  # TODO
+    """多边形与坐标轴平行的最大内接矩形.
+
+    Args:
+        poly (Poly): 多边形.
+        order (int, optional): 最大矩形的数量. Defaults to 1.
+        covered_points (list[list[Node]], optional): 第1..order大矩形必须包含的点坐标，没有则对应位置=None. Defaults to None.
+        precision (float, optional): 斜线的xy分割网格尺寸，单位mm；-1.0即不分割. Defaults to -1.0.
+        cut_depth (int, optional): 切割深度，即网格的层数，大于1时，精度无效. Defaults to 1.
+        const (Const, optional): 误差控制常量. Defaults to Const.DEFAULT.
+    
+    Todo:
+        * 适配新的geom接口
+        * 圆弧边界
+    """    
     def __init__(
             self,
             poly: Polygon,
@@ -37,16 +51,6 @@ class MaxRectAlgo(GeomAlgo):  # TODO
             cut_depth=1,
             const:Const=None,
         ) -> None:
-        """多边形与坐标轴平行的最大内接矩形
-
-        Args:
-            poly (Poly): 多边形.
-            order (int, optional): 最大矩形的数量. Defaults to 1.
-            covered_points (list[list[Node]], optional): 第1..order大矩形必须包含的点坐标，没有则对应位置=None. Defaults to None.
-            precision (float, optional): 斜线的xy分割网格尺寸，单位mm；-1.0即不分割. Defaults to -1.0.
-            cut_depth (int, optional): 切割深度，即网格的层数，大于1时，精度无效. Defaults to 1.
-            const (Const, optional): 误差控制常量. Defaults to Const.DEFAULT.
-        """
         super().__init__()
         self.poly=poly
         self.order=order
@@ -113,9 +117,9 @@ class MaxRectAlgo(GeomAlgo):  # TODO
         edges = poly.edges
         nodes = poly.nodes
         int_nodes = self._intersection_nodesXY(edges, nodes)  # 用所有顶点xy切割边
-        mbb=poly.shell.get_mbb()
+        aabb=poly.shell.get_aabb()
         int_gridX, int_gridY = self._intersection_gridXY(
-            [mbb[0].x,mbb[0].y,mbb[1].x,mbb[1].y], edges, precision
+            [aabb[0].x,aabb[0].y,aabb[1].x,aabb[1].y], edges, precision
         )  # 用细分网格xy切割边
         more_nodes = []
         new_nodes = int_nodes + int_gridX + int_gridY
@@ -314,12 +318,12 @@ class MaxRectAlgo(GeomAlgo):  # TODO
     def _postprocess(self) -> None: ...
 
 class BreakEdgeAlgo(GeomAlgo):  # ✅
-    def __init__(self,edge_groups:list[Edge]|list[list[Edge]]) -> None:
-        """线段打断. 重叠部分会在端点处打断. 保持原线段的方向. 
+    """线段打断. 重叠部分会在端点处打断. 保持原线段的方向. 
 
-        Args:
-            edge_groups (list[Edge]|list[list[Edge]]): 待打断的一组线段. | 若干个分组，每组包含若干条线段.
-        """
+    Args:
+        edge_groups (list[Edge]|list[list[Edge]]): 待打断的一组线段. | 若干个分组，每组包含若干条线段.
+    """
+    def __init__(self,edge_groups:list[Edge]|list[list[Edge]]) -> None:
         super().__init__()
         if len(edge_groups)>0 and isinstance(edge_groups[0],Edge):
             self._is_group=False
@@ -357,7 +361,7 @@ class BreakEdgeAlgo(GeomAlgo):  # ✅
         break_points={line:[line.s,line.e] for line in all_edges} # 记录线段上的断点
         rt=STRTree(all_edges)
         for line in all_edges:
-            neighbors=rt.query(line.get_mbb(),tol=1.0)
+            neighbors=rt.query(line.get_aabb(),tol=1.0)
             for other in neighbors:
                 if other in visited[line]: continue # 这俩已经求过了，就不再算了
                 visited[line].add(other)
@@ -402,15 +406,16 @@ class BreakEdgeAlgo(GeomAlgo):  # ✅
                     pre=p
             broken_lines.append(new_group)
         return broken_lines
-class MergeEdgeAlgo(GeomAlgo):  # [TODO]: 圆弧
-    def __init__(self,edges:list[Edge],break_at_intersections:bool=False,compare:Callable[[Edge,Edge],int]=None) -> None:
-        """合并重叠的线段。使用Const.TOL_DIST判断区间端点精度。
 
-        Args:
-            edges (list[Edge]): 待合并的线段.
-            preserve_intersection (bool, optional): 是否在交点处打断. Defaults to False.
-            compare (Callable[[Edge,Edge],int], optional): 线段的优先级==0(等于)|==1(大于)|==-1(小于); 合并时保留较大的. Defaults to None (==0).
-        """
+class MergeEdgeAlgo(GeomAlgo):  # ✅
+    """合并重叠的线段。使用Const.TOL_DIST判断区间端点精度。
+
+    Args:
+        edges (list[Edge]): 待合并的线段.
+        preserve_intersection (bool, optional): 是否在交点处打断. Defaults to False.
+        compare (Callable[[Edge,Edge],int], optional): 线段的优先级==0(等于)|==1(大于)|==-1(小于); 合并时保留较大的. Defaults to None (==0).
+    """    
+    def __init__(self,edges:list[Edge],break_at_intersections:bool=False,compare:Callable[[Edge,Edge],int]=None) -> None:
         super().__init__()
         self.edges=edges[:]
         self.merged:list[Edge]=[]
@@ -583,24 +588,18 @@ class MergeEdgeAlgo(GeomAlgo):  # [TODO]: 圆弧
             if intv.r-start_param>cir: break
             merged_edges.append(baseline.slice_between(baseline.point_at(intv.l/d),baseline.point_at(intv.r/d)))
         return merged_edges
-class FindConnectedGraphAlgo(GeomAlgo):
-    def __init__(self,lines:list[Edge]) -> None:
-        """求连通图
 
-        Args:
-            edges (list[Edge]): 所有线段，需要打断.
-        """
+class FindConnectedGraphAlgo(GeomAlgo):
+    """求连通图.
+
+    Args:
+        edges (list[Edge]): 所有线段，需要打断.
+    """
+    def __init__(self,lines:list[Edge]) -> None:
         super().__init__()
         self.lines=lines
         self.connected_graphs:list[list[Edge]]=[]
     def get_result(self)->list[list[Edge]]:
-        """获取结果
-
-        Returns
-        -------
-        list[list[Edge]]
-            n个连通图
-        """
         self._preprocess()
         self.connected_graphs=self._find_connected_graphs()
         self._postprocess()
@@ -625,7 +624,7 @@ class FindConnectedGraphAlgo(GeomAlgo):
             current_line=q[head]
             head+=1
             for node in [current_line.s,current_line.e]:
-                neighbor_lines=rt.query(node.get_mbb(),tol=Const.TOL_DIST*2)
+                neighbor_lines=rt.query(node.get_aabb(),tol=Const.TOL_DIST*2)
                 for line in neighbor_lines:
                     if line not in visited_lines:
                         if node.dist(line.s)<Const.TOL_DIST or node.dist(line.e)<Const.TOL_DIST:
@@ -633,19 +632,20 @@ class FindConnectedGraphAlgo(GeomAlgo):
                             visited_lines.add(line)
         return res
     def _preprocess(self)->None:
-        """预处理"""
         # 去除0线段
         self.lines=list(filter(lambda line: not line.is_zero(),self.lines))
-    def _postprocess(self)->None:
-        """后处理"""
-        ...
-class FindOutlineAlgo(GeomAlgo):  # TODO: 圆弧
-    def __init__(self,edges:list[Edge]) -> None:
-        """求单个连通图形的外轮廓
+    def _postprocess(self)->None: ...
 
-        Args:
-            edges (list[Edge]): 所有线段，无需打断.
-        """
+class FindOutlineAlgo(GeomAlgo):
+    """求单个连通图形的外轮廓
+
+    Args:
+        edges (list[Edge]): 所有线段，无需打断.
+    
+    Todo:
+        * 圆弧.
+    """    
+    def __init__(self,edges:list[Edge]) -> None:
         super().__init__()
         self.edges=edges
     def get_result(self)->Loop:
@@ -661,9 +661,9 @@ class FindOutlineAlgo(GeomAlgo):  # TODO: 圆弧
         self.edges=list(filter(lambda line: not line.is_zero(),self.edges))
     def _find_start_edge(self)->Edge: 
         """找起始边：先找x最小的点，然后向右出发"""
-        start_edge=min(self.edges,key=lambda edge:edge.get_mbb()[0].x)
-        mbb=start_edge.get_mbb()
-        left_bound=LineSeg(mbb[0],Node(mbb[0].x,mbb[1].y))
+        start_edge=min(self.edges,key=lambda edge:edge.get_aabb().minx)
+        box=start_edge.get_aabb()
+        left_bound=LineSeg(box.lb(),box.lt())
         intersections=start_edge.intersection(left_bound)
         if len(intersections)==0:
             start_node=start_edge.s
@@ -677,7 +677,7 @@ class FindOutlineAlgo(GeomAlgo):  # TODO: 圆弧
         this_node=pre_edge.e
         while True: # 每次循环从pre_edge出发，找下一条边，直到回到起点
             # 搜索与当前出发点临近的边
-            nearest_edges=rt_edges.query(this_node.get_mbb(),tol=Const.TOL_DIST) 
+            nearest_edges=rt_edges.query(this_node.get_aabb(),tol=Const.TOL_DIST) 
             # 求当前顶点到这些边的端点的连线的集合
             for edge in nearest_edges:
                 if not this_node.is_on_edge(edge): continue
@@ -688,7 +688,7 @@ class FindOutlineAlgo(GeomAlgo):  # TODO: 圆弧
             # 从this_node出发，找到pre_edge的下一条边
             new_edge=GeomUtil.find_next_edge_out(this_node,pre_edge)
             # 求所有与new_edge可能相交的线
-            nearest_edges=rt_edges.query(new_edge.get_mbb(),tol=Const.TOL_DIST)
+            nearest_edges=rt_edges.query(new_edge.get_aabb(),tol=Const.TOL_DIST)
             # 遍历相交的线，取距离最近的一个交点(起点除外)，作为下一个顶点
             min_param_dist=1
             next_node=new_edge.e
@@ -712,21 +712,20 @@ class FindOutlineAlgo(GeomAlgo):  # TODO: 圆弧
     def _postprocess(self) -> None:
         pass
 
-
 class FindLoopAlgo(GeomAlgo):  # ✅
+    """重建曲线所围成的区域的几何拓扑.
+
+    Args:
+        edges (list[Edge]): 所有曲线，无需打断.
+        directed (bool, optional): 输入的边集是否有向. Defaults to False (无向图).
+        cancel_out_opposite (bool, optional): 是否去除重合的反向边. Defaults to False. 参数对于无向图(!directed)不生效.
+    """
     def __init__(
         self,
         edges: list[Edge],
         directed: bool = False,
         cancel_out_opposite: bool = False,
     ) -> None:
-        """重建曲线所围成的区域的几何拓扑.
-
-        Args:
-            edges (list[Edge]): 所有曲线，无需打断.
-            directed (bool, optional): 输入的边集是否有向. Defaults to False (无向图).
-            cancel_out_opposite (bool, optional): 是否去除重合的反向边. Defaults to False. 参数对于无向图(!directed)不生效.
-        """
         super().__init__()
         self.edges = edges
         self.directed = directed
@@ -793,7 +792,6 @@ class FindLoopAlgo(GeomAlgo):  # ✅
                 else:  # 如果找到的不是已访问的边，就将此边加入栈，接着找下一条边
                     edge_stack.append(next_edge)
         return loops
-
 
 class BooleanOperation:
     """多边形布尔运算"""
@@ -944,4 +942,3 @@ class BooleanOperation:
                 cls._traverse_loop_tree(child,depth-1,condition,stack,out_polygons)
         if condition(depth) and root.obj is not None and root.obj.area>0:
             out_polygons.append(Polygon(shell=root.obj, holes=root.holes, make_valid=False))
-

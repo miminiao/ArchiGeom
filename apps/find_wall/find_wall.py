@@ -384,7 +384,7 @@ def recognize_windows_and_doors(opening_regions:list[Loop],
     # 门窗线 & 门槛线
     lines_in_region={region:[] for region in opening_regions}
     for region in opening_regions:
-        neighbor_lines:list[LineSeg]=rt_watch_opening_lines.query(region.get_mbb())
+        neighbor_lines:list[LineSeg]=rt_watch_opening_lines.query(region.get_aabb())
         for line in neighbor_lines:
             if line.length<const.TOL_DIST: continue
             mid=line.point_at(t=0.5)

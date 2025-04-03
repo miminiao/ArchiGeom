@@ -106,7 +106,7 @@ class FindDrainingPlan(BizAlgo):
             
     def _get_candidate_edges(self,roof:Polygon,drains:list[Node])->list[LineSeg]:
         """将屋面横竖划分为若干子区域；划分位置：边界顶点、落水口平分线"""
-        bounds=roof.get_mbb()
+        bounds=roof.get_aabb()
         div_edges=[]
         # TODO 切的时候，减少近距离的平行线：寻找射线两侧距离接近的点，依次连接
         # 1. 用区域顶点切分
@@ -282,7 +282,7 @@ class FindDrainingPlan(BizAlgo):
     def _get_converge_edges(self,roof:DrainingRegion,uncertain:list[DrainingRegion])->list[LineSeg]:
         safe_slopes=[]
         converge_edges:list[LineSeg]=[]
-        bounds=roof.poly.get_mbb()
+        bounds=roof.poly.get_aabb()
         w,h=bounds[1].x-bounds[0].x,bounds[1].y-bounds[0].y
         vecs=[Vec3d(1,1),Vec3d(1,-1),Vec3d(-1,1),Vec3d(-1,-1)]
         crossing_rays=[LineSeg.from_origin_direction_length(roof.target_drain,vec,w+h) for vec in vecs]

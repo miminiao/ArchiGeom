@@ -94,11 +94,16 @@ class Box(Geom):
                 self.minx,self.miny,self.minz,self.maxx,self.maxy,self.maxz=args
             case n: raise TypeError(f"Box() takes 0/4/6 positional arguments, but {n} {'were' if n>1 else 'was'} given")
     def get_aabb(self): return self
-
+    @property
     def lb(self): return Node(self.minx,self.miny)  # 左下
+    @property
     def lt(self): return Node(self.minx,self.maxy)  # 左上
+    @property
     def rb(self): return Node(self.maxx,self.miny)  # 右下
+    @property
     def rt(self): return Node(self.maxx,self.maxy)  # 右上
+    @property
+    def corners(self): return [self.lb,self.rb,self.rt,self.lt]  # 左下开始逆时针
 
     @classmethod
     def Xp(cls,value:float=0): return cls(value,-INF,-INF,INF,INF,INF)  # X正半空间
@@ -141,23 +146,34 @@ class Box(Geom):
             return cls(minx,miny,minz,maxx,maxy,maxz)
         else: return None
     @classmethod
-    def relation(cls,a:Self,b:Self)->list[GeomRelation]:  # [TODO]: OnBoundary
-        """包围盒的位置关系: b在a的XX位置有交集"""
+    def relation(cls,a:Self,b:Self)->list[GeomRelation]:
+        """包围盒的位置关系.
+        Args:
+            a,b (Box): 待比较的包围盒.
+        Returns:
+            list[GeomRelation]: 
+                Inside: b与a的内部有交集(含边界).
+                Outside: b与a的外部有交集(不含边界).
+        """
         rel=[]
-        comp=Const.cmp_dist
-        if (comp(b.minx,a.maxx)<0 and comp(b.miny,a.maxy)<0 and comp(b.minz,a.maxz)<0 and
-            comp(b.maxx,a.minx)>0 and comp(b.maxy,a.miny)>0 and comp(b.maxz,a.minz)>0
+        cmp=Const.cmp_dist
+        if (cmp(b.minx,a.maxx)<=0 and cmp(b.miny,a.maxy)<=0 and cmp(b.minz,a.maxz)<=0 and
+            cmp(b.maxx,a.minx)>=0 and cmp(b.maxy,a.miny)>=0 and cmp(b.maxz,a.minz)>=0
         ): 
             rel.append(GeomRelation.Inside)
-        if (comp(b.minx,a.minx)<0 or comp(b.miny,a.miny)<0 or comp(b.minz,a.minz)<0 or
-            comp(b.maxx,a.maxx)>0 or comp(b.maxy,a.maxy)>0 or comp(b.maxz,a.maxz)>0
+        if (cmp(b.minx,a.minx)<0 or cmp(b.miny,a.miny)<0 or cmp(b.minz,a.minz)<0 or
+            cmp(b.maxx,a.maxx)>0 or cmp(b.maxy,a.maxy)>0 or cmp(b.maxz,a.maxz)>0
         ): 
             rel.append(GeomRelation.Outside)
-        # if (comp(b.minx,a.maxx)<=0 and comp(b.maxx,a.minx)>=0 and (comp(b.minz,a.maxz)==0 or comp(b.minz,a.minz)==0 or comp(b.maxz,a.minz) or comp(b.maxz,a.maxz)) or
-        #     comp(b.miny,a.maxy)<=0 and comp(b.maxy,a.miny)>=0 and ()
-        # ): 
-        #     rel.append(GeomRelation.OnBoundary)            
         return rel
+    def covers_node(self,node:Node)->bool:
+        """包围盒覆盖点(含边界)"""
+        cmp=Const.cmp_dist
+        return (
+            cmp(node.x,self.minx)>=0 and cmp(self.maxx,node.x)>=0 and
+            cmp(node.y,self.miny)>=0 and cmp(self.maxy,node.y)>=0 and
+            cmp(node.z,self.minz)>=0 and cmp(self.maxz,node.z)>=0
+        )
     @classmethod
     def from_geoms(cls,geoms:list[Geom])->Self:
         boxes=[geom.get_aabb() for geom in geoms]

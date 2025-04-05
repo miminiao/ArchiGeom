@@ -663,7 +663,7 @@ class FindOutlineAlgo(GeomAlgo):
         """找起始边：先找x最小的点，然后向右出发"""
         start_edge=min(self.edges,key=lambda edge:edge.get_aabb().minx)
         box=start_edge.get_aabb()
-        left_bound=LineSeg(box.lb(),box.lt())
+        left_bound=LineSeg(box.lb,box.lt)
         intersections=start_edge.intersection(left_bound)
         if len(intersections)==0:
             start_node=start_edge.s

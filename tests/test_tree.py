@@ -1,7 +1,7 @@
 """测试查找树相关操作"""
 
 import pytest
-from lib.geom import Node
+from lib.geom import Node,Box,Circle
 from lib.index import BSTree,_BSTreeNode,AVLTree,SegmentTree,KDTree,_KDTreeNode
 from tests.utils import read_case,write_stdout
 from lib.interval import Interval1d
@@ -129,26 +129,53 @@ def test_segtree(case):
         std_out=read_case(SEG_TREE,case["out"])
         assert merged_intvs==std_out
 
-def draw_cutline(node: _KDTreeNode):
-    import matplotlib.pyplot as plt
-    if node.dim==0:
-        x=[node.obj.x,node.obj.x]
-        y=[max(node.space.miny,0),min(node.space.maxy,1000)]
-    elif node.dim==1: 
-        y=[node.obj.y,node.obj.y]
-        x=[max(node.space.minx,0),min(node.space.maxx,1000)]
-    plt.plot(x,y,color='k',alpha=0.3)
-
 def random_test_kdtree():
     """随机测试kd树"""
-    n=100
+    import matplotlib.pyplot as plt
+    import math,numpy as np
+    from lib.utils import Timer
+    # Timer.enable()
+    random.seed(0)
+
+    n=10000
     limits=1000
     nodes=[Node(random.random()*limits,random.random()*limits) for i in range(n)]
-    kdtree=KDTree(nodes)
+    with Timer(tag="kdtree"):
+        kdtree=KDTree(nodes)
+
+    qx,qy=[random.random()*limits,random.random()*limits],[random.random()*limits,random.random()*limits]
+    qbox=Box(min(qx),min(qy),max(qx),max(qy))
+    qcenter=Node(random.random()*limits,random.random()*limits)
+    qradius=random.random()*limits/5
+    qcir=Circle(qcenter,qradius)
     
-    import matplotlib.pyplot as plt
-    plt.scatter([node.x for node in nodes],[node.y for node in nodes])
-    kdtree._root.traverse(callback=lambda treenode:draw_cutline(treenode))
+    plt.scatter([node.x for node in nodes],[node.y for node in nodes],color='k',alpha=0.3)
+    nodes=[]
+    with Timer(tag="traverse"):
+        kdtree._root.traverse(callback=lambda treenode:nodes.append(treenode))
+    for node in nodes:
+        if node.dim==0:
+            x=[node.obj.x,node.obj.x]
+            y=[max(node.space.miny,0),min(node.space.maxy,1000)]
+        elif node.dim==1: 
+            y=[node.obj.y,node.obj.y]
+            x=[max(node.space.minx,0),min(node.space.maxx,1000)]
+        plt.plot(x,y,color='k',alpha=0.3)
+
+    plt.plot([qbox.minx,qbox.maxx,qbox.maxx,qbox.minx,qbox.minx],[qbox.miny,qbox.miny,qbox.maxy,qbox.maxy,qbox.miny])
+    with Timer(tag="box_q"):
+        hit_nodes=kdtree.query_box(qbox)
+    plt.scatter([node.x for node in hit_nodes],[node.y for node in hit_nodes],color='r')
+    
+    
+    t=np.arange(0,2*math.pi,0.01)
+    x=np.cos(t)*qradius+qcenter.x
+    y=np.sin(t)*qradius+qcenter.y
+    plt.plot(x,y,color='b')
+    with Timer(tag="circle_q"):
+        hit_nodes=kdtree.query_circle(qcir)
+    plt.scatter([node.x for node in hit_nodes],[node.y for node in hit_nodes],color='g')
+    
     plt.show()
 
 if __name__=="__main__":
@@ -156,3 +183,4 @@ if __name__=="__main__":
     if 0: random_test_segtree()
     if 0: test_segtree(({"in":f"case_{1}","out":f"out_{1}"}))
     if 1: random_test_kdtree()
+

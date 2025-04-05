@@ -294,11 +294,10 @@ class STRTree[T:Geom]:
         if root.obj is not None:
             return [root.obj]
         res=[]
-        buffered=qbox.buffer(Constant.TOL_DIST*2)
         for ch in root.child:
-            rel=Box.relation(buffered,ch.aabb)
+            rel=Box.relation(qbox,ch.aabb)
             if GeomRelation.Inside in rel:
-                res=res+self.query(qbox,ch)
+                res.extend(self.query(qbox,ch))
         return res        
 
 class SegmentTree[T]:
@@ -385,7 +384,7 @@ class KDTree:
         self._key=[lambda p:p.x,lambda p:p.y,lambda p:p.z]  # 每个维度的排序key
         self._half_spaces=[[Box.Xn,Box.Xp],[Box.Yn,Box.Yp],[Box.Zn,Box.Zp]]  # 每个维度的半空间包围盒
         self._dim=k
-        self._root=self._construct_tree(nodes[:],0,Box())
+        self._root=self._construct_tree(nodes[:],0,Box.from_geoms(nodes))
     def _construct_tree(self,nodes:list[Node], dim:int, space:Box)->_KDTreeNode:
         """在nodes上建立kdtree，返回切割维度为dim的根结点"""
         from lib.geom import Box
@@ -396,10 +395,11 @@ class KDTree:
         median=nodes[median_idx]
         root=_KDTreeNode(median,dim,space)
         # 与中位数的key比较, 划分左右子树
+        # <=的在左子树，>的在右子树
         l_nodes,r_nodes=[],[]
         for node in nodes:
             if node.equals(median): continue
-            elif key(node)<key(median): l_nodes.append(node)
+            elif key(node)<=key(median): l_nodes.append(node)
             else: r_nodes.append(node)
         for i,ch_nodes in enumerate([l_nodes,r_nodes]):
             if len(ch_nodes)>0:
@@ -409,31 +409,63 @@ class KDTree:
                 root.child[i]=self._construct_tree(ch_nodes,next_dim,new_space)
                 root.child[i].parent=root
         return root
-    def query_box(self,box:Box,tol:float=0,root:_KDTreeNode=None)->list[Node]:
-        """查询矩形范围内的点.
-
-        Args:
-            box (Box): _description_
-            tol (float, optional): _description_. Defaults to 0.
-
-        Returns:
-            list[Node]: _description_
-        """
+    def query_point(self,point:Node)->Node|None:
+        """查询点, Node.equals()判断相等. 未命中时返回None."""
+        return self._query_point(point,self._root)
+    def _query_point(self,point:Node,root:_KDTreeNode)->Node|None:
+        if root is None: return None
+        if root.obj.equals(point): return point
+        key=self._key[root.dim]
+        if key(point)<=key(root.obj):
+            self.query_point(point, self.lch)
+        else: 
+            self.query_point(point, self.rch)
+    def query_box(self,qbox:Box)->list[Node]:
+        """查询矩形覆盖范围内的点"""
+        return self._query_box(qbox,self._root)
+    def _query_box(self,qbox:Box,root:_KDTreeNode)->list[Node]:
+        if root is None: return []
         from lib.geom import Box, GeomRelation
-        root=root or self._root
-        rel=Box.relation(box,root.space)
-        if rel==[GeomRelation.Inside]: 
-            ...
-    def query_circle(self,circle:Circle,tol:float=0)->list[Node]:
-        """查询圆形范围内的点.
+        res=[]
+        add_to_res=lambda node:res.append(node.obj)
+        for ch in root.child:
+            if ch is not None:
+                rel=Box.relation(qbox,ch.space)
+                if rel==[GeomRelation.Inside]:  # 完全被box覆盖
+                    ch.traverse(add_to_res)
+                elif len(rel)>1:  # !=[Outside]: 有交集
+                    res.extend(self._query_box(qbox,ch))
+        if qbox.covers_node(root.obj): 
+            res.append(root.obj)
+        return res    
 
-        Args:
-            circle (Circle): _description_
-            tol (float, optional): _description_. Defaults to 0.
+    def query_circle(self,qcir:Circle)->list[Node]:
+        """查询圆形覆盖范围内的点"""    
+        return self._query_circle(qcir,self._root)
 
-        Returns:
-            list[Node]: _description_
-        """
+    def _query_circle(self,qcir:Circle,root:_KDTreeNode)->list[Node]:
+        from lib.geom import Node
+        if root is None: return []
+        res=[]
+        add_to_res=lambda node:res.append(node.obj)
+        cmp=Constant.cmp_dist
+        for ch in root.child:
+            if ch is not None:
+                d=map(qcir.center.dist,ch.space.corners)  # 圆心到四角的距离
+                covers_corner=list(map(lambda x:cmp(x,qcir.radius)<=0,d))  # 是否<半径
+                if all(covers_corner):  # 完全被circle覆盖
+                    ch.traverse(add_to_res)
+                elif (
+                    any(covers_corner)  # 覆盖某个顶点
+                    or cmp(qcir.center.x,ch.space.minx)>=0 and cmp(qcir.center.x,ch.space.maxx)<=0 and  # 圆心在竖直范围，且距离上/下边界在半径范围内
+                       cmp(qcir.center.y,ch.space.miny-qcir.radius)>=0 and cmp(qcir.center.y,ch.space.maxy+qcir.radius)<=0
+                    or cmp(qcir.center.y,ch.space.miny)>=0 and cmp(qcir.center.y,ch.space.maxy)<=0 and  # 圆心在水平范围，且距离左/右边界在半径范围内
+                       cmp(qcir.center.x,ch.space.minx-qcir.radius)>=0 and cmp(qcir.center.x,ch.space.maxx+qcir.radius)<=0
+                ): res.extend(self._query_circle(qcir,ch))
+        if cmp(qcir.center.dist(root.obj),qcir.radius)<=0: 
+            res.append(root.obj)
+        return res
+    
     def knn(self,k:int,dist_func:Callable[[Node,Node],float]=None):
         """查询k临近点"""
         ...

@@ -289,7 +289,7 @@ class STRTree[T:Geom]:
         Returns:
             list[T]: 查询到的几何图形.
         """
-        from lib.geom import Box,GeomRelation
+        from lib.geom import GeomRelation
         root=root or self._root
         if root.obj is not None:
             return [root.obj]
@@ -422,9 +422,9 @@ class KDTree:
                 root=root.rch
         return None
     def query(self,qreg:Box|Circle)->list[Node]:
-        """查询覆盖区域内的点"""
-        if not isinstance(qreg,(Box,Circle)): raise TypeError("query region must be Box or Circle")
-        return self.query(qreg,self._root)
+        """查询区域覆盖的点"""
+        # if not isinstance(qreg,(Box,Circle)): raise TypeError("query region must be Box or Circle")
+        return self._query(qreg,self._root)
     def _query(self,qreg:Box|Circle,root:_KDTreeNode)->list[Node]:
         if root is None: return []
         from lib.geom import GeomRelation
@@ -437,7 +437,7 @@ class KDTree:
             rel=qreg.relation_with_box(ch.space)
             if rel==[GeomRelation.Inside]:  # 完全被box覆盖
                 ch.traverse(add_to_res)
-            elif len(rel)>1:  # !=[Outside]: 有交集
+            elif len(rel)>1:  # 有交集
                 res.extend(self._query(qreg,ch))
         return res    
     def _query_leaf(self,point:Node)->_KDTreeNode:

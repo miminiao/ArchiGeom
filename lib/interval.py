@@ -7,8 +7,6 @@ class Interval[T:SupportsCompareOps](ABC,SupportsCompareFunc):
     _cmp=Constant.cmp_dist
     """区间端点值的比较方法"""
 
-    def __init__(self) -> None: ...
-
 class Interval1d[T:SupportsCompareOps](Interval[T]):
     def __init__(self,l:float,r:float,value:T) -> None:
         """描述一个带有附加值的一维区间.

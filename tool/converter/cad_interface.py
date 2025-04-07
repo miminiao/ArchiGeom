@@ -56,7 +56,7 @@ class CADInterface:
         CADBlockDef.set_parse_flag(parse_block_def)
         print("Parsing..."+(" (block def excluded)" if not parse_block_def else ""))
         res=[]
-        for i,ent in enumerate(self._selection):
+        for ent in self._selection:
             parsed_ent=CADEntity.parse(ent)
             if parsed_ent is not None: res.append(parsed_ent)
         res.extend(CADBlockDef.parsed_blocks.values())

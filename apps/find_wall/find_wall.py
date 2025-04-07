@@ -368,7 +368,7 @@ def recognize_windows_and_doors(opening_regions:list[Loop],
     # 门块
     for block in door_blocks:
         new_door=Door(parent=None,
-                      type=block["block_name"],
+                      style=block["block_name"],
                       width=block["scale"][0],
                       insert_point=Node(block["insert_point"][0],block["insert_point"][1]),
                       )
@@ -376,7 +376,7 @@ def recognize_windows_and_doors(opening_regions:list[Loop],
     # 窗块
     for block in window_blocks:
         new_window=Window(parent=None,
-                          type=block["block_name"],
+                          style=block["block_name"],
                           width=block["scale"][0],
                           insert_point=Node(block["insert_point"][0],block["insert_point"][1]),
                           )
@@ -402,7 +402,7 @@ def recognize_windows_and_doors(opening_regions:list[Loop],
         nearest_region=None
         for region in opening_regions:
             centroid=LineSeg(region.nodes[0],region.nodes[2]).point_at(t=0.5)
-            dist=centroid.dist(opening_block.insert_point)
+            dist=centroid.dist(opening_block.pos)
             if dist<min_dist and dist<=opening_block_dist_limit:
                 min_dist=dist
                 nearest_region=region

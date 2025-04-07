@@ -135,7 +135,7 @@ def random_test_kdtree():
     import math,numpy as np
     from lib.utils import Timer
     # Timer.enable()
-    random.seed(1)
+    # random.seed(3)
 
     n=10000
     limit=1000
@@ -146,7 +146,7 @@ def random_test_kdtree():
     qx,qy=[random.random()*limit,random.random()*limit],[random.random()*limit,random.random()*limit]
     qbox=Box(min(qx),min(qy),max(qx),max(qy))
     qcenter=Node(random.random()*limit,random.random()*limit)
-    qradius=random.random()*limit/5
+    qradius=random.random()*limit/3
     qcir=Circle(qcenter,qradius)
     
     plt.scatter([node.x for node in nodes],[node.y for node in nodes],color='k',alpha=0.3)
@@ -164,7 +164,7 @@ def random_test_kdtree():
 
     plt.plot([qbox.minx,qbox.maxx,qbox.maxx,qbox.minx,qbox.minx],[qbox.miny,qbox.miny,qbox.maxy,qbox.maxy,qbox.miny])
     with Timer(tag="box_q"):
-        hit_nodes=kdtree.query_box(qbox)
+        hit_nodes=kdtree.query(qbox)
     plt.scatter([node.x for node in hit_nodes],[node.y for node in hit_nodes],color='r')
     
     
@@ -173,7 +173,7 @@ def random_test_kdtree():
     y=np.sin(t)*qradius+qcenter.y
     plt.plot(x,y,color='b')
     with Timer(tag="circle_q"):
-        hit_nodes=kdtree.query_circle(qcir)
+        hit_nodes=kdtree.query(qcir)
     plt.scatter([node.x for node in hit_nodes],[node.y for node in hit_nodes],color='g')
     
     plt.show()

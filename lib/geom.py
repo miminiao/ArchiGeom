@@ -178,6 +178,8 @@ class Box(Geom):
                 [Outside]: 无任何交集 (包括边界);
                 [Inside, Outside]: 部分相交 (包括边界);
         """        
+        if not isinstance(other,Box): 
+            raise TypeError(f'"other" must be Box, but {type(other)} is given')
         rel=[]
         cmp=Const.cmp_dist
         if (cmp(other.minx,self.maxx)<=0 and cmp(other.miny,self.maxy)<=0 and cmp(other.minz,self.maxz)<=0 and
@@ -188,7 +190,7 @@ class Box(Geom):
             cmp(other.maxx,self.maxx)>0 or cmp(other.maxy,self.maxy)>0 or cmp(other.maxz,self.maxz)>0
         ): 
             rel.append(GeomRelation.Outside)
-        return rel        
+        return rel
     def covers_node(self,node:Node)->bool:
         """判断是否覆盖点 (含边界)"""
         cmp=Const.cmp_dist
@@ -1004,27 +1006,31 @@ class Circle(Arc):
     def to_halves(self)->list[Arc]:
         return [Arc.from_center_radius_angle(self.center,self.radius,0,PI),
                 Arc.from_center_radius_angle(self.center,self.radius,PI,PI)]
-    def relation_with_box(self,box:Box)->list[GeomRelation]:
+    def relation_with_box(self,other:Box)->list[GeomRelation]:
         """box与圆的关系.
         Returns:
             list[GeomRelation]: 
-                [Inside]: box完全在圆内; 
-                [Outside]: box完全在圆外无交集;
-                [Inside, Outside]: 部分相交;
+                [Inside]: 圆完全覆盖box; 
+                [Outside]: 无任何交集 (包括边界);
+                [Inside, Outside]: 部分相交 (包括边界);
         """
-        d=map(self.center.dist,box.corners)  # 圆心到四角的距离
+        if not isinstance(other,Box): 
+            raise TypeError(f'"other" must be Box, but {type(other)} is given')
+        d=map(self.center.dist,other.corners)  # 圆心到四角的距离
         cmp=Const.cmp_dist
         covers_corner=list(map(lambda x:cmp(x,self.radius)<=0,d))  # 是否<半径
         if (any(covers_corner)  # 覆盖某个顶点
-            or cmp(self.center.x,box.minx)>=0 and cmp(self.center.x,box.maxx)<=0 and  # 圆心在竖直范围，且距离上/下边界在半径范围内
-                cmp(self.center.y,box.miny-self.radius)>=0 and cmp(self.center.y,box.maxy+self.radius)<=0
-            or cmp(self.center.y,box.miny)>=0 and cmp(self.center.y,box.maxy)<=0 and  # 圆心在水平范围，且距离左/右边界在半径范围内
-                cmp(self.center.x,box.minx-self.radius)>=0 and cmp(self.center.x,box.maxx+self.radius)<=0
+            or cmp(self.center.x,other.minx)>=0 and cmp(self.center.x,other.maxx)<=0 and  # 圆心在竖直范围，且距离上/下边界在半径范围内
+                cmp(self.center.y,other.miny-self.radius)>=0 and cmp(self.center.y,other.maxy+self.radius)<=0
+            or cmp(self.center.y,other.miny)>=0 and cmp(self.center.y,other.maxy)<=0 and  # 圆心在水平范围，且距离左/右边界在半径范围内
+                cmp(self.center.x,other.minx-self.radius)>=0 and cmp(self.center.x,other.maxx+self.radius)<=0
         ):  # 有交集
             if all(covers_corner):  # 完全被circle覆盖
                 return [GeomRelation.Inside]
             else: return [GeomRelation.Inside,GeomRelation.Outside]
         return [GeomRelation.Outside]
+    def covers_node(self,node:Node)->bool:
+        return Const.cmp_dist(self.center.dist(node),self.radius)<=0
         
 class Polyedge(Geom):
     """多段线"""
@@ -1254,7 +1260,7 @@ class Loop(Polyedge):
         """环覆盖其他对象"""
         if not (count_mode=="or" or count_mode=="xor"): 
             raise ValueError("Invalid count mode.")
-        rel=Box.relation(self.get_aabb(),other.get_aabb())
+        rel=self.get_aabb().relation_with_box(other.get_aabb())
         if GeomRelation.Outside in rel:  # 包围盒不满足则不满足
             return False
         if isinstance(other,Node):
@@ -1280,7 +1286,7 @@ class Loop(Polyedge):
         return False    
     def _relation_with_node(self,other:Node,count_mode:str="or")->GeomRelation:
         """判断点和环的关系"""
-        rel=Box.relation(self.get_aabb(),other.get_aabb())
+        rel=self.get_aabb().relation_with_box(other.get_aabb())
         if rel==[GeomRelation.Outside]: return rel[0]  # 包围盒不满足则不满足
         # 先判断是否在边界上
         if self.prepared is not None:
@@ -1512,7 +1518,7 @@ class Polygon(Geom):
         **Attention:**
             Polygon包含Loop的意思是包含边而非区域，要判断区域需构造Polygon
         """
-        rel=Box.relation(self.get_aabb(),other.get_aabb())
+        rel=self.get_aabb().relation_with_box(other.get_aabb())
         if GeomRelation.Outside in rel: return False  # 包围盒不满足则不满足
         if isinstance(other,Node):
             if not self.shell.covers(other): return False

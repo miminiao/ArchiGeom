@@ -1,18 +1,19 @@
-from abc import ABC,abstractmethod
+from __future__ import annotations
+
+from abc import ABC
 from lib.geom import Node,Edge,Loop
 from lib.linalg import Vec3d,Mat3d
 
 class BuildingElement(ABC):
-    def __init__(self) -> None:
-        """建筑构件"""
-        pass
+    """建筑构件"""
+    def __init__(self) -> None: ...
 
 class Wall(BuildingElement):
     def __init__(self,base:Edge,lw:float=100,rw:float=100,h:float=3000.0) -> None:
         """墙
 
         Args:
-            base_edge (Edge): 墙基线.
+            base (Edge): 墙基线.
             lw (float, optional): 左宽. Defaults to 100.
             rw (float, optional): 右宽. Defaults to 100.
             h (float, optional): 墙高. Defaults to 3000.
@@ -23,47 +24,48 @@ class Wall(BuildingElement):
         self.windows:list[Window]=[]
         self.doors:list[Door]=[]
         self.holes:list[Hole]=[]
-    def insert_opening(self,opening:"Opening")->None:
+    def bind_opening(self,opening:Opening,param:float=None)->None:
+        """把一个门窗挂在墙上.
+
+        Args:
+            opening (Opening): 要挂的门窗.
+            param (float, optional): 要挂的位置, base curve的参数. Defaults to None, 按照opening.pos挂.
+        """
+        if param is None and opening.pos is None:
+            raise ValueError("got neither param nor opening.pos")
         opening.parent=self
-        translation=opening.insert_point.to_vec3d()-self.base.s.to_vec3d()
-        basis=self.base.frame_at(self.base.get_param(opening.insert_point))
-        opening.pos_wrt_wall=basis.transpose()@translation
+        opening.param=param or self.base.get_param(opening.pos)
+        opening._pos=self.base.point_at(param)
         type_map={Window:self.windows,Door:self.doors,Hole:self.holes}
         type_map[type(opening)].append(opening)
-    def insert_opening_wrt_wall_basis(self,opening:"Opening",pos_wrt_wall_basis:Vec3d)->None:
-        opening.parent=self
-        opening.pos_wrt_wall=pos_wrt_wall_basis
-        opening.insert_point=self.s.to_vec3d()+self.basis@pos_wrt_wall_basis
-        type_map={Window:self.windows,Door:self.doors,Hole:self.holes}
-        type_map[type(opening)].append(opening)
+
 class Opening(BuildingElement):
-    def __init__(self,parent:Wall,type:str,width:float,insert_point:Node,region:Loop,axis_reverse=None) -> None:
+    def __init__(self,parent:Wall,style:str,width:float,insert_point:Node,region:Loop,axis_reverse=None) -> None:
         super().__init__()
         self.parent:Wall=parent
-        self.type:str=type
-        self._insert_point:Node=insert_point
+        self.style:str=style
+        self._pos:Node=insert_point
         self.width:float=width
         self.region:Loop=region
-        self.pos_wrt_wall:Vec3d=None
+        self.param:Vec3d=None
         self.axis_reverse=axis_reverse or [False,False,False]
     @property
-    def insert_point(self)->Node:
-        # if self.pos_wrt_wall is None: 
-            return self._insert_point
+    def pos(self)->Node:
+        return self._pos
     def start_point(self)->Node:
-        self.parent.base.point_at(self.parent.base.get_param(self.insert_point))
+        self.parent.base.point_at(self.parent.base.get_param(self.pos))
         return 
 class Door(Opening):
-    def __init__(self, parent: Wall, type: str, width: float, insert_point: Node=None, region: Loop=None) -> None:
-        super().__init__(parent, type, width, insert_point, region)
+    def __init__(self, parent: Wall, style: str, width: float, insert_point: Node=None, region: Loop=None) -> None:
+        super().__init__(parent, style, width, insert_point, region)
     
 class Window(Opening):
-    def __init__(self, parent: Wall, type: str, width: float, insert_point: Node=None, region: Loop=None) -> None:
-        super().__init__(parent, type, width, insert_point, region)
+    def __init__(self, parent: Wall, style: str, width: float, insert_point: Node=None, region: Loop=None) -> None:
+        super().__init__(parent, style, width, insert_point, region)
 
 class Hole(Opening):
-    def __init__(self, parent: Wall, type: str, width: float, insert_point: Node=None, region: Loop=None) -> None:
-        super().__init__(parent, type, width, insert_point, region)
+    def __init__(self, parent: Wall, style: str, width: float, insert_point: Node=None, region: Loop=None) -> None:
+        super().__init__(parent, style, width, insert_point, region)
 
 class RoomProfileEdge(BuildingElement):
     def __init__(self,edge:Edge,wall:Wall) -> None:
@@ -100,7 +102,7 @@ class Room(BuildingElement):
 if __name__=="__main__":
     wall=Wall(Edge(Node(200,300),Node(1200,800)))
     window=Window(wall,"1231456",500,Node(700,800),)
-    wall.insert_opening(window)
-    print(window.pos_wrt_wall)
-    wall.insert_opening_wrt_wall_basis(window,Vec3d(500,100,0))
-    print(window.insert_point)
+    wall.bind_opening(window)
+    print(window.param)
+    wall.bind_opening(window,0.5)
+    print(window.pos)

@@ -1,23 +1,19 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-from lib.geom import Node,Edge,Loop,Polygon,GeomUtil
-from lib.index import TreeNode
-from lib.utils import Timer, Constant
-from lib.geom import Edge,Arc,LineSeg,Loop
+import math
+from lib.geom import Node,Edge,Arc,LineSeg,Loop,Polygon,GeomUtil
+from lib.utils import Timer, Constant as Const
 from lib.building_element import Wall
-from lib.geom_algo import GeomAlgo
+from lib.geom_algo import GeomAlgo,FindLoopAlgo
 from itertools import groupby
 
 
 class MergeWallAlgo(GeomAlgo):
-    def __init__(self,walls:list[Wall],const:Constant=None) -> None:
+    def __init__(self,walls:list[Wall]) -> None:
         """合并平行且有重叠的墙
 
         Args:
             walls (list[Wall]): 任意一组待合并的墙.
-            const (Constant, optional): 误差控制常量. Defaults to None.
         """
-        super().__init__(const=const)
+        super().__init__()
         self.walls=walls
     def _preprocess(self)->None:
         super()._preprocess()
@@ -29,13 +25,13 @@ class MergeWallAlgo(GeomAlgo):
         # 圆弧墙分组
         arc_walls=filter(lambda wall:isinstance(wall.base,Arc),walls)
         arc_groups=groupby(arc_walls,key=lambda wall:wall.base.center)
-        parallel_groups.extend()
+        parallel_groups.extend(arc_groups)
         # 直墙分组
         line_walls=filter(lambda wall:isinstance(wall.base,LineSeg),walls)
         walls.sort(key=lambda wall:wall.base.angle)
-        current_angle=-self.const._MAX_VAL
+        current_angle=-math.inf
         for line in line_walls:
-            if line.angle-current_angle>self.const.TOL_ANG: # !parallel
+            if line.angle-current_angle>Const.TOL_ANG: # !parallel
                 new_group=[line]
                 parallel_groups.append(new_group)
                 current_angle=line.angle
@@ -48,8 +44,7 @@ class MergeWallAlgo(GeomAlgo):
                 if self.walls[i].base:
                     pass
 class FindRoomAlgo(GeomAlgo): #TODO
-    def __init__(self,edges:list[Wall],const:Constant=None) -> None:
-        self.const=const or Constant.default()
+    def __init__(self,edges:list[Wall]) -> None:
         self.edges:list[Edge]=edges
         self.loops:list[Loop]=[]
     def _preprocess(self) -> None:
@@ -60,33 +55,16 @@ class FindRoomAlgo(GeomAlgo): #TODO
 # %% 测试
 if 1 and __name__ == "__main__":
     import json
+    from tool.converter.json_converter import JsonLoader
+    from lib.geom_algo import BooleanOperation
+    from lib.geom_plotter import MPLPlotter
     import matplotlib.pyplot as plt
 
-    const=Constant.default()
     with open("test/find_room/case_1.json",'r',encoding="utf8") as f:
-        j_obj=json.load(f)
-
-    nodes=[]
-    for obj in j_obj:
-        if obj["object_name"]=="polyline":
-            seg_num=len(obj["segments"]) if obj["is_closed"] else len(obj["segments"])-1
-            for i in range(seg_num):
-                seg=obj["segments"][i]
-                next_seg=obj["segments"][(i+1)%len(obj["segments"])]
-                x1,y1,_=seg["start_point"]
-                x2,y2,_=next_seg["start_point"]
-                lw=rw=seg["start_width"]/2
-                bulge=seg["bulge"]
-                s=Node(x1,y1)
-                e=Node(x2,y2)
-                if s.equals(e):continue
-                s=GeomUtil.find_or_insert_node(s,nodes)
-                e=GeomUtil.find_or_insert_node(e,nodes)
-                s.add_edge_in_order(Edge(s,e,lw,rw))
-                e.add_edge_in_order(Edge(e,s,rw,lw))
+        walls=json.load(f,object_hook=JsonLoader.from_cad_obj)
 
     # 找环
-    loops=find_loop(nodes)
+    loops=FindLoopAlgo(walls).get_result()
 
     # 按墙厚offset
     offset_loops:list[Loop] = []
@@ -96,13 +74,7 @@ if 1 and __name__ == "__main__":
         plt.plot(*loop.xy)
 
     # loop组成房间polygon
-    cover_tree=make_cover_tree(offset_loops)
-    rooms:list[Polygon]=[]
-    for tree_node in cover_tree:
-        if tree_node.obj.area>0:
-            new_shell=tree_node.obj
-            new_holes=[ch.obj for ch in tree_node.child]
-            rooms.append(Polygon(new_shell,new_holes))
+    rooms=BooleanOperation._rebuild_loop_topology(offset_loops)
 
     with Timer(tag="画图"):
         # 画墙基线
@@ -112,7 +84,7 @@ if 1 and __name__ == "__main__":
                 plt.plot([edge.s.x,other.x],[edge.s.y,other.y],color="m")
         # 画房间
         for room in rooms:
-            _draw_polygon(room.polygon,color=('y','g'))
+            MPLPlotter.draw_geoms(room.polygon,color=('y','g'))
         ax = plt.gca()
         ax.set_aspect(1)
         plt.show()

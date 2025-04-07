@@ -46,7 +46,7 @@ def test_polygon_diff(case):
     res=BooleanOperation.difference(inputs[0],inputs[1])
     if __name__=="__main__":
         CADPlotter.draw_geoms(res)
-        write_stdout(res,POLYGON_DIFF,case['out'])
+        # write_stdout(res,POLYGON_DIFF,case['out'])
     else:
         std_out=read_case(POLYGON_DIFF,case["out"])
         assert len(res)==len(std_out)

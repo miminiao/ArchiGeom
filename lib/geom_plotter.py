@@ -2,6 +2,7 @@ from abc import ABC,abstractmethod
 import win32com.client
 import pythoncom
 import matplotlib.pyplot as plt
+from contextlib import contextmanager
 from matplotlib.colors import TABLEAU_COLORS
 from lib.geom import Geom,Node,Box,Edge,LineSeg,Circle,Arc,Polyedge,Loop,Polygon
 from lib.interval import Interval1d,MultiInterval1d
@@ -17,6 +18,9 @@ class GeomPlotter(ABC):
     def _draw_node(cls,node:Node,*args,**kwargs)->None: ...
     @classmethod
     @abstractmethod
+    def _draw_box(cls,box:Box,*args,**kwargs)->None: ...
+    @classmethod
+    @abstractmethod
     def _draw_edge(cls,edge:Edge,*args,**kwargs)->None: ...
     @classmethod
     @abstractmethod
@@ -29,7 +33,7 @@ class GeomPlotter(ABC):
     def _draw_polygon(cls,poly:Polygon,*args,**kwargs)->None: ...
     @classmethod
     @abstractmethod
-    def _draw_text(cls,text:str,pos:Node,*args,**kwargs)->None: ...
+    def _draw_text(cls,text:str,pos:Node,size:float,*args,**kwargs)->None: ...
 
 class MPLPlotter(GeomPlotter):
     @classmethod
@@ -124,8 +128,8 @@ class MPLPlotter(GeomPlotter):
         for loop in poly.all_loops: cls._draw_loop(loop,show=show,**kwargs)
         # plt.fill
     @classmethod
-    def _draw_text(cls,text:str,pos:Node,**kwargs)->None:
-        plt.text(pos.x,pos.y,text)
+    def _draw_text(cls,text:str,pos:Node,size:float=5,**kwargs)->None:
+        plt.text(pos.x,pos.y,text,fontsize=size)
     @classmethod
     def _draw_interval1d(cls,intv:Interval1d,show_ref_lines:bool=False,show:bool=False,**kwargs)->None:
         plt.plot([intv.l,intv.r],[intv.value,intv.value])
@@ -148,12 +152,21 @@ class MPLPlotter(GeomPlotter):
 class CADPlotter(GeomPlotter):
     _model_space=None
     _blocks=None
+    _space=None
     @classmethod
     def _get_current_doc(cls):
         acad = win32com.client.Dispatch("AutoCAD.Application.23")
         doc = acad.ActiveDocument
         cls._model_space= doc.ModelSpace
         cls._blocks=doc.Blocks
+        cls._space=cls._model_space
+    @classmethod
+    @contextmanager
+    def _space_context(cls,space):
+        prev_space=cls._space
+        cls._space=space
+        yield space
+        cls._space=prev_space
     @classmethod
     def draw_geoms(cls,geoms:Geom|list[Geom],**kwargs)->None:
         draw_method_dict={
@@ -167,44 +180,45 @@ class CADPlotter(GeomPlotter):
         }
         cls._get_current_doc()
         if isinstance(geoms,Geom): geoms=[geoms]
-        for i,geom in enumerate(geoms):
-            ent=draw_method_dict[type(geom)](cls._model_space,geom,**kwargs)
-            if "color" in kwargs: ent.Color=kwargs["color"]
+        with cls._space_context(cls._model_space) as space:
+            for i,geom in enumerate(geoms):
+                ent=draw_method_dict[type(geom)](geom,**kwargs)
+                if "color" in kwargs: ent.Color=kwargs["color"]
     @classmethod
-    def _draw_node(cls,current_space,node:Node,node_text:Callable[[Node],str]=None,**kwargs):
+    def _draw_node(cls,node:Node,node_text:Callable[[Node],str]=None,**kwargs):
         point=cls._point_to_com(node)
-        ent=current_space.AddPoint(point)
+        ent=cls._space.AddPoint(point)
         if "color" in kwargs: ent.Color=kwargs["color"]
         if node_text is not None: 
             cls._draw_text(node_text(node),node)
         return ent
     @classmethod
-    def _draw_edge(cls,current_space,edge:Edge,**kwargs):
+    def _draw_edge(cls,edge:Edge,**kwargs):
         if isinstance(edge,LineSeg):
             s,e = cls._point_to_com(edge.s), cls._point_to_com(edge.e)
-            ent=current_space.AddLine(s, e)
+            ent=cls._space.AddLine(s, e)
         elif isinstance(edge,Circle):
             center=cls._point_to_com(edge.center)
-            ent=current_space.AddCircle(center,edge.radius)
+            ent=cls._space.AddCircle(center,edge.radius)
         elif isinstance(edge,Arc):
             center=cls._point_to_com(edge.center)
-            ent=current_space.AddArc(center,edge.radius,*edge.angles)
+            ent=cls._space.AddArc(center,edge.radius,*edge.angles)
         return ent
     @classmethod
-    def _draw_polyedge(cls,current_space,polyedge:Polyedge,  **kwargs):
+    def _draw_polyedge(cls,polyedge:Polyedge,**kwargs):
         end_points=cls._point_list_to_com(polyedge.nodes)
-        ent=current_space.AddPolyline(end_points)
+        ent=cls._space.AddPolyline(end_points)
         for i,bulge in enumerate(polyedge.bulges):
             ent.SetBulge(i,bulge)
         show_node_text=kwargs.get("show_node_text",False)
         if show_node_text:
             for i,node in enumerate(polyedge.nodes):
-                current_space.AddText(f"{i}",cls._point_to_com(node),250)
+                cls._space.AddText(f"{i}",cls._point_to_com(node),250)
         return ent
     @classmethod
-    def _draw_loop(cls,current_space,loop:Loop,  **kwargs):
+    def _draw_loop(cls,loop:Loop,**kwargs):
         end_points=cls._point_list_to_com(loop.nodes)
-        ent=current_space.AddPolyline(end_points)
+        ent=cls._space.AddPolyline(end_points)
         for i,edge in enumerate(loop.edges):
             ent.SetBulge(i,edge.bulge if isinstance(edge,Arc) else 0)
         ent.Closed=True
@@ -215,27 +229,28 @@ class CADPlotter(GeomPlotter):
                 cls._draw_text(f"{id(loop)}:{i}",node)
         return ent
     @classmethod
-    def _draw_polygon(cls,current_space,polygon:Polygon, fill:bool=True, fill_opacity:int=80,  **kwargs):
+    def _draw_polygon(cls,polygon:Polygon, fill:bool=True, fill_opacity:int=80,  **kwargs):
         base_point=cls._point_to_com(Node(0,0,0))
         block_name=f"Polygon_{time()}"
         new_block=cls._blocks.Add(base_point,block_name)
-        outer=cls._draw_loop(new_block,polygon.shell)
-        inners=[]
-        for loop in polygon.holes:
-            inners.append(cls._draw_loop(new_block,loop))
-        if fill:
-            hatch=new_block.AddHatch(1,"SOLID",True,0)
-            hatch.AppendOuterLoop(cls._obj_list_to_com([outer]))
-            for inner in inners:
-                hatch.AppendInnerLoop(cls._obj_list_to_com([inner]))
-            hatch.EntityTransparency=fill_opacity
+        with cls._space_context(new_block):
+            outer=cls._draw_loop(polygon.shell)
+            inners=[]
+            for loop in polygon.holes:
+                inners.append(cls._draw_loop(loop))
+            if fill:
+                hatch=cls._space.AddHatch(1,"SOLID",True,0)
+                hatch.AppendOuterLoop(cls._obj_list_to_com([outer]))
+                for inner in inners:
+                    hatch.AppendInnerLoop(cls._obj_list_to_com([inner]))
+                hatch.EntityTransparency=fill_opacity
         insertion_point=cls._point_to_com(Node(0,0,0))
-        ent=current_space.InsertBlock(insertion_point,block_name,1,1,1,0)
+        ent=cls._space.InsertBlock(insertion_point,block_name,1,1,1,0)
         return ent
     @classmethod
-    def _draw_text(cls,current_space,text:str,pos:Node,height:float=250,**kwargs):
+    def _draw_text(cls,text:str,pos:Node,size:float=250,**kwargs):
         point=cls._point_to_com(pos)
-        ent=current_space.AddText(text,point,height)
+        ent=cls._space.AddText(text,point,size)
         return ent
     @staticmethod
     def _point_to_com(node:Node)->win32com.client.VARIANT:

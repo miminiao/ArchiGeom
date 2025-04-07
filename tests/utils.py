@@ -11,6 +11,7 @@ def read_case(sub_test,file_name,hook_mode=None)->list[Geom]:
     return objs
 
 def write_stdout(res:list[Geom],sub_test,file_name)->None:
+    print("Writing stdout...")
     path=sub_test[0]+file_name+".json"
     with open(path,'w') as f:
         json.dump(res,f,default=JsonDumper.default)

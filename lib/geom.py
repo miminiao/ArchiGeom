@@ -93,31 +93,56 @@ class Box(Geom):
             case 6:
                 self.minx,self.miny,self.minz,self.maxx,self.maxy,self.maxz=args
             case n: raise TypeError(f"Box() takes 0/4/6 positional arguments, but {n} {'were' if n>1 else 'was'} given")
+    @classmethod
+    def from_geoms(cls,geoms:list[Geom])->Self:
+        boxes=[geom.get_aabb() for geom in geoms]
+        return cls.merge(boxes)
     def get_aabb(self): return self
     @property
-    def lb(self): return Node(self.minx,self.miny)  # 左下
+    def lb(self): 
+        """左下点, z=0"""
+        return Node(self.minx,self.miny)
     @property
-    def lt(self): return Node(self.minx,self.maxy)  # 左上
+    def lt(self): 
+        """左上点, z=0"""
+        return Node(self.minx,self.maxy)
     @property
-    def rb(self): return Node(self.maxx,self.miny)  # 右下
+    def rb(self): 
+        """右下点, z=0"""
+        return Node(self.maxx,self.miny)
     @property
-    def rt(self): return Node(self.maxx,self.maxy)  # 右上
+    def rt(self): 
+        """右上点, z=0"""
+        return Node(self.maxx,self.maxy)
     @property
-    def corners(self): return [self.lb,self.rb,self.rt,self.lt]  # 左下开始逆时针
-
+    def corners(self): 
+        """四个角点, 左下开始逆时针"""
+        return [self.lb,self.rb,self.rt,self.lt]
     @classmethod
-    def Xp(cls,value:float=0): return cls(value,-INF,-INF,INF,INF,INF)  # X正半空间
+    def Xp(cls,value:float=0): 
+        """从value开始的X正半空间"""
+        return cls(value,-INF,-INF,INF,INF,INF)
     @classmethod
-    def Yp(cls,value:float=0): return cls(-INF,value,-INF,INF,INF,INF)  # Y正半空间
+    def Yp(cls,value:float=0): 
+        """从value开始的Y正半空间"""
+        return cls(-INF,value,-INF,INF,INF,INF)
     @classmethod
-    def Zp(cls,value:float=0): return cls(-INF,-INF,value,INF,INF,INF)  # Z正半空间
+    def Zp(cls,value:float=0): 
+        """从value开始的Z正半空间"""
+        return cls(-INF,-INF,value,INF,INF,INF)
     @classmethod
-    def Xn(cls,value:float=0): return cls(-INF,-INF,-INF,value,INF,INF)  # X负半空间
+    def Xn(cls,value:float=0): 
+        """从value开始的X负半空间"""
+        return cls(-INF,-INF,-INF,value,INF,INF)
     @classmethod
-    def Yn(cls,value:float=0): return cls(-INF,-INF,-INF,INF,value,INF)  # Y负半空间
+    def Yn(cls,value:float=0): 
+        """从value开始的Y负半空间"""
+        return cls(-INF,-INF,-INF,INF,value,INF)
     @classmethod
-    def Zn(cls,value:float=0): return cls(-INF,-INF,-INF,INF,INF,value)  # Z负半空间
-
+    def Zn(cls,value:float=0): 
+        """从value开始的Z负半空间"""
+        return cls(-INF,-INF,-INF,INF,INF,value)
+    
     @classmethod
     def merge(cls,boxes:list[Self]) -> Self:
         """合并包围盒，返回一堆包围盒的包围盒"""
@@ -145,40 +170,35 @@ class Box(Geom):
         if minx<=maxx and miny<=maxy and minz<=maxz:
             return cls(minx,miny,minz,maxx,maxy,maxz)
         else: return None
-    @classmethod
-    def relation(cls,a:Self,b:Self)->list[GeomRelation]:
+    def relation_with_box(self,other:Self)->list[GeomRelation]:
         """包围盒的位置关系.
-        Args:
-            a,b (Box): 待比较的包围盒.
         Returns:
             list[GeomRelation]: 
-                Inside: b与a的内部有交集(含边界).
-                Outside: b与a的外部有交集(不含边界).
-        """
+                [Inside]: self完全覆盖other; 
+                [Outside]: 无任何交集 (包括边界);
+                [Inside, Outside]: 部分相交 (包括边界);
+        """        
         rel=[]
         cmp=Const.cmp_dist
-        if (cmp(b.minx,a.maxx)<=0 and cmp(b.miny,a.maxy)<=0 and cmp(b.minz,a.maxz)<=0 and
-            cmp(b.maxx,a.minx)>=0 and cmp(b.maxy,a.miny)>=0 and cmp(b.maxz,a.minz)>=0
+        if (cmp(other.minx,self.maxx)<=0 and cmp(other.miny,self.maxy)<=0 and cmp(other.minz,self.maxz)<=0 and
+            cmp(other.maxx,self.minx)>=0 and cmp(other.maxy,self.miny)>=0 and cmp(other.maxz,self.minz)>=0
         ): 
             rel.append(GeomRelation.Inside)
-        if (cmp(b.minx,a.minx)<0 or cmp(b.miny,a.miny)<0 or cmp(b.minz,a.minz)<0 or
-            cmp(b.maxx,a.maxx)>0 or cmp(b.maxy,a.maxy)>0 or cmp(b.maxz,a.maxz)>0
+        if (cmp(other.minx,self.minx)<0 or cmp(other.miny,self.miny)<0 or cmp(other.minz,self.minz)<0 or
+            cmp(other.maxx,self.maxx)>0 or cmp(other.maxy,self.maxy)>0 or cmp(other.maxz,self.maxz)>0
         ): 
             rel.append(GeomRelation.Outside)
-        return rel
+        return rel        
     def covers_node(self,node:Node)->bool:
-        """包围盒覆盖点(含边界)"""
+        """判断是否覆盖点 (含边界)"""
         cmp=Const.cmp_dist
         return (
             cmp(node.x,self.minx)>=0 and cmp(self.maxx,node.x)>=0 and
             cmp(node.y,self.miny)>=0 and cmp(self.maxy,node.y)>=0 and
             cmp(node.z,self.minz)>=0 and cmp(self.maxz,node.z)>=0
         )
-    @classmethod
-    def from_geoms(cls,geoms:list[Geom])->Self:
-        boxes=[geom.get_aabb() for geom in geoms]
-        return cls.merge(boxes)
     def buffer(self,d:float)->Self:
+        """各边外扩距离d的box"""
         return Box(self.minx-d,self.miny-d,self.minz-d,
                    self.maxx+d,self.maxy+d,self.maxz+d)
 
@@ -984,6 +1004,27 @@ class Circle(Arc):
     def to_halves(self)->list[Arc]:
         return [Arc.from_center_radius_angle(self.center,self.radius,0,PI),
                 Arc.from_center_radius_angle(self.center,self.radius,PI,PI)]
+    def relation_with_box(self,box:Box)->list[GeomRelation]:
+        """box与圆的关系.
+        Returns:
+            list[GeomRelation]: 
+                [Inside]: box完全在圆内; 
+                [Outside]: box完全在圆外无交集;
+                [Inside, Outside]: 部分相交;
+        """
+        d=map(self.center.dist,box.corners)  # 圆心到四角的距离
+        cmp=Const.cmp_dist
+        covers_corner=list(map(lambda x:cmp(x,self.radius)<=0,d))  # 是否<半径
+        if (any(covers_corner)  # 覆盖某个顶点
+            or cmp(self.center.x,box.minx)>=0 and cmp(self.center.x,box.maxx)<=0 and  # 圆心在竖直范围，且距离上/下边界在半径范围内
+                cmp(self.center.y,box.miny-self.radius)>=0 and cmp(self.center.y,box.maxy+self.radius)<=0
+            or cmp(self.center.y,box.miny)>=0 and cmp(self.center.y,box.maxy)<=0 and  # 圆心在水平范围，且距离左/右边界在半径范围内
+                cmp(self.center.x,box.minx-self.radius)>=0 and cmp(self.center.x,box.maxx+self.radius)<=0
+        ):  # 有交集
+            if all(covers_corner):  # 完全被circle覆盖
+                return [GeomRelation.Inside]
+            else: return [GeomRelation.Inside,GeomRelation.Outside]
+        return [GeomRelation.Outside]
         
 class Polyedge(Geom):
     """多段线"""

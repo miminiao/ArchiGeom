@@ -135,18 +135,18 @@ def random_test_kdtree():
     import math,numpy as np
     from lib.utils import Timer
     # Timer.enable()
-    random.seed(0)
+    random.seed(1)
 
     n=10000
-    limits=1000
-    nodes=[Node(random.random()*limits,random.random()*limits) for i in range(n)]
+    limit=1000
+    nodes=[Node(random.random()*limit,random.random()*limit) for i in range(n)]
     with Timer(tag="kdtree"):
         kdtree=KDTree(nodes)
 
-    qx,qy=[random.random()*limits,random.random()*limits],[random.random()*limits,random.random()*limits]
+    qx,qy=[random.random()*limit,random.random()*limit],[random.random()*limit,random.random()*limit]
     qbox=Box(min(qx),min(qy),max(qx),max(qy))
-    qcenter=Node(random.random()*limits,random.random()*limits)
-    qradius=random.random()*limits/5
+    qcenter=Node(random.random()*limit,random.random()*limit)
+    qradius=random.random()*limit/5
     qcir=Circle(qcenter,qradius)
     
     plt.scatter([node.x for node in nodes],[node.y for node in nodes],color='k',alpha=0.3)
@@ -156,10 +156,10 @@ def random_test_kdtree():
     for node in nodes:
         if node.dim==0:
             x=[node.obj.x,node.obj.x]
-            y=[max(node.space.miny,0),min(node.space.maxy,1000)]
+            y=[max(node.space.miny,0),min(node.space.maxy,limit)]
         elif node.dim==1: 
             y=[node.obj.y,node.obj.y]
-            x=[max(node.space.minx,0),min(node.space.maxx,1000)]
+            x=[max(node.space.minx,0),min(node.space.maxx,limit)]
         plt.plot(x,y,color='k',alpha=0.3)
 
     plt.plot([qbox.minx,qbox.maxx,qbox.maxx,qbox.minx,qbox.minx],[qbox.miny,qbox.miny,qbox.maxy,qbox.maxy,qbox.miny])

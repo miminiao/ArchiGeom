@@ -3,7 +3,7 @@ import win32com.client
 import pythoncom
 import matplotlib.pyplot as plt
 from matplotlib.colors import TABLEAU_COLORS
-from lib.geom import Geom,Node,Edge,LineSeg,Circle,Arc,Polyedge,Loop,Polygon
+from lib.geom import Geom,Node,Box,Edge,LineSeg,Circle,Arc,Polyedge,Loop,Polygon
 from lib.interval import Interval1d,MultiInterval1d
 from typing import Callable
 from time import time
@@ -36,6 +36,7 @@ class MPLPlotter(GeomPlotter):
     def draw_geoms(cls,geoms:list[Geom],show:bool=False,**kwargs)->None:
         draw_method_dict={
             Node:       cls._draw_node,
+            Box:        cls._draw_box,
             LineSeg:    cls._draw_edge,
             Arc:        cls._draw_edge,
             Polyedge:   cls._draw_polyedge,
@@ -63,13 +64,19 @@ class MPLPlotter(GeomPlotter):
             ax.set_aspect(1)
             plt.show()
     @classmethod
+    def _draw_box(cls,box:Box,show:bool=False,**kwargs):
+        plt.plot([box.minx,box.maxx,box.maxx,box.minx,box.minx],[box.miny,box.miny,box.maxy,box.maxy,box.miny])
+        if show:
+            ax = plt.gca()
+            ax.set_aspect(1)
+            plt.show()            
+    @classmethod
     def _draw_edge(cls,edge:Edge,show:bool=False,**kwargs):
         if isinstance(edge,LineSeg):
             plt.plot(*edge.to_array().T,**kwargs)
         elif isinstance(edge,Arc):
-            sub_edges=edge.fit()
-            for sub_edge in sub_edges:
-                plt.plot(sub_edge.to_array()[:,0], sub_edge.to_array()[:,1],**kwargs)
+            subdivs=edge.fit()
+            cls._draw_polyedge(subdivs)
         if show:
             ax = plt.gca()
             ax.set_aspect(1)
@@ -80,9 +87,8 @@ class MPLPlotter(GeomPlotter):
             if isinstance(edge,LineSeg):
                 plt.plot(*edge.to_array().T,**kwargs)
             elif isinstance(edge,Arc):
-                sub_edges=edge.fit()
-                for sub_edge in sub_edges:
-                    plt.plot(sub_edge.to_array()[:,0], sub_edge.to_array()[:,1],**kwargs)
+                subdivs=edge.fit()
+                cls._draw_polyedge(subdivs)
             if show_node_text:
                 plt.scatter(edge.s.x,edge.s.y)
                 plt.text(edge.s.x+1.0*i,edge.s.y+1.0*i,i,color="b")
@@ -102,9 +108,8 @@ class MPLPlotter(GeomPlotter):
             if isinstance(edge,LineSeg):
                 plt.plot(*edge.to_array().T,linestyle=line_style,**kwargs)
             elif isinstance(edge,Arc):
-                sub_edges=edge.fit()
-                for sub_edge in sub_edges:
-                    plt.plot(sub_edge.to_array()[:,0], sub_edge.to_array()[:,1],linestyle=line_style,**kwargs)
+                subdivs=edge.fit()
+                cls._draw_polyedge(subdivs)
             if show_node:
                 plt.scatter(edge.s.x,edge.s.y)
                 if show_text:

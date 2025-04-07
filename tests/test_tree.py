@@ -10,6 +10,7 @@ import random
 ROOT="./tests/tree/"
 
 SEG_TREE=(ROOT+"seg_tree/",5)
+KD_TREE=(ROOT+"kd_tree/",6)
 
 input_num=1000
 def test_bst_insert():
@@ -124,7 +125,7 @@ def test_segtree(case):
         for _,intv in enumerate(merged_intvs):
             plt.plot([intv.l,intv.r],[intv.value,intv.value])
         plt.show()  
-        # write_stdout(merged_intvs,SEG_TREE,f"out_{i}") 
+        # write_stdout(merged_intvs,SEG_TREE,case['out']) 
     else:
         std_out=read_case(SEG_TREE,case["out"])
         assert merged_intvs==std_out
@@ -132,14 +133,13 @@ def test_segtree(case):
 def random_test_kdtree():
     """随机测试kd树"""
     import matplotlib.pyplot as plt
-    import math,numpy as np
+    from lib.geom_plotter import MPLPlotter
     from lib.utils import Timer
     # Timer.enable()
     # random.seed(3)
 
-    n=10000
-    limit=1000
-    nodes=[Node(random.random()*limit,random.random()*limit) for i in range(n)]
+    limit=10000
+    nodes=[Node(random.random()*limit,random.random()*limit) for i in range(input_num)]
     with Timer(tag="kdtree"):
         kdtree=KDTree(nodes)
 
@@ -149,11 +149,14 @@ def random_test_kdtree():
     qradius=random.random()*limit/3
     qcir=Circle(qcenter,qradius)
     
+    qreg=qbox
+    # qreq=qcir
+    
     plt.scatter([node.x for node in nodes],[node.y for node in nodes],color='k',alpha=0.3)
-    nodes=[]
+    treenodes=[]
     with Timer(tag="traverse"):
-        kdtree._root.traverse(callback=lambda treenode:nodes.append(treenode))
-    for node in nodes:
+        kdtree._root.traverse(callback=lambda treenode:treenodes.append(treenode))
+    for node in treenodes:
         if node.dim==0:
             x=[node.obj.x,node.obj.x]
             y=[max(node.space.miny,0),min(node.space.maxy,limit)]
@@ -162,25 +165,49 @@ def random_test_kdtree():
             x=[max(node.space.minx,0),min(node.space.maxx,limit)]
         plt.plot(x,y,color='k',alpha=0.3)
 
-    plt.plot([qbox.minx,qbox.maxx,qbox.maxx,qbox.minx,qbox.minx],[qbox.miny,qbox.miny,qbox.maxy,qbox.maxy,qbox.miny])
-    with Timer(tag="box_q"):
+    MPLPlotter.draw_geoms(qreg,color='b')
+    with Timer(tag="query"):
         hit_nodes=kdtree.query(qbox)
     plt.scatter([node.x for node in hit_nodes],[node.y for node in hit_nodes],color='r')
     
-    
-    t=np.arange(0,2*math.pi,0.01)
-    x=np.cos(t)*qradius+qcenter.x
-    y=np.sin(t)*qradius+qcenter.y
-    plt.plot(x,y,color='b')
-    with Timer(tag="circle_q"):
-        hit_nodes=kdtree.query(qcir)
-    plt.scatter([node.x for node in hit_nodes],[node.y for node in hit_nodes],color='g')
-    
+    ax = plt.gca()
+    ax.set_aspect(1)
     plt.show()
+
+    # std_in={'nodes':nodes,'query':qreg}
+    # write_stdout(std_in,KD_TREE,"case_6")
+    # write_stdout(hit_nodes,KD_TREE,"query_out_6")
+
+@pytest.mark.parametrize(
+    argnames="case",
+    argvalues=[{"in":f"case_{i}","out":f"query_out_{i}"} for i in range(1,KD_TREE[1]+1)],
+    ids=[f"case_{i}" for i in range(1,KD_TREE[1]+1)],
+)
+def test_kdtree_query(case):
+    """测试kd树范围查询"""
+    input=read_case(KD_TREE,case["in"])
+    nodes,qreg=input['nodes'],input['query']
+    kdtree=KDTree(nodes)
+    res=kdtree.query(qreg)
+    if __name__=="__main__":
+        import matplotlib.pyplot as plt
+        from lib.geom_plotter import MPLPlotter
+        plt.scatter([node.x for node in nodes],[node.y for node in nodes],color='k',alpha=0.3)
+        MPLPlotter.draw_geoms(qreg,color='b')
+        plt.scatter([node.x for node in res],[node.y for node in res],color='r')
+        plt.show()
+        # write_stdout(res,KD_TREE,case["out"]) 
+    else:
+        std_out=read_case(KD_TREE,case["out"])
+        sort_key=lambda node:(node.x,node.y)
+        std_out.sort(key=sort_key)
+        res.sort(key=sort_key)
+        assert res==std_out
 
 if __name__=="__main__":
     if 0: test_bst_insert()
     if 0: random_test_segtree()
-    if 0: test_segtree(({"in":f"case_{1}","out":f"out_{1}"}))
-    if 1: random_test_kdtree()
+    if 0: test_segtree({"in":f"case_{1}","out":f"out_{1}"})
+    if 0: random_test_kdtree()
+    if 0: test_kdtree_query({"in":f"case_{1}","out":f"query_out_{1}"})
 

@@ -930,7 +930,16 @@ class Arc(Edge):
         if t1<t2 or arc_length<Const.TOL_DIST:
             return Arc(p1,p2,math.tan(radian/4))
         else: return None
-    def fit(self,quad_segs:int=16,min_segs:int=1) -> list[LineSeg]:
+    def fit(self,quad_segs:int=16,min_segs:int=1) -> Polyedge:
+        """圆弧细分为直线段.
+
+        Args:
+            quad_segs (int, optional): 1/4圆周细分的段数. Defaults to 16.
+            min_segs (int, optional): 最小段数. Defaults to 1.
+
+        Returns:
+            Polyedge: 细分后的直线段
+        """
         subdiv_num=max(min_segs,math.ceil(abs(self.radian/(PI/2)*quad_segs)))
         if subdiv_num==0: return [LineSeg(self.s,self.e)]
         subdiv_radian=self.radian/subdiv_num
@@ -940,7 +949,7 @@ class Arc(Edge):
             v=Vec3d(math.cos(inter_angle),math.sin(inter_angle))*self.radius
             nodes.append(Node(self.center.x+v.x,self.center.y+v.y))
         nodes.append(self.e)
-        return [LineSeg(nodes[i],nodes[i+1]) for i in range(len(nodes)-1)]    
+        return Polyedge(nodes)
     def offset(self,dist:float,cross_center:bool=False) -> "Arc":
         """偏移
 
@@ -962,7 +971,7 @@ class Arc(Edge):
         return Arc(new_s,new_e,self.bulge)
 class Circle(Arc):
     """圆周"""
-    _dumper_ignore=["radian","bulge","angles"]
+    _dumper_ignore=["_radian","_angles"]
     def __init__(self,center:Node,radius:float) -> None:
         s=Node(center.x+radius,center.y)
         super().__init__(s,s,INF)

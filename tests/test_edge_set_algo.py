@@ -23,7 +23,7 @@ def test_break_edge(case):
     res=BreakEdgeAlgo(inputs).get_result()
     if __name__=="__main__":
         CADPlotter.draw_geoms(res)
-        # write_stdout(len(res),BREAK_EDGE,f"out_{i}") 
+        # write_stdout(len(res),BREAK_EDGE,case['out']) 
     else:
         std_out=read_case(BREAK_EDGE,case["out"])
         assert len(res)==std_out
@@ -39,7 +39,7 @@ def test_merge_edge(case):
     res=MergeEdgeAlgo(edges,break_at_intersections=False).get_result()
     if __name__=="__main__":
         CADPlotter.draw_geoms(res)
-        # write_stdout(len(res),MEARGE_EDGE,f"out_{i}") 
+        # write_stdout(len(res),MEARGE_EDGE,case['out']) 
     else:
         std_out=read_case(MEARGE_EDGE,case["out"])
         assert len(res)==std_out
@@ -56,7 +56,7 @@ def test_find_outline(case):
     comp=Const.cmp_area
     if __name__=="__main__":
         CADPlotter.draw_geoms([res])
-        # write_stdout([len(res),res.area],FIND_OUTLINE,f"out_{i}") 
+        # write_stdout([len(res),res.area],FIND_OUTLINE,case['out']) 
     else:
         std_out=read_case(FIND_OUTLINE,case["out"])
         assert len(res)==std_out[0]

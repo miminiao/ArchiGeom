@@ -28,7 +28,7 @@ def test_polygon_union(case):
     res=BooleanOperation.union(polygons)
     if __name__=="__main__":
         CADPlotter.draw_geoms(res)
-        # write_stdout(res,POLYGON_UNION,f"out_{i}")
+        # write_stdout(res,POLYGON_UNION,case['out'])
     else:
         std_out=read_case(POLYGON_UNION,case["out"])
         assert len(res)==len(std_out)
@@ -46,7 +46,7 @@ def test_polygon_diff(case):
     res=BooleanOperation.difference(inputs[0],inputs[1])
     if __name__=="__main__":
         CADPlotter.draw_geoms(res)
-        # write_stdout(res,POLYGON_DIFF,f"out_{i}")
+        write_stdout(res,POLYGON_DIFF,case['out'])
     else:
         std_out=read_case(POLYGON_DIFF,case["out"])
         assert len(res)==len(std_out)
@@ -65,7 +65,7 @@ def test_polygon_inter(case):
     res=BooleanOperation.intersection(polygons)    
     if __name__=="__main__":
         CADPlotter.draw_geoms(res)
-        # write_stdout(res,POLYGON_INTER,f"out_{i}")
+        # write_stdout(res,POLYGON_INTER,case['out'])
     else:
         std_out=read_case(POLYGON_INTER,case["out"])
         assert len(res)==len(std_out)

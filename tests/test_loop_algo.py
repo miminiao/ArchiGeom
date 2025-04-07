@@ -36,7 +36,7 @@ def test_loop_covers_node(case):
         CADPlotter.draw_geoms([loop])
         CADPlotter.draw_geoms(covered,color=3)
         CADPlotter.draw_geoms(others,color=1)
-        # write_stdout(covered_idx,COVER_NODE,f"out_{i}")
+        # write_stdout(covered_idx,COVER_NODE,case['out'])
     else:
         std_out=read_case(COVER_NODE,case["out"])
         assert sorted(covered_idx)==sorted(std_out)
@@ -68,7 +68,7 @@ def test_loop_covers_edge(case):
         CADPlotter.draw_geoms([loop])
         CADPlotter.draw_geoms(covered,color=3)
         CADPlotter.draw_geoms(others,color=1)        
-        # write_stdout(covered_idx,COVER_EDGE,f"out_{i}")
+        # write_stdout(covered_idx,COVER_EDGE,case['out'])
     else:
         std_out=read_case(COVER_EDGE,case["out"])        
         assert sorted(covered_idx)==sorted(std_out)
@@ -96,7 +96,7 @@ def test_loop_covers_loop(case)->None:
     if __name__=="__main__":
         CADPlotter.draw_geoms([loops[0]],color=3 if coveres[0] else 1)        
         CADPlotter.draw_geoms([loops[1]],color=3 if coveres[1] else 1)    
-        # write_stdout(covered,COVER_LOOP,f"out_{i}")
+        # write_stdout(covered,COVER_LOOP,case['out'])
     else:
         std_out=read_case(COVER_LOOP,case["out"])
         assert coveres==std_out
@@ -119,7 +119,7 @@ def test_rebuild_loop(case)->None:
     res=_rebuild_loop(loops)
     if __name__=="__main__":
         CADPlotter.draw_geoms(res)
-        # write_stdout(res,REBUILD_LOOP,f"out_{i}")
+        # write_stdout(res,REBUILD_LOOP,case['out'])
     else:
         std_out=read_case(REBUILD_LOOP,case["out"])      
         assert len(res)==len(std_out)
@@ -153,7 +153,7 @@ def test_rebuild_and_cancel_loop(case)->None:
     res=_rebuild_and_cancel_loop(loops)
     if __name__=="__main__": 
         CADPlotter.draw_geoms(res)
-        # write_stdout(res,REBUILD_AND_CANCEL_LOOP,f"out_{i}")     
+        # write_stdout(res,REBUILD_AND_CANCEL_LOOP,case['out'])     
     else:   
         std_out=read_case(REBUILD_AND_CANCEL_LOOP,case["out"])
         assert len(res)==len(std_out)
@@ -181,7 +181,7 @@ def test_find_loop(case):
         edges.extend(g.edges)            
     res=FindLoopAlgo(edges).get_result()
     if __name__=="__main__":
-        # write_stdout(res,FIND_LOOP,f"out_{i}") 
+        # write_stdout(res,FIND_LOOP,case['out']) 
         CADPlotter.draw_geoms(res)
     else:
         std_out=read_case(FIND_LOOP,case["out"])

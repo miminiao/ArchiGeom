@@ -1,7 +1,7 @@
 """Geom<-->json"""
 
 import math
-from lib.geom import Geom,Node,LineSeg,Arc,Circle,Polyedge,Loop,Polygon
+from lib.geom import Geom,Node,Box,LineSeg,Arc,Circle,Polyedge,Loop,Polygon
 from lib.interval import Interval1d
 from lib.linalg import Tensor,Vec3d,Vec4d,Mat3d,Mat4d
 from tests.CGS.case_model import CGSTestCase
@@ -103,12 +103,14 @@ class JsonLoader:
         match obj.get("class_name",None):
             case "Node":
                 return Node(obj["x"],obj["y"],obj["z"])
+            case "Box":
+                return Box(obj['minx'],obj['miny'],obj['minz'],obj['maxx'],obj['maxy'],obj['maxz'])
             case "LineSeg":
                 return LineSeg(obj["s"],obj["e"])
             case "Arc":
                 return Arc(obj["s"],obj["e"],obj["bulge"])
             case "Circle":
-                return Circle(obj["center"],obj["radius"])
+                return Circle(obj["_center"],obj["_radius"])
             case "Polyedge":
                 return Polyedge(obj["nodes"],obj["bulges"])
             case "Loop":

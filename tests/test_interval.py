@@ -271,7 +271,7 @@ def test_intv_union(case):
         for _,intv in enumerate(merged_intvs):
             plt.plot([intv.l,intv.r],[intv.value,intv.value])
         plt.show()  
-        # write_stdout(merged_intvs,INTERVAL_UNION,f"out_{i}") 
+        # write_stdout(merged_intvs,INTERVAL_UNION,case['out']) 
     else:
         std_out=read_case(INTERVAL_UNION,case["out"])
         assert merged_intvs._items==std_out

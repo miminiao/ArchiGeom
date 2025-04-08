@@ -2,7 +2,8 @@ from abc import ABC, abstractmethod
 import math
 import numpy as np
 from typing import Callable
-from queue import PriorityQueue
+import heapq
+from collections import deque
 
 from lib.linalg import Vec3d
 from lib.interval import Interval1d
@@ -11,7 +12,7 @@ from lib.geom import (
     GeomUtil,
     )
 from lib.utils import Timer,Constant as Const,ListTool,ComparerInjector
-from lib.index import STRTree,SegmentTree, TreeNode
+from lib.index import STRTree,SegmentTree, TreeNode,KDTree,AVLTree
 
 from lib.geom_plotter import CADPlotter as plt
 import os
@@ -382,15 +383,31 @@ class BreakEdgeAlgo(GeomAlgo):  # ✅
     def _get_break_points_by_scanning(self)->dict[Edge:list[Node]]:  # TODO
         """获取线段上的断点，没有排序，也没有去重"""
         all_edges=sum(self.edge_groups,[])
-        event_q=PriorityQueue()
-        def cmp(a:Node,b:Node)->int:
-            if a.y>b.y or a.y==b.y and a.x>b.x: return 1
-            elif a.y<b.y or a.y==b.y and a.x<b.x: return -1
-            else: return 0
-        with ComparerInjector(Node,cmp,override_ops=True):
-            for edge in all_edges:
-                event_q.put(edge.s,edge.e)
-            break_points=...
+        all_endpoints=sum([[edge.s,edge.e] for edge in all_edges],[])
+        kdtree=KDTree(all_endpoints)
+        for edge in all_edges:
+            s=kdtree.find_point(edge.s)
+            e=kdtree.find_point(edge.e)
+            if s.y>e.y or s.y==e.y and s.x<e.x: 
+                s.edge_out.append(edge)
+                e.edge_in.append(edge)
+            else:
+                e.edge_out.append(edge)
+                s.edge_out.append(edge)
+        all_nodes:list[Node]=[]
+        kdtree._root.traverse(callback=lambda treenode:all_nodes.append(treenode.obj))
+        all_nodes.sort(key=lambda node:(-node.y,node.x))
+        event_q=deque([all_nodes[0]])
+        bst=AVLTree(all_nodes[0].edge_out)
+        while len(event_q)>0:
+            event_point=event_q.popleft()
+            scan_line=event_point.y
+            for edge in event_point.edge_out:
+                bst.insert(edge)
+                new_edge=bst.find(edge)
+
+        
+        break_points=...
         return break_points    
     def _rebuild_lines(self,break_points:dict[Edge,list[Node]])->list[list[Edge]]:
         """根据断点重构线段"""

@@ -149,8 +149,8 @@ def random_test_kdtree():
     qradius=random.random()*limit/3
     qcir=Circle(qcenter,qradius)
     
-    qreg=qbox
-    # qreq=qcir
+    # qreg=qbox
+    qreg=qcir
     
     plt.scatter([node.x for node in nodes],[node.y for node in nodes],color='k',alpha=0.3)
     treenodes=[]
@@ -165,16 +165,25 @@ def random_test_kdtree():
             x=[max(node.space.minx,0),min(node.space.maxx,limit)]
         plt.plot(x,y,color='k',alpha=0.3)
 
-    MPLPlotter.draw_geoms(qreg,color='b')
-    with Timer(tag="query"):
-        hit_nodes=kdtree.query(qbox)
-    plt.scatter([node.x for node in hit_nodes],[node.y for node in hit_nodes],color='r')
+    # # query
+    # MPLPlotter.draw_geoms(qreg,color='b')
+    # with Timer(tag="query"):
+    #     hit_nodes=kdtree.query(qreg)
+    # plt.scatter([node.x for node in hit_nodes],[node.y for node in hit_nodes],color='r')
     
+    # knn
+    target=Node(3000,3000)
+    k=500
+    hit_nodes=kdtree.query_knn(target,k)
+    plt.scatter([node.x for node in hit_nodes],[node.y for node in hit_nodes],color='b')
+    plt.scatter([target.x],[target.y],color='r')
+    MPLPlotter.draw_geoms(Circle(target,target.dist(hit_nodes[0])))
+
     ax = plt.gca()
     ax.set_aspect(1)
     plt.show()
 
-    # std_in={'nodes':nodes,'query':qreg}
+    # std_in={'nodes':nodes,'query':qreg,'knn':{'target':target,'k':k}}
     # write_stdout(std_in,KD_TREE,"case_6")
     # write_stdout(hit_nodes,KD_TREE,"query_out_6")
 
@@ -195,6 +204,8 @@ def test_kdtree_query(case):
         plt.scatter([node.x for node in nodes],[node.y for node in nodes],color='k',alpha=0.3)
         MPLPlotter.draw_geoms(qreg,color='b')
         plt.scatter([node.x for node in res],[node.y for node in res],color='r')
+        ax = plt.gca()
+        ax.set_aspect(1)
         plt.show()
         # write_stdout(res,KD_TREE,case["out"]) 
     else:
@@ -204,10 +215,40 @@ def test_kdtree_query(case):
         res.sort(key=sort_key)
         assert res==std_out
 
+@pytest.mark.parametrize(
+    argnames="case",
+    argvalues=[{"in":f"case_{i}","out":f"knn_out_{i}"} for i in range(1,KD_TREE[1]+1)],
+    ids=[f"case_{i}" for i in range(1,KD_TREE[1]+1)],
+)
+def test_kdtree_knn(case):
+    """测试kd树k临近查询"""
+    input=read_case(KD_TREE,case["in"])
+    nodes,target,k=input['nodes'],input['knn']['target'],input['knn']['k']
+    kdtree=KDTree(nodes)
+    res=kdtree.query_knn(target,k)
+    if __name__=="__main__":
+        import matplotlib.pyplot as plt
+        from lib.geom_plotter import MPLPlotter
+        plt.scatter([node.x for node in nodes],[node.y for node in nodes],color='k',alpha=0.3)
+        plt.scatter([target.x],[target.y],color='b')
+        MPLPlotter.draw_geoms(Circle(target,target.dist(res[0])))
+        plt.scatter([node.x for node in res],[node.y for node in res],color='r')
+        ax = plt.gca()
+        ax.set_aspect(1)        
+        plt.show()
+        # write_stdout(res,KD_TREE,case["out"]) 
+    else:
+        std_out=read_case(KD_TREE,case["out"])
+        sort_key=lambda node:(node.x,node.y)
+        std_out.sort(key=sort_key)
+        res.sort(key=sort_key)
+        assert res==std_out        
+
 if __name__=="__main__":
     if 0: test_bst_insert()
     if 0: random_test_segtree()
     if 0: test_segtree({"in":f"case_{1}","out":f"out_{1}"})
     if 0: random_test_kdtree()
     if 0: test_kdtree_query({"in":f"case_{1}","out":f"query_out_{1}"})
+    if 1: test_kdtree_knn({"in":f"case_{6}","out":f"knn_out_{6}"})
 

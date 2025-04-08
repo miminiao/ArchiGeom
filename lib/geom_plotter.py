@@ -43,6 +43,7 @@ class MPLPlotter(GeomPlotter):
             Box:        cls._draw_box,
             LineSeg:    cls._draw_edge,
             Arc:        cls._draw_edge,
+            Circle:     cls._draw_edge,
             Polyedge:   cls._draw_polyedge,
             Loop:       cls._draw_loop,
             Polygon:    cls._draw_polygon,
@@ -87,9 +88,10 @@ class MPLPlotter(GeomPlotter):
             plt.show()
     @classmethod
     def _draw_polyedge(cls,polyedge:Polyedge,show_node_text:bool=False,show:bool=False,**kwargs)->None:
+        color=kwargs.get('color','k')
         for i,edge in enumerate(polyedge.edges):
             if isinstance(edge,LineSeg):
-                plt.plot(*edge.to_array().T,**kwargs)
+                plt.plot(*edge.to_array().T,color=color,**kwargs)
             elif isinstance(edge,Arc):
                 subdivs=edge.fit()
                 cls._draw_polyedge(subdivs)

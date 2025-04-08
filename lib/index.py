@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import heapq
 from lib.utils import Constant,ListTool
 from lib.interval import Interval1d,MultiInterval1d
 from typing import Self,Callable,Literal,TYPE_CHECKING
@@ -378,7 +379,8 @@ class KDTree:
     """k-d树 (离线).
     Args:
         nodes (list[Node]): 待索引的点.
-        k (int, optional): 维度 in [1..3].
+        k (int, optional): 维度 in [1..3]. Defaults to 2.
+        dist_func (Callable[[Node,Node],float]): 距离函数. Defaults to None (Node.dist).
     """
     def __init__(self, nodes:list[Node], k:int=2):
         from lib.geom import Box
@@ -451,10 +453,32 @@ class KDTree:
             else: 
                 root=root.rch
         return parent
-    def knn(self,point:Node, k:int=1)->list[Node]:
+    def query_knn(self,point:Node, k:int=1, dist_func:Callable[[Node,Node],float]=None)->list[Node]:
         """查询k临近点"""
-        res=[]
-        leaf=self._query_leaf(point)
-        mid_d=point.dist(leaf.obj)
+        dist_func=dist_func or (lambda a,b:a.dist(b))
+        heap=[]
+        self._knn(point,k,self._root,heap,dist_func)
+        return [x[1] for x in heap]
+    def _knn(self,point:Node, k:int, root:_KDTreeNode, heap:list[tuple[float,Node]], dist_func:Callable[[Node,Node],float])->None:
+        # 用一个大根堆保存当前距离最近的k个点.
+        # 顺着路径找一直到叶子, 路径上的点依次与堆顶比较,
+        # 如果距离比堆顶元素小, 就pushpop.
+        # 回溯的时候再比较一下堆顶元素和兄弟子树,
+        # 如果兄弟子树更近, 就去兄弟子树里再找找.       
+        if root is None: return 
+        d=dist_func(point,root.obj)
+        if len(heap)==0 or d<-heap[0][0]: 
+            heapq.heappush(heap,(-d,root.obj))
+        if len(heap)>k: 
+            heapq.heappop(heap)
+        key=self._key[root.dim]
+        ch_idx=0 if key(point)<=key(root.obj) else 1
+        self._knn(point,k,root.child[ch_idx],heap,dist_func)
+        d_to_sib=abs(key(point)-key(root.obj))
+        if d_to_sib<-heap[0][0]:
+            self._knn(point,k,root.child[1-ch_idx],heap,dist_func)
+
+            
+        
 
 

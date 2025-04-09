@@ -1,14 +1,24 @@
+from __future__ import annotations
+
 import math
 from lib.utils import Constant as Const
 import numpy as np
+from typing import Literal
+
 class Tensor:
     dim:tuple[int,...]
-class Vector(Tensor):...
+class Vector(Tensor):
+    dim:tuple[int,Literal[1]]
 class Vec3d(Vector):
     dim=(3,1)
     X,Y,Z=None,None,None
     def __init__(self,x:float,y:float,z:float=0.0) -> None:
         self.x,self.y,self.z=x,y,z
+    @classmethod
+    def _init_cls_attrs(cls)->None:
+        Vec3d.X=Vec3d(1,0,0)
+        Vec3d.Y=Vec3d(0,1,0)
+        Vec3d.Z=Vec3d(0,0,1)
     def __getitem__(self,index:int)->float:
         if index>=3 or index<-3: raise IndexError
         match index%3:
@@ -64,11 +74,9 @@ class Vec3d(Vector):
         return np.array([self.x,self.y,self.z]).T
     def to_list(self)->list[float]:
         return [self.x,self.y,self.z]
-    def to_vec4d(self,w:float=0)->"Vec4d":
+    def to_vec4d(self,w:float=0)->Vec4d:
         return Vec4d(self.x,self.y,self.z,w)
-Vec3d.X=Vec3d(1,0,0)
-Vec3d.Y=Vec3d(0,1,0)
-Vec3d.Z=Vec3d(0,0,1)
+Vec3d._init_cls_attrs()
 
 class Vec4d(Vector):
     dim=(4,1)

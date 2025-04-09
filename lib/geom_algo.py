@@ -8,7 +8,7 @@ from collections import deque
 from lib.linalg import Vec3d
 from lib.interval import Interval1d
 from lib.geom import (
-    Node,Edge,Line,LineSeg,Arc,Circle,Loop,Polygon,
+    Node,Edge,Line,LineSeg,Arc,Circle,Loop,Polygon,Box,
     GeomUtil,
     )
 from lib.utils import Timer,Constant as Const,ListTool,ComparerInjector
@@ -28,7 +28,7 @@ class GeomAlgo(ABC):
     @abstractmethod
     def _postprocess(self)->None: ...
 
-class MaxRectAlgo(GeomAlgo):  # TODO
+class MaxRectAlgo(GeomAlgo):  # FIXME
     """多边形与坐标轴平行的最大内接矩形.
 
     Args:
@@ -318,72 +318,80 @@ class MaxRectAlgo(GeomAlgo):  # TODO
         return u0, l0, d0, r0
     def _postprocess(self) -> None: ...
 
-class BreakEdgeAlgo(GeomAlgo):  # ✅
+class BreakEdgeAlgo[T:list[Edge]|list[list[Edge]]](GeomAlgo):  # ✅
     """线段打断. 重叠部分会在端点处打断. 保持原线段的方向. 
 
     Args:
-        edge_groups (list[Edge]|list[list[Edge]]): 待打断的一组线段. | 若干个分组，每组包含若干条线段.
+        edge_groups (T:list[Edge]|list[list[Edge]]): 待打断的一组线段. | 若干个分组，每组包含若干条线段.
+    Todos:
+        * [TODO] 求交点用扫描线优化
     """
-    def __init__(self,edge_groups:list[Edge]|list[list[Edge]]) -> None:
+    def __init__(self,edge_groups:T) -> None:
         super().__init__()
+        self.edge_groups:list[list[Edge]]
         if len(edge_groups)>0 and isinstance(edge_groups[0],Edge):
             self._is_group=False
-            self.edge_groups=[edge_groups]        
+            self.edge_groups=[edge_groups]
         else:
-            self.edge_groups=edge_groups
             self._is_group=True
-        self.res=None
-    def get_result(self)->list[Edge]|list[list[Edge]]:
+            self.edge_groups=edge_groups
+
+    def get_result(self)->T:
         """获取打断的结果.
 
-        Returns
-        list[Edge]|list[list[Edge]]: 打断后的一组线段. | 若干个分组，每组包含打断后的线段，和打断前的分组一致.
+        Returns:
+            T: 打断后的一组线段. | 若干个分组，每组包含打断后的线段，和打断前的分组一致.
         """
         if len(self.edge_groups)==0: return []
         self._preprocess()
         break_points=self._get_break_points()
-        self.res=self._rebuild_lines(break_points)
-        self._postprocess()
-        return self.res
+        res=self._rebuild_lines(break_points)
+        res=self._postprocess(res)
+        return res
     def _preprocess(self)->None:
         """预处理"""
         super()._preprocess()
         # 去除0线段
         self.edge_groups=[[edge for edge in group if not edge.is_zero()] for group in self.edge_groups]
-    def _postprocess(self)->None:
+    def _postprocess(self,res)->T:
         """后处理"""
-        if not self._is_group:
-            self.res=self.res[0]
+        # 数据类型与入参统一
+        if not self._is_group: res=res[0]
         super()._postprocess()
-    def _get_break_points(self)->dict[Edge:list[Node]]:
+        return res
+    def _get_break_points(self)->dict[Edge,list[Node]]:
         """获取线段上的断点，没有排序，也没有去重"""
+        # 对每条线段和与其的邻近线段进行相交测试, 记录交点
         all_edges=sum(self.edge_groups,[])
         visited={line:set() for line in all_edges} # 记录已经求过交点的线段
         break_points={line:[line.s,line.e] for line in all_edges} # 记录线段上的断点
         rt=STRTree(all_edges)
-        for line in all_edges:
-            neighbors=rt.query(line.get_aabb())
+        for edge in all_edges:
+            neighbors=rt.query(edge.get_aabb())
             for other in neighbors:
-                if other in visited[line]: continue # 这俩已经求过了，就不再算了
-                visited[line].add(other)
-                visited[other].add(line)
+                if other in visited[edge]: continue # 这俩已经求过了，就不再算了
+                visited[edge].add(other)
+                visited[other].add(edge)
                 # 共线且有重叠的情况
-                if line.is_collinear(other):
-                    overlap=line.overlap(other)
-                    for edge in overlap:
-                        if edge.is_zero(): continue
-                        break_points[line].extend([edge.s,edge.e])
-                        break_points[other].extend([edge.s,edge.e])
+                if edge.is_collinear(other):
+                    overlaps=edge.overlap(other)
+                    for overlap in overlaps:
+                        if overlap.is_zero(): continue
+                        break_points[edge].extend([overlap.s,overlap.e])
+                        break_points[other].extend([overlap.s,overlap.e])
                 # 相交的情况
-                if line.intersects(other):
-                    intersection=line.intersection(other)
-                    break_points[line].extend(intersection)
+                if edge.intersects(other):
+                    intersection=edge.intersection(other)
+                    break_points[edge].extend(intersection)
                     break_points[other].extend(intersection)
         return break_points
-    def _get_break_points_by_scanning(self)->dict[Edge:list[Node]]:  # TODO
+        
+    def _get_break_points_by_scanning(self)->dict[Edge,list[Node]]:  # TODO
         """获取线段上的断点，没有排序，也没有去重"""
+        break_points:dict[Edge,list[Node]]={}
         all_edges=sum(self.edge_groups,[])
         all_endpoints=sum([[edge.s,edge.e] for edge in all_edges],[])
+        aabb=Box.from_geoms(all_edges)
         kdtree=KDTree(all_endpoints)
         for edge in all_edges:
             s=kdtree.find_point(edge.s)
@@ -397,19 +405,26 @@ class BreakEdgeAlgo(GeomAlgo):  # ✅
         all_nodes:list[Node]=[]
         kdtree._root.traverse(callback=lambda treenode:all_nodes.append(treenode.obj))
         all_nodes.sort(key=lambda node:(-node.y,node.x))
-        event_q=deque([all_nodes[0]])
-        bst=AVLTree(all_nodes[0].edge_out)
+        event=all_nodes[0]
+        scan_line=Line(event,Vec3d.X)
+        event_q=deque([event])
+        bst=AVLTree()
+        for edge in event.edge_out:
+            bst.insert(edge)
+        if len(event.edge_out)+len(event.edge_in)>1:
+            for edge in event.edge_out+event.edge_in:
+                break_points[edge].append(event)
         while len(event_q)>0:
-            event_point=event_q.popleft()
-            scan_line=event_point.y
-            for edge in event_point.edge_out:
+            event=event_q.popleft()
+            scan_line=LineSeg(Node(aabb.minx,event.y),Node(aabb.maxx,event.y))
+            for edge in event.edge_out:
                 bst.insert(edge)
                 new_edge=bst.find(edge)
-
+        
         
         break_points=...
         return break_points    
-    def _rebuild_lines(self,break_points:dict[Edge,list[Node]])->list[list[Edge]]:
+    def _rebuild_lines(self,break_points:dict[Edge,list[Node]])->list[list[Edge]]:  # ✅
         """根据断点重构线段"""
         broken_lines=[]
         for group in self.edge_groups:
@@ -611,6 +626,8 @@ class FindConnectedGraphAlgo(GeomAlgo):
 
     Args:
         edges (list[Edge]): 所有线段，需要打断.
+    Todo:
+        * [TODO] 单元测试
     """
     def __init__(self,lines:list[Edge]) -> None:
         super().__init__()
@@ -660,7 +677,8 @@ class FindOutlineAlgo(GeomAlgo):
         edges (list[Edge]): 所有线段，无需打断.
     
     Todo:
-        * 圆弧.
+        * [TODO] 圆弧
+        * [TODO] 单元测试
     """    
     def __init__(self,edges:list[Edge]) -> None:
         super().__init__()

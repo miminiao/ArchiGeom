@@ -26,7 +26,7 @@ class JsonDumper:
                         "row1":Vec4d(*obj[0]),
                         "row2":Vec4d(*obj[1]),
                         "row3":Vec4d(*obj[2]),
-                        "row4":Vec4d.W,}
+                        "row4":Vec4d.W_axis,}
             case "Mat4d":
                 return {"type":"matrix4",
                         "row1":Vec4d(*obj[0]),

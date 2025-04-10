@@ -406,7 +406,7 @@ class BreakEdgeAlgo[T:list[Edge]|list[list[Edge]]](GeomAlgo):  # ✅
         kdtree._root.traverse(callback=lambda treenode:all_nodes.append(treenode.obj))
         all_nodes.sort(key=lambda node:(-node.y,node.x))
         event=all_nodes[0]
-        scan_line=Line(event,Vec3d.X())
+        scan_line=Line(event,Vec3d.X_axis())
         event_q=deque([event])
         bst=AVLTree()
         for edge in event.edge_out:

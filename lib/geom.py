@@ -1168,7 +1168,7 @@ class Loop(Polyedge):
             if isinstance(edge,Arc) and not edge.is_zero():
                 vs=edge.s.to_vec3d()-edge.center.to_vec3d()
                 ve=edge.e.to_vec3d()-edge.center.to_vec3d()
-                bow_area=edge.radian/2*edge.radius**2-0.5*(vs.cross(ve).dot(Vec3d.Z()))
+                bow_area=edge.radian/2*edge.radius**2-0.5*(vs.cross(ve).dot(Vec3d.Z_axis()))
             self._area+=(edge.s.x*edge.e.y-edge.s.y*edge.e.x)/2+bow_area
         return self._area
     def get_centroid(self)->Node:  # 需测试 TODO
@@ -1320,7 +1320,7 @@ class Loop(Polyedge):
                 is_up,is_down=False,False
                 t=edge.get_param(p)
                 tangent=edge.tangent_at(t)
-                if tangent.equals(Vec3d.X()) or tangent.equals(-Vec3d.X()):  # 相切
+                if tangent.equals(Vec3d.X_axis()) or tangent.equals(-Vec3d.X_axis()):  # 相切
                     if t!=0 and t!=1: continue  # 只是经过一下就不计
                     normal=edge.principal_normal_at(t)
                     if normal.y>0 and t==0 or normal.y<0 and t==1: is_up=True  # 切点->一二象限 或 三四象限->切点

@@ -32,11 +32,11 @@ class Vec3d(Vector):
     def __truediv__(self,divider:float)->Vec3d:
         return Vec3d(self.x/divider,self.y/divider,self.z/divider)
     @classmethod
-    def X(cls,length:float=1)->Self: return cls(length,0,0)
+    def X_axis(cls,length:float=1)->Self: return cls(length,0,0)
     @classmethod
-    def Y(cls,length:float=1)->Self: return cls(0,length,0)
+    def Y_axis(cls,length:float=1)->Self: return cls(0,length,0)
     @classmethod
-    def Z(cls,length:float=1)->Self: return cls(0,0,length)      
+    def Z_axis(cls,length:float=1)->Self: return cls(0,0,length)      
     def equals(self,other:Vec3d)->bool:
         return (self-other).length<Const.TOL_DIST
     def dot(self,other:Vec3d)->float:
@@ -84,13 +84,13 @@ class Vec4d(Vector):
     def __repr__(self) -> str:
         return f"Vec4d({self.x},{self.y},{self.z},{self.w})"        
     @classmethod
-    def X(cls,length:float=1)->Self: return cls(length,0,0,0)
+    def X_axis(cls,length:float=1)->Self: return cls(length,0,0,0)
     @classmethod
-    def Y(cls,length:float=1)->Self: return cls(0,length,0,0)
+    def Y_axis(cls,length:float=1)->Self: return cls(0,length,0,0)
     @classmethod
-    def Z(cls,length:float=1)->Self: return cls(0,0,length,0)          
+    def Z_axis(cls,length:float=1)->Self: return cls(0,0,length,0)          
     @classmethod
-    def W(cls,length:float=1)->Self: return cls(0,0,0,length)                    
+    def W_axis(cls,length:float=1)->Self: return cls(0,0,0,length)                    
     def to_list(self)->list[float]:
         return [self.x,self.y,self.z,self.w]
     def to_array(self)->np.ndarray:

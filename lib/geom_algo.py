@@ -20,7 +20,8 @@ if os.environ.get("DEBUG",False):
     print("debugging")
 
 class GeomAlgo(ABC):
-    def __init__(self) -> None: ...
+    def __init__(self) -> None:
+        self.res=None
     @abstractmethod
     def _preprocess(self)->None: ...
     @abstractmethod
@@ -328,6 +329,7 @@ class BreakEdgeAlgo[T:list[Edge]|list[list[Edge]]](GeomAlgo):  # ✅
     """
     def __init__(self,edge_groups:T) -> None:
         super().__init__()
+        self.res:T=[]
         self.edge_groups:list[list[Edge]]
         if len(edge_groups)>0 and isinstance(edge_groups[0],Edge):
             self._is_group=False
@@ -345,20 +347,19 @@ class BreakEdgeAlgo[T:list[Edge]|list[list[Edge]]](GeomAlgo):  # ✅
         if len(self.edge_groups)==0: return []
         self._preprocess()
         break_points=self._get_break_points()
-        res=self._rebuild_lines(break_points)
-        res=self._postprocess(res)
-        return res
+        self.res=self._rebuild_lines(break_points)
+        self._postprocess()
+        return self.res
     def _preprocess(self)->None:
         """预处理"""
         super()._preprocess()
         # 去除0线段
         self.edge_groups=[[edge for edge in group if not edge.is_zero()] for group in self.edge_groups]
-    def _postprocess(self,res)->T:
+    def _postprocess(self)->None:
         """后处理"""
         # 数据类型与入参统一
-        if not self._is_group: res=res[0]
+        if not self._is_group: self.res=self.res[0]
         super()._postprocess()
-        return res
     def _get_break_points(self)->dict[Edge,list[Node]]:
         """获取线段上的断点，没有排序，也没有去重"""
         # 对每条线段和与其的邻近线段进行相交测试, 记录交点
@@ -450,7 +451,7 @@ class MergeEdgeAlgo(GeomAlgo):  # ✅
     def __init__(self,edges:list[Edge],break_at_intersections:bool=False,compare:Callable[[Edge,Edge],int]=None) -> None:
         super().__init__()
         self.edges=edges[:]
-        self.merged:list[Edge]=[]
+        self.res:list[Edge]=[]
         self.break_at_intersections=break_at_intersections
         self.compare=compare
     def get_result(self)->list[Edge]:
@@ -480,12 +481,12 @@ class MergeEdgeAlgo(GeomAlgo):  # ✅
         # 3.合并重叠的线段
         with ComparerInjector(Edge,self.compare,override_ops=True):
             for group in collinear_line_groups:
-                self.merged+=self._merge_collinear_lines(group)
+                self.res.extend(self._merge_collinear_lines(group))
             for group in collinear_arc_groups:
-                self.merged+=self._merge_collinear_arcs(group)
+                self.res.extend(self._merge_collinear_arcs(group))
         # 4.后处理
         self._postprocess()
-        return self.merged
+        return self.res
     def _preprocess(self)->None:
         """前处理"""
         super()._preprocess()
@@ -493,7 +494,7 @@ class MergeEdgeAlgo(GeomAlgo):  # ✅
         """后处理"""
         # 按需打断
         if self.break_at_intersections:
-            self.merged=BreakEdgeAlgo([self.merged]).get_result()[0]
+            self.res=BreakEdgeAlgo([self.res]).get_result()[0]
         super()._postprocess()        
     def _group_parallel_lines(self,lines:list[LineSeg])->list[list[LineSeg]]:  # ✅OK
         """线段按角度分组"""

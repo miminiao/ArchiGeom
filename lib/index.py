@@ -217,9 +217,9 @@ class AVLTree[T](BSTree[T]):
 class _DSUNode[T](TreeNode[T]):
     def __init__(self, obj:T) -> None:
         super().__init__(obj)
-    def get_root(self,node:Self)->Self:
+    def get_root(self)->Self:
         if self.parent is not None:
-            self.parent=self.get_root(self.parent)
+            self.parent=self.get_root()
         return self.parent
     
 class DSU[T]:
@@ -228,7 +228,7 @@ class DSU[T]:
         self._nodes={obj:_DSUNode(obj) for obj in objs}
     def unite(self,s1:T,s2:T):
         self.find(s1).parent=self.find(s2)
-    def find(self,obj:T)->"_DSUNode[T]":
+    def find(self,obj:T)->_DSUNode[T]:
         return self._nodes[obj].get_root()
 
 class _STRTreeNode[T:Geom](TreeNode):

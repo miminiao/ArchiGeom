@@ -50,7 +50,7 @@ class Node(Geom):
         return Node.from_vec3d(self.to_vec3d()-other)
     def __copy__(self)->Self: 
         return Node(self.x,self.y,self.z)
-    def __deepcopy__(self):
+    def __deepcopy__(self,memo):
         return Node(self.x,self.y,self.z)
     @classmethod
     def from_array(cls,arr:np.ndarray) -> Self:
@@ -265,14 +265,13 @@ class Edge(Geom):
         vz=vx.cross(vy)
         return Mat3d.from_column_vecs([vx,vy,vz])
     @abstractmethod
-    def slice_between(self,a:float|Node,b:float|Node,extend:bool=True)->Self:
+    def slice_between(self,a:float|Node,b:float|Node)->Self:
         
         """返回a->b的切片.
 
         Args:
             a (Node|float): 起点.
             b (Node|float): 终点，满足t(a)<=t(b).
-            extend (bool, optional): 允许向外延伸. Defaults to True.
 
         Returns:
             Edge: a->b的切片.t(a)>t(b)时返回None.
@@ -814,8 +813,8 @@ class Arc(Edge):
                 and (self.bulge>0)==(other.bulge>0))
     def closest_point(self, other: Node) -> Node:
         if other.equals(self.center): return self.s
-        edge=Edge(self.center,other)
-        possible_intersections=Edge.intersection_of_circle_and_line(self,edge)
+        line=LineSeg(self.center,other)
+        possible_intersections=Edge.intersection_of_circle_and_line(self,line)
         for p in possible_intersections:
             v1=other.to_vec3d()-self.center.to_vec3d()
             v2=p.to_vec3d()-self.center.to_vec3d()
@@ -915,8 +914,8 @@ class Arc(Edge):
     def projection(self, other:Node) -> Node:
         """求pt在self所在圆周上的最近投影点"""
         if other.equals(self.center): return self.s
-        edge=Edge(self.center,other)
-        possible_projections=Edge.intersection_of_circle_and_line(self,edge)
+        line=LineSeg(self.center,other)
+        possible_projections=Edge.intersection_of_circle_and_line(self,line)
         dists=[other.dist(p) for p in possible_projections]
         nearest_p=possible_projections[dists.index(min(dists))]
         return nearest_p
@@ -1005,8 +1004,8 @@ class Circle(Arc):
         return id(self)
     def __copy__(self)->Self:
         return Circle(self.center,self.radius)
-    def __deepcopy__(self)->Self:
-        return Circle(deepcopy(self.center),self.radius)
+    def __deepcopy__(self,memo)->Self:
+        return Circle(deepcopy(self.center,memo),self.radius)
     def get_aabb(self):
         return Box(self.center.x-self.radius, self.center.y-self.radius,
                    self.center.x+self.radius, self.center.y+self.radius)
@@ -1128,8 +1127,8 @@ class Loop(Polyedge):
         return len(self.nodes)
     def __copy__(self)->Self:
         return Loop(self.nodes,self.bulges)
-    def __deepcopy__(self)->Self:
-        return Loop(deepcopy(self.nodes),self.bulges)
+    def __deepcopy__(self,memo)->Self:
+        return Loop(deepcopy(self.nodes,memo),self.bulges)
     @property
     def is_closed(self)->bool:return True
     @classmethod
@@ -1169,7 +1168,7 @@ class Loop(Polyedge):
             if isinstance(edge,Arc) and not edge.is_zero():
                 vs=edge.s.to_vec3d()-edge.center.to_vec3d()
                 ve=edge.e.to_vec3d()-edge.center.to_vec3d()
-                bow_area=edge.radian/2*edge.radius**2-0.5*(vs.cross(ve).dot(Vec3d.Z))
+                bow_area=edge.radian/2*edge.radius**2-0.5*(vs.cross(ve).dot(Vec3d.Z()))
             self._area+=(edge.s.x*edge.e.y-edge.s.y*edge.e.x)/2+bow_area
         return self._area
     def get_centroid(self)->Node:  # 需测试 TODO
@@ -1195,7 +1194,7 @@ class Loop(Polyedge):
         if cull_dup:
             cond=[False if edge.is_zero() else True for edge in self.edges]
             self.nodes=[node for i,node in enumerate(self.nodes) if cond[i] or i==len(self.nodes)-1]
-            self.bulges=[bulge for bulge in self.bulges if cond[i]]
+            self.bulges=[bulge for i,bulge in enumerate(self.bulges) if cond[i] or i==len(self.nodes)-1]
         if cull_insig:
             for start_i,start_edge in enumerate(self.edges):  # 先确定一个转折点的边作为起始边(start_i和start_i-1构成一个转折)
                 if not start_edge.is_collinear(self.edges[start_i-1]):
@@ -1321,7 +1320,7 @@ class Loop(Polyedge):
                 is_up,is_down=False,False
                 t=edge.get_param(p)
                 tangent=edge.tangent_at(t)
-                if tangent.equals(Vec3d.X) or tangent.equals(-Vec3d.X):  # 相切
+                if tangent.equals(Vec3d.X()) or tangent.equals(-Vec3d.X()):  # 相切
                     if t!=0 and t!=1: continue  # 只是经过一下就不计
                     normal=edge.principal_normal_at(t)
                     if normal.y>0 and t==0 or normal.y<0 and t==1: is_up=True  # 切点->一二象限 或 三四象限->切点
@@ -1492,8 +1491,8 @@ class Polygon(Geom):
             hole.prepare()
     def __copy__(self)->Self:
         return Polygon(self.shell,self.holes,make_valid=False)
-    def __deepcopy__(self)->Self:
-        return Polygon(deepcopy(self.shell),deepcopy(self.holes),make_valid=False)
+    def __deepcopy__(self,memo)->Self:
+        return Polygon(deepcopy(self.shell,memo),deepcopy(self.holes,memo),make_valid=False)
     def get_aabb(self):
         return self.shell.get_aabb()
     def to_array(self)->tuple[np.ndarray,np.ndarray]:

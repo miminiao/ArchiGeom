@@ -125,7 +125,7 @@ def shortest_path(vis_graph:dict[Node,list[Node]],source:Node) -> tuple[dict[Nod
     return d,pre
 
 # %% 测试
-if 1 and __name__ == "__main__":
+if __name__ == "__main__":
     import json
     import matplotlib.pyplot as plt
 

@@ -245,10 +245,10 @@ def test_kdtree_knn(case):
         assert res==std_out        
 
 if __name__=="__main__":
-    if 0: test_bst_insert()
-    if 0: random_test_segtree()
-    if 0: test_segtree({"in":f"case_{1}","out":f"out_{1}"})
-    if 0: random_test_kdtree()
-    if 0: test_kdtree_query({"in":f"case_{1}","out":f"query_out_{1}"})
-    if 1: test_kdtree_knn({"in":f"case_{6}","out":f"knn_out_{6}"})
+    if (i:=0)>0: test_bst_insert()
+    if (i:=0)>0: random_test_segtree()
+    if (i:=0)>0: test_segtree({"in":f"case_{i}","out":f"out_{i}"})
+    if (i:=0)>0: random_test_kdtree()
+    if (i:=0)>0: test_kdtree_query({"in":f"case_{i}","out":f"query_out_{i}"})
+    if (i:=0)>0: test_kdtree_knn({"in":f"case_{i}","out":f"knn_out_{i}"})
 

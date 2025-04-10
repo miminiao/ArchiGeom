@@ -192,24 +192,9 @@ def test_find_loop(case):
 # -------------------------------------------------------------------------
 
 if __name__=="__main__":
-    if 0:
-        for i in range(1,COVER_NODE[1]+1):
-            test_loop_covers_node({"in":f"case_{i}","out":f"out_{i}"})
-    if 0:
-        for i in range(1,COVER_EDGE[1]+1):
-            test_loop_covers_edge({"in":f"case_{i}","out":f"out_{i}"})
-    if 0:
-        for i in range(1,COVER_LOOP[1]+1):
-            test_loop_covers_loop({"in":f"case_{i}","out":f"out_{i}"})
-    if 0:
-        for i in range(1,REBUILD_LOOP[1]+1):
-            test_rebuild_loop({"in":f"case_{i}","out":f"out_{i}"})
-    if 0:
-        for i in [8]:
-        # for i in range(1,REBUILD_AND_CANCEL_LOOP[1]+1):
-            test_rebuild_and_cancel_loop({"in":f"case_{i}","out":f"out_{i}"})
-    if 0:
-        for i in [7]:
-        # for i in range(1,FIND_LOOP[1]+1):
-            test_find_loop({"in":f"case_{i}","out":f"out_{i}"})
-    ...
+    if (i:=0)>0: test_loop_covers_node({"in":f"case_{i}","out":f"out_{i}"})
+    if (i:=0)>0: test_loop_covers_edge({"in":f"case_{i}","out":f"out_{i}"})
+    if (i:=0)>0: test_loop_covers_loop({"in":f"case_{i}","out":f"out_{i}"})
+    if (i:=0)>0: test_rebuild_loop({"in":f"case_{i}","out":f"out_{i}"})
+    if (i:=0)>0: test_rebuild_and_cancel_loop({"in":f"case_{i}","out":f"out_{i}"})
+    if (i:=0)>0: test_find_loop({"in":f"case_{i}","out":f"out_{i}"})

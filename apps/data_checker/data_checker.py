@@ -1,12 +1,10 @@
-import modelling_data_constructor as mdc
 import analytical_data_constructor as adc
 import matplotlib.pyplot as plt
 import numpy as np
 import lib.geom as geom
-from typing import List
-from data_binder import dataBuilding,modelBuilding
 
-#basePoint=[[71500.00,-26300.00],[71500.00,13400.00],[71500.00,53100.00],[71500.00,92800.00],[0,0]]
+dataBuilding=adc.Building()
+
 MAX_NUM=1e9
 #%% 数据完整性检查
 #%% 检查外墙
@@ -549,8 +547,6 @@ def filterFunc(item:adc.Room):
     """建筑防烟排烟系统技术标准	3.2.2
     前室采用自然通风方式时，独立前室、消防电梯前室可开启外窗或开口的面积不应小于2．0m2，共用前室、合用前室不应小于3．0m2。
     """
-    if "前室" not in ",".join(item.vecAllName): return True
-    
     return True
 checkers.append(Checker(adc.Room,filterFunc))
 #%% 

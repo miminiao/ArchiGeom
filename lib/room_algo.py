@@ -53,7 +53,7 @@ class FindRoomAlgo(GeomAlgo): #TODO
         super()._postprocess()
 
 # %% 测试
-if 1 and __name__ == "__main__":
+if __name__ == "__main__":
     import json
     from tool.converter.json_converter import JsonLoader
     from lib.geom_algo import BooleanOperation

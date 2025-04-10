@@ -63,15 +63,6 @@ def test_find_outline(case):
         assert comp(res.area,std_out[1])==0
 
 if __name__=="__main__":
-    if 0:
-        for i in [3]:
-        # for i in range(1,FIND_OUTLINE[1]+1):
-            test_find_outline({"in":f"case_{i}","out":f"out_{i}"})
-    if 1:
-        for i in [5]:
-        # for i in range(1,BREAK_EDGE[1]+1):
-            test_break_edge({"in":f"case_{i}","out":f"out_{i}"})            
-    if 0:
-        for i in [5]:
-        # for i in range(1,MEARGE_EDGE[1]+1):
-            test_merge_edge({"in":f"case_{i}","out":f"out_{i}"})       
+    if (i:=0)>0: test_find_outline({"in":f"case_{i}","out":f"out_{i}"})
+    if (i:=0)>0: test_break_edge({"in":f"case_{i}","out":f"out_{i}"})            
+    if (i:=0)>0: test_merge_edge({"in":f"case_{i}","out":f"out_{i}"})       

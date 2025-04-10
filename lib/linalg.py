@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from lib.utils import Constant as Const
 import numpy as np
-from typing import Literal
+from typing import Literal,Self
 
 class Tensor:
     dim:tuple[int,...]
@@ -11,14 +11,8 @@ class Vector(Tensor):
     dim:tuple[int,Literal[1]]
 class Vec3d(Vector):
     dim=(3,1)
-    X,Y,Z=None,None,None
     def __init__(self,x:float,y:float,z:float=0.0) -> None:
         self.x,self.y,self.z=x,y,z
-    @classmethod
-    def _init_cls_attrs(cls)->None:
-        Vec3d.X=Vec3d(1,0,0)
-        Vec3d.Y=Vec3d(0,1,0)
-        Vec3d.Z=Vec3d(0,0,1)
     def __getitem__(self,index:int)->float:
         if index>=3 or index<-3: raise IndexError
         match index%3:
@@ -27,21 +21,27 @@ class Vec3d(Vector):
             case 2: return self.z
     def __repr__(self) -> str:
         return f"Vec3d({self.x},{self.y},{self.z})"
-    def __add__(self,other:"Vec3d")->"Vec3d":
+    def __add__(self,other:Vec3d)->Vec3d:
         return Vec3d(self.x+other.x,self.y+other.y,self.z+other.z)
-    def __sub__(self,other:"Vec3d")->"Vec3d":
+    def __sub__(self,other:Vec3d)->Vec3d:
         return Vec3d(self.x-other.x,self.y-other.y,self.z-other.z)
-    def __neg__(self)->"Vec3d":
+    def __neg__(self)->Vec3d:
         return Vec3d(-self.x,-self.y,-self.z)
-    def __mul__(self,scaler:float)->"Vec3d":
+    def __mul__(self,scaler:float)->Vec3d:
         return Vec3d(self.x*scaler,self.y*scaler,self.z*scaler)
-    def __truediv__(self,divider:float)->"Vec3d":
+    def __truediv__(self,divider:float)->Vec3d:
         return Vec3d(self.x/divider,self.y/divider,self.z/divider)
-    def equals(self,other:"Vec3d")->bool:
+    @classmethod
+    def X(cls,length:float=1)->Self: return cls(length,0,0)
+    @classmethod
+    def Y(cls,length:float=1)->Self: return cls(0,length,0)
+    @classmethod
+    def Z(cls,length:float=1)->Self: return cls(0,0,length)      
+    def equals(self,other:Vec3d)->bool:
         return (self-other).length<Const.TOL_DIST
-    def dot(self,other:"Vec3d")->float:
+    def dot(self,other:Vec3d)->float:
         return self.x*other.x+self.y*other.y+self.z*other.z
-    def cross(self,other:"Vec3d")->"Vec3d":
+    def cross(self,other:Vec3d)->Vec3d:
         return Vec3d(self.y*other.z-self.z*other.y,self.z*other.x-self.x*other.z,self.x*other.y-self.y*other.x)
     @property
     def length(self)->float:
@@ -58,17 +58,17 @@ class Vec3d(Vector):
         angle=math.acos(cosX) if cosY>=0 else 2*math.pi-math.acos(cosX)
         if 2*math.pi-angle<Const.TOL_ANG: angle-=2*math.pi
         return angle
-    def unit(self)->"Vec3d":
+    def unit(self)->Vec3d:
         return self/self.length
-    def angle_between(self,other:"Vec3d")->float:
+    def angle_between(self,other:Vec3d)->float:
         """不分正负"""
         return math.acos(self.dot(other)/self.length/other.length)
-    def angle_to(self,other:"Vec3d")->float:
+    def angle_to(self,other:Vec3d)->float:
         """求到other的旋转角[0,2pi)"""
         res=other.angle-self.angle
         if res<0: res+=2*math.pi
         return res
-    def rotate2d(self,angle:float)->"Vec3d":
+    def rotate2d(self,angle:float)->Vec3d:
         return Vec3d(math.cos(angle)*self.x-math.sin(angle)*self.y,math.sin(angle)*self.x+math.cos(angle)*self.y,self.z)
     def to_array(self)->np.ndarray:
         return np.array([self.x,self.y,self.z]).T
@@ -76,7 +76,6 @@ class Vec3d(Vector):
         return [self.x,self.y,self.z]
     def to_vec4d(self,w:float=0)->Vec4d:
         return Vec4d(self.x,self.y,self.z,w)
-Vec3d._init_cls_attrs()
 
 class Vec4d(Vector):
     dim=(4,1)
@@ -85,13 +84,13 @@ class Vec4d(Vector):
     def __repr__(self) -> str:
         return f"Vec4d({self.x},{self.y},{self.z},{self.w})"        
     @classmethod
-    def X(cls)->"Vec4d": return cls(1,0,0,0)
+    def X(cls,length:float=1)->Self: return cls(length,0,0,0)
     @classmethod
-    def Y(cls)->"Vec4d": return cls(0,1,0,0)
+    def Y(cls,length:float=1)->Self: return cls(0,length,0,0)
     @classmethod
-    def Z(cls)->"Vec4d": return cls(0,0,1,0)        
+    def Z(cls,length:float=1)->Self: return cls(0,0,length,0)          
     @classmethod
-    def W(cls)->"Vec4d": return cls(0,0,0,1)            
+    def W(cls,length:float=1)->Self: return cls(0,0,0,length)                    
     def to_list(self)->list[float]:
         return [self.x,self.y,self.z,self.w]
     def to_array(self)->np.ndarray:

@@ -43,14 +43,14 @@ def test_comparer_injector():
     a=Test(1)
     b=Test(2)
     try:
-        if a<b: assert False
-    except: assert True
+        if eval("a<b"): assert False
+    except TypeError: assert True
     cmp=lambda x,y: Const.cmp_val(x.value,y.value)
     with CmpInj(Test,cmp,override_ops=True):
         assert Test._cmp(a,b)<0
-        assert a<b
+        assert eval("a<b")
     try:
-        if a<b: assert False
-    except: assert True
+        if eval("a<b"): assert False
+    except TypeError: assert True
 
     

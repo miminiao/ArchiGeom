@@ -277,5 +277,5 @@ def test_intv_union(case):
         assert merged_intvs._items==std_out
 
 if __name__=="__main__":
-    if 0: random_test_intv_union()
-    if 0: test_intv_union(({"in":f"case_{1}","out":f"out_{1}"}))
+    if (i:=0)>0: random_test_intv_union()
+    if (i:=0)>0: test_intv_union(({"in":f"case_{i}","out":f"out_{i}"}))

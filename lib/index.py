@@ -217,7 +217,7 @@ class AVLTree[T](BSTree[T]):
 class _DSUNode[T](TreeNode[T]):
     def __init__(self, obj:T) -> None:
         super().__init__(obj)
-    def get_root(self)->Self:
+    def get_root(self,node:Self)->Self:
         if self.parent is not None:
             self.parent=self.get_root(self.parent)
         return self.parent
@@ -327,7 +327,7 @@ class SegmentTree[T]:
         for ch in node.child: ch.parent=node
         return node
     @classmethod
-    def _update_value(self,node:_BinaryTreeNode[Interval1d])->None:
+    def _update_value(cls,node:_BinaryTreeNode[Interval1d])->None:
         if node.parent is None or node.parent.obj.value is None: return
         if node.obj.value is None or node.parent.obj.value>node.obj.value:
             node.obj.value=node.parent.obj.value

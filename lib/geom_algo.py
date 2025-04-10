@@ -406,7 +406,7 @@ class BreakEdgeAlgo[T:list[Edge]|list[list[Edge]]](GeomAlgo):  # ✅
         kdtree._root.traverse(callback=lambda treenode:all_nodes.append(treenode.obj))
         all_nodes.sort(key=lambda node:(-node.y,node.x))
         event=all_nodes[0]
-        scan_line=Line(event,Vec3d.X)
+        scan_line=Line(event,Vec3d.X())
         event_q=deque([event])
         bst=AVLTree()
         for edge in event.edge_out:
@@ -744,8 +744,7 @@ class FindOutlineAlgo(GeomAlgo):
         nodes=[edge.s for edge in outline]
         bulges=[edge.bulge if isinstance(edge,Arc) else 0 for edge in outline ]
         return Loop(nodes,bulges)
-    def _postprocess(self) -> None:
-        pass
+    def _postprocess(self) -> None: ...
 
 class FindLoopAlgo(GeomAlgo):  # ✅
     """重建曲线所围成的区域的几何拓扑.
@@ -801,21 +800,23 @@ class FindLoopAlgo(GeomAlgo):  # ✅
         super()._postprocess()
     # @Timer
     def _find_loop(self)->list[Loop]:
-        # 沿逆时针优先的方向，顺着边往下找，
-        # 碰到已找过的边就计为一个环，直到所有边都找完。
+        # 沿逆时针优先的方向, 顺着边往下找,
+        # 碰到已找过的边就计为一个环, 环里的边出栈, 直到所有边都找完一遍为止。
         loops:list[Loop] =[]
         edge_stack:list[Edge]=[]  # 当前栈里的边
         edge_num=len(self.edges) if self.directed else 2*len(self.edges)
-        while edge_num>0:  # 每次循环找一个环，直到所有边都被遍历过
-            if len(edge_stack)==0:  # 栈空了就随便找一条边作为起始
-                for node in self.nodes:
-                    if len(node.edge_out)>0:
-                        edge_stack=[node.edge_out[0]]
-                        break
-            while True:  # 以pre.e为当前结点开始找一个环
+        while edge_num>0:
+            # 先随便找一条没访问过的边作为起始
+            for node in self.nodes:
+                if len(node.edge_out)>0:
+                    edge_stack=[node.edge_out[0]]
+                    break
+            # 顺着这条边往下找
+            while len(edge_stack)>0:
                 node=edge_stack[-1].e  # 当前结点
                 next_edge=GeomUtil.find_next_edge_out(node, edge_stack[-1])  # 按角度和半径找下一条出边，确保内环优先逆时针方向
-                if next_edge in edge_stack:  # 如果找到了已访问的边就封闭这个环
+                # 如果找到了已访问的边就封闭这个环
+                if next_edge in edge_stack:
                     start_idx=edge_stack.index(next_edge)  # 环的起始边
                     new_loop=edge_stack[start_idx:]
                     loops.append(Loop.from_edges(new_loop))  # 先将此环加入结果list
@@ -823,7 +824,6 @@ class FindLoopAlgo(GeomAlgo):  # ✅
                     for edge in new_loop:  # 并把环上的边从邻接表和栈里都删掉
                         edge.s.edge_out.remove(edge)
                     edge_num-=len(new_loop)  # 从总边数中减去环的边数
-                    break
                 else:  # 如果找到的不是已访问的边，就将此边加入栈，接着找下一条边
                     edge_stack.append(next_edge)
         return loops

@@ -83,15 +83,6 @@ def _find_identical_polygon(polygon:Polygon,std_out:STRTree[Polygon])->bool:
 # -------------------------------------------------------------------------------------
 
 if __name__=="__main__":
-    if 0:
-        for i in [16]:
-        # for i in range(1,POLYGON_UNION[1]+1):
-            test_polygon_union({"in":f"case_{i}","out":f"out_{i}"})     
-    if 0:
-        # for i in [1]:
-        for i in range(1,POLYGON_DIFF[1]+1):
-            test_polygon_diff({"in":f"case_{i}","out":f"out_{i}"})     
-    if 0:
-        # for i in [1]:
-        for i in range(1,POLYGON_INTER[1]+1):
-            test_polygon_inter({"in":f"case_{i}","out":f"out_{i}"})     
+    if (i:=0)>0: test_polygon_union({"in":f"case_{i}","out":f"out_{i}"})     
+    if (i:=0)>0: test_polygon_diff({"in":f"case_{i}","out":f"out_{i}"})     
+    if (i:=0)>0: test_polygon_inter({"in":f"case_{i}","out":f"out_{i}"})     

@@ -4,7 +4,7 @@ import math
 from abc import ABC
 from typing import Protocol,runtime_checkable,Self,Literal
 from lib.linalg import Tensor,Vec3d,Vec4d,Mat3d,Mat4d
-from lib.geom import Geom,Node,LineSeg,Arc,Polyedge,Loop
+from lib.geom import Geom,Node,LineSeg,Arc,Polyedge,Loop,Circle
 from lib.building_element import BuildingElement
 from lib.utils import retry
 
@@ -139,17 +139,19 @@ class CADCircle(CADEntity):
     #     upper=CADArc.from_half_circle(ent,True)
     #     lower=CADArc.from_half_circle(ent,False)
     #     return [upper,lower]
-    def to_geom(self) -> list[Arc]:
-        return [Arc.from_center_radius_angle(Node(*self.center), self.radius, 0, math.pi),
-                Arc.from_center_radius_angle(Node(*self.center), self.radius, math.pi, math.pi*2)]
+    def to_geom(self) -> Circle:
+        return Circle(Node(*self.center), self.radius)
+    # def to_geom(self) -> list[Arc]:
+    #     return [Arc.from_center_radius_angle(Node(*self.center), self.radius, 0, math.pi),
+    #             Arc.from_center_radius_angle(Node(*self.center), self.radius, math.pi, math.pi*2)]
     
 class CADPolyline(CADEntity):
     def __init__(self,ent,no_attr=False) -> None:
         super().__init__("polyline", ent)
         if no_attr: return
         coords=ent.Coordinates[:]
-        l=len(coords)//2
-        self.points=[[coords[i*2], coords[i*2+1], 0] for i in range(l)]
+        l=len(coords)//3
+        self.points=[[coords[i*3], coords[i*3+1], 0] for i in range(l)]
         self.bulges,self.widths=[],[]
         for i in range(l):
             self.bulges.append(ent.GetBulge(i))
@@ -165,10 +167,9 @@ class CADPolyline(CADEntity):
         return pl
     def to_geom(self) -> Polyedge|Loop:
         if self.is_closed:
-            # return Loop([(seg.start_point,seg.bulge) for seg in self.segments])
-            return Loop.from_nodes([Node(*seg.start_point) for seg in self.segments])  # TODO 替换Loop的构造方法
+            return Loop([Node(*pt) for pt in self.points], self.bulges)
         else: 
-            return Polyedge([(seg.start_point,seg.bulge) for seg in self.segments])
+            return Polyedge([Node(*pt) for pt in self.points], self.bulges)
         
 class CADSpline(CADEntity):  # TODO
     def __init__(self,ent) -> None:
@@ -439,6 +440,7 @@ _ENT_CLASS_MAP = {
     "AcDbArc": CADArc,
     "AcDbCircle": CADCircle,
     "AcDbPolyline": CADPolyline,
+    "AcDb2dPolyline": CADPolyline,
     "AcDbSpline": CADSpline,
     "AcDbHatch": CADHatch,
     "AcDbText" : CADText,

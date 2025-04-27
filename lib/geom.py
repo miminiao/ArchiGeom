@@ -22,7 +22,7 @@ class Geom(ABC):
     _dumper_ignore=[]
     def __init__(self) -> None: ...
     @abstractmethod
-    def get_aabb(self)->'Box':
+    def get_aabb(self)->Box:
         """获取AABB包围盒"""
         ...
     
@@ -488,7 +488,7 @@ class LineSeg(Edge):
     @property
     def angle_of_line(self)->float:
         """求线段所在直线的角度, 范围[0,pi), 含误差"""
-        self.to_line().angle
+        return self.to_line().angle
     @property
     def coefficients(self) -> tuple[float,float,float]:
         """求线段所在直线方程ax+by+c=0的系数"""
@@ -1294,8 +1294,8 @@ class Loop(Polyedge):
         return False    
     def _relation_with_node(self,other:Node,count_mode:str="or")->GeomRelation:
         """判断点和环的关系"""
-        rel=self.get_aabb().relation_with_box(other.get_aabb())
-        if rel==[GeomRelation.Outside]: return rel[0]  # 包围盒不满足则不满足
+        # 包围盒不满足则不满足
+        if not self.get_aabb().covers_node(other): return GeomRelation.Outside
         # 先判断是否在边界上
         if self.prepared is not None:
             neighbor_edges=self.prepared.query(other.get_aabb())
@@ -1552,7 +1552,7 @@ class Polygon(Geom):
 
     def contains(self,other:Geom)->bool: 
         """多边形包含其他对象. 注意：Polygon包含Loop的意思是包含边而非区域，要判断区域需构造Polygon"""
-        rel=Box.relation(self.get_aabb(),other.get_aabb())
+        rel=self.get_aabb().relation_with_box(other.get_aabb())
         if GeomRelation.Outside in rel or GeomRelation.OnBoundary in rel: return False  # 包围盒不满足则不满足
         if isinstance(other,Node):
             if not self.shell.contains(other): return False

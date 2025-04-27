@@ -5,7 +5,7 @@ from lib.linalg import Vec3d
 from lib.geom_algo import BooleanOperation, FindLoopAlgo, MergeEdgeAlgo
 from lib.biz_algo import BizAlgo
 from lib.geom_plotter import CADPlotter
-from lib.utils import Timer
+from lib.utils import Timer, Constant as const
 
 import shapely
 
@@ -49,6 +49,7 @@ class FindDrainingPlan(BizAlgo):
                 case _: safe_roofs+=self._cut_roof(roof,drains)
 
         CADPlotter.draw_geoms([r.poly for r in safe_roofs])
+        
         with open('log.csv','w') as f:
             f.write('\n'.join([log[0]+' '+str(log[1]) for log in Timer.logs]))
         exit()
@@ -113,14 +114,14 @@ class FindDrainingPlan(BizAlgo):
         cutX,cutY=[],[]
         for loop in roof.all_loops:
             for i,node in enumerate(loop.nodes):
-                if loop.edge(i-1).tangent_at(0).angle_between(loop.edge(i).tangent_at(0))<self.const.TOL_ANG: continue
-                x_line=LineSeg(Node(node.x,bounds[0].y),Node(node.x,bounds[1].y))
+                if loop.edge(i-1).tangent_at(0).angle_between(loop.edge(i).tangent_at(0))<const.TOL_ANG: continue
+                x_line=LineSeg(Node(node.x,bounds.lb.y),Node(node.x,bounds.rt.y))
                 x_segs=roof.clips_edge(x_line)
                 for seg in x_segs:
                     if seg.s==node or seg.e==node:
                         div_edges.append(seg)
                         cutX.append(node.x)
-                y_line=LineSeg(Node(bounds[0].x,node.y),Node(bounds[1].x,node.y))
+                y_line=LineSeg(Node(bounds.lb.x,node.y),Node(bounds.rt.x,node.y))
                 y_segs=roof.clips_edge(y_line)
                 for seg in y_segs:
                     if seg.s==node or seg.e==node:
@@ -146,8 +147,8 @@ class FindDrainingPlan(BizAlgo):
             else:  # 连线为水平方向，做竖直切分
                 new_x=edge.point_at(0.5).x
                 add_cut_mid(new_x,cutX,cutX_mid)                
-        x_edges=[LineSeg(Node(x,bounds[0].y),Node(x,bounds[1].y)) for x in cutX_mid]
-        y_edges=[LineSeg(Node(bounds[0].x,y),Node(bounds[1].x,y)) for y in cutY_mid]
+        x_edges=[LineSeg(Node(x,bounds.lb.y),Node(x,bounds.rt.y)) for x in cutX_mid]
+        y_edges=[LineSeg(Node(bounds.lb.x,y),Node(bounds.rt.x,y)) for y in cutY_mid]
         for edge in x_edges+y_edges:
             div_edges+=roof.clips_edge(edge)
             
@@ -158,7 +159,7 @@ class FindDrainingPlan(BizAlgo):
         if len(drains)<=1: return []
         if len(drains)==2: return [LineSeg(*drains)]
         points=shapely.MultiPoint([[node.x,node.y] for node in drains])
-        lines=shapely.delaunay_triangles(points,tolerance=self.const.TOL_DIST,only_edges=True)
+        lines=shapely.delaunay_triangles(points,tolerance=const.TOL_DIST,only_edges=True)
         edges=[LineSeg(Node(*line.coords[0]),Node(*line.coords[1])) for line in lines.geoms]
         merged=MergeEdgeAlgo(edges,break_at_intersections=True).get_result()
         return merged

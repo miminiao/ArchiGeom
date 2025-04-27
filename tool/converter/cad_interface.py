@@ -1,6 +1,7 @@
 import json
 import win32com.client
 from pathlib import Path
+from typing import Callable
 from tool.converter.cad_object import CADEntity,CADBlockDef
 from lib.utils import retry,StopRetry
 
@@ -58,7 +59,8 @@ class CADInterface:
         res=[]
         for ent in self._selection:
             parsed_ent=CADEntity.parse(ent)
-            if parsed_ent is not None: res.append(parsed_ent)
+            if parsed_ent is not None: 
+                res.append(parsed_ent)
         res.extend(CADBlockDef.parsed_blocks.values())
         print("Parsing done.")
         return res
@@ -72,5 +74,5 @@ if __name__=="__main__":
     with CADInterface() as cad:
         cad_objects=cad.get_selected_objects()
 
-    with open("./tool/converter/output/case_1.json",'w',encoding="utf8") as f:
+    with open("./tool/converter/output/case_2.json",'w',encoding="utf8") as f:
         json.dump(cad_objects,f,ensure_ascii=False,default=dumper)

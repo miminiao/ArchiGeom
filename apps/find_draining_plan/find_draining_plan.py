@@ -14,6 +14,7 @@ Timer.enable()
 
 @dataclass
 class DrainingRegion:
+    """一个落水口对应的汇水区域"""
     poly: Polygon
     target_drain: Node=None
     direction: Vec3d=None
@@ -25,11 +26,13 @@ class FindDrainingPlan(BizAlgo):
         super().__init__()
         self.roofs:list[Polygon]=roofs
         self.drain_points:list[Node]=drain_points
-        self.roof_drain:dict[Polygon:list[Node]]={}
         self.cut_tol=cut_tol
+        self.roof_drain:dict[Polygon:list[Node]]={}
         """屋面区域->区域包含的落水口"""
+
         self.good_regions:list[Polygon]=[]
         """布置好排水的区域"""
+
         self.bad_regions:list[Polygon]=[]
         """没布置好的区域"""
     def _postprocess(self) -> None:
@@ -43,13 +46,14 @@ class FindDrainingPlan(BizAlgo):
         uncertain_roofs=[]
         bad_roofs=[]
         for roof,drains in roof_drain.items():
+            """对于有n个落水口的屋面, 需要将其切分n块对应的汇水区域"""
             match len(drains):
                 case 0: uncertain_roofs.append(roof)
                 case 1: safe_roofs.append(DrainingRegion(roof,drains[0]))
                 case _: safe_roofs+=self._cut_roof(roof,drains)
 
         CADPlotter.draw_geoms([r.poly for r in safe_roofs])
-        
+
         with open('log.csv','w') as f:
             f.write('\n'.join([log[0]+' '+str(log[1]) for log in Timer.logs]))
         exit()
@@ -77,7 +81,7 @@ class FindDrainingPlan(BizAlgo):
             else:
                 roof_drain[roof].append(closest_pt)
         return roof_drain
-    @Timer
+    # @Timer
     def _cut_roof(self,roof:Polygon,drains:list[Node])->list[DrainingRegion]:
         """将屋面切分为若干汇水区域，和落水口一一对应"""
         # 划分单元格
@@ -163,7 +167,7 @@ class FindDrainingPlan(BizAlgo):
         edges=[LineSeg(Node(*line.coords[0]),Node(*line.coords[1])) for line in lines.geoms]
         merged=MergeEdgeAlgo(edges,break_at_intersections=True).get_result()
         return merged
-    @Timer
+    # @Timer
     def _build_vis_graph(self,roof:Polygon,reg_centers:list[Node],drains:list[Node])->dict[Node,set[Node]]:  # TODO: 效率优化
         """计算房间内可见性图"""
         roof_nodes=sum([loop.nodes for loop in roof.all_loops],[])
@@ -213,7 +217,7 @@ class FindDrainingPlan(BizAlgo):
                     d[node]=d[safe_node]+safe_node.dist(node)
                     pre[node]=safe_node
         return d,pre
-    @Timer
+    # @Timer
     def _find_sub_roofs(self,roof:Polygon, drains:list[Node], candidate_edges:list[LineSeg], cells:dict[Node,DrainingRegion], vis_graph:dict[Node,set[Node]]):
         """沿着分水线切屋面"""
 
@@ -262,7 +266,7 @@ class FindDrainingPlan(BizAlgo):
                 loss_factor_2-=0.0
                 break
         return base_loss*loss_factor_1*loss_factor_2
-    @Timer
+    # @Timer
     def _prune_vis_graph(self,vis_graph:dict[Node,set[Node]],new_div_edges:list[LineSeg])->list[list[Node]]:
         removed=[]
         for i in vis_graph:

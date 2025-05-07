@@ -427,11 +427,12 @@ class TZColumn(CADEntity):
         self.position=CADEntity.get_dxf_data(ent,11,Coord)
         self.shape=None  # 异形柱截面轮廓坐标
         if self.section_shape_text=="异形柱":
-            points,bulges=[],[]
+            points,rads=[],[]
             n=CADEntity.get_dxf_data_count(ent,10)
             for i in range(n):
                 points.append(CADEntity.get_dxf_data(ent,10,Coord,i))
-                bulges.append(CADEntity.get_dxf_data(ent,50,float,i))
+                rads.append(CADEntity.get_dxf_data(ent,50,float,i))
+            bulges=[math.tan(rad/4) for rad in rads]
             self.shape=CADPolyline.from_points_bulges(ent,points,bulges,True)
 
 _ENT_CLASS_MAP = {

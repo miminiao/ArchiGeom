@@ -128,7 +128,7 @@ class FindDrainingPlan(BizAlgo):
                 y_line=LineSeg(Node(bounds.lb.x,node.y),Node(bounds.rt.x,node.y))
                 y_segs=roof.clips_edge(y_line)
                 for seg in y_segs:
-                    if seg.s==node or seg.e==node:
+                    if seg.touches_node(node,include_endpoints=True):
                         div_edges.append(seg)
                         cutY.append(node.y)
         # 2. 用落水口平分线切分
@@ -157,6 +157,7 @@ class FindDrainingPlan(BizAlgo):
             div_edges+=roof.clips_edge(edge)
             
         res=MergeEdgeAlgo(div_edges).get_result()
+        CADPlotter.draw_geoms(res)
         return res
 
     def _triangulate_drains(self,drains:list[Node])->list[LineSeg]:
@@ -265,7 +266,7 @@ class FindDrainingPlan(BizAlgo):
             if p==edge.s or p==edge.e:
                 loss_factor_2-=0.0
                 break
-        return base_loss*loss_factor_1*loss_factor_2
+        return base_loss*loss_factor_1*loss_factor_2+edge.length
     # @Timer
     def _prune_vis_graph(self,vis_graph:dict[Node,set[Node]],new_div_edges:list[LineSeg])->list[list[Node]]:
         removed=[]
@@ -328,7 +329,7 @@ class FindDrainingPlan(BizAlgo):
 if __name__=="__main__":
     import json
     from tool.converter.json_converter import JsonLoader
-    with open("apps/find_draining_plan/case_2.json",'r') as f:
+    with open("apps/find_draining_plan/case_5.json",'r') as f:
         geoms=json.load(f,object_hook=JsonLoader.from_cad_obj)
     roof_boundaries=[geom for geom in geoms if isinstance(geom,Loop)]
     drain_points=[geom for geom in geoms if isinstance(geom,Node)]

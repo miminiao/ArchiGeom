@@ -63,6 +63,12 @@ class Timer:
     def enable(cls): cls._enabled=True
     @classmethod
     def disable(cls): cls._enabled=False
+    @classmethod
+    def write_logs(cls,file_path:str|pathlib.Path="timer.csv"):
+        """将计时器中的日志写入文件"""
+        with open(file_path,'w') as f:
+            f.write('\n'.join([log[0]+' '+str(log[1]) for log in cls.logs]))
+
 
 # -----------------------------------------------------------------------------
 

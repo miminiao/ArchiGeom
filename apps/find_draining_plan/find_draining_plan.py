@@ -54,8 +54,7 @@ class FindDrainingPlan(BizAlgo):
 
         CADPlotter.draw_geoms([r.poly for r in safe_roofs])
 
-        with open('log.csv','w') as f:
-            f.write('\n'.join([log[0]+' '+str(log[1]) for log in Timer.logs]))
+        # Timer.write_logs()
         exit()
 
         for reg in safe_roofs: 

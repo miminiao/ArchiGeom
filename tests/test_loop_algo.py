@@ -192,7 +192,7 @@ def test_find_loop(case):
 # -------------------------------------------------------------------------
 
 if __name__=="__main__":
-    if (i:=8)>0: test_loop_covers_node({"in":f"case_{i}","out":f"out_{i}"})
+    if (i:=0)>0: test_loop_covers_node({"in":f"case_{i}","out":f"out_{i}"})
     if (i:=0)>0: test_loop_covers_edge({"in":f"case_{i}","out":f"out_{i}"})
     if (i:=0)>0: test_loop_covers_loop({"in":f"case_{i}","out":f"out_{i}"})
     if (i:=0)>0: test_rebuild_loop({"in":f"case_{i}","out":f"out_{i}"})

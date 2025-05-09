@@ -62,7 +62,10 @@ class Vec3d(Vector):
         return self/self.length
     def angle_between(self,other:Vec3d)->float:
         """不分正负"""
-        return math.acos(self.dot(other)/self.length/other.length)
+        cos=self.dot(other)/self.length/other.length
+        if cos<-1: return 0
+        if cos>1: return math.pi
+        return math.acos(cos)
     def angle_to(self,other:Vec3d)->float:
         """求到other的旋转角[0,2pi)"""
         res=other.angle-self.angle

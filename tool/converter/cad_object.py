@@ -150,8 +150,8 @@ class CADPolyline(CADEntity):
         super().__init__("polyline", ent)
         if no_attr: return
         coords=ent.Coordinates[:]
-        l=len(coords)//3
-        self.points=[[coords[i*3], coords[i*3+1], 0] for i in range(l)]
+        l=len(coords)//2
+        self.points=[[coords[i*2], coords[i*2+1], 0] for i in range(l)]
         self.bulges,self.widths=[],[]
         for i in range(l):
             self.bulges.append(ent.GetBulge(i))

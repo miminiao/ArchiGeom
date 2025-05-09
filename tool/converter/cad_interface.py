@@ -70,9 +70,9 @@ if __name__=="__main__":
     # dumper=JsonDumper.default
     # dumper=JsonDumper.to_cgs
     dumper=lambda _:_.__dict__
-    
+
     with CADInterface() as cad:
         cad_objects=cad.get_selected_objects()
 
-    with open("./tool/converter/output/case_2.json",'w',encoding="utf8") as f:
+    with open("./tool/converter/output/case_8.json",'w',encoding="utf8") as f:
         json.dump(cad_objects,f,ensure_ascii=False,default=dumper)

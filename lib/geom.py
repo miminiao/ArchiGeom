@@ -1315,12 +1315,16 @@ class Loop(Polyedge):
         for edge in neighbor_edges:
             int_pts=ray.intersection(edge)
             if len(int_pts)==0:continue
-            if len(int_pts)==2 and int_pts[0].equals(int_pts[1]):int_pts=[int_pts[1]]
+            if len(int_pts)==2 and int_pts[0].equals(int_pts[1]):
+                int_pts=[int_pts[1]]
+                is_tangent=True
+            else: is_tangent=False
             for p in int_pts:
                 is_up,is_down=False,False
                 t=edge.get_param(p)
                 tangent=edge.tangent_at(t)
-                if tangent.equals(Vec3d.X_axis()) or tangent.equals(-Vec3d.X_axis()):  # 相切
+                # if tangent.equals(Vec3d.X_axis()) or tangent.equals(-Vec3d.X_axis()):  # 这样判断相切会有误差, 直线时会被误判
+                if is_tangent:  # 相切
                     if t!=0 and t!=1: continue  # 只是经过一下就不计
                     normal=edge.principal_normal_at(t)
                     if normal.y>0 and t==0 or normal.y<0 and t==1: is_up=True  # 切点->一二象限 或 三四象限->切点

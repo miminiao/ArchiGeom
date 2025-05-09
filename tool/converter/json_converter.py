@@ -80,7 +80,7 @@ class JsonLoader:
                 if total_angle<0: total_angle+=math.pi*2
                 return Arc(s,e,math.tan(total_angle/4))
             case "circle":
-                return Circle(obj["center"],obj["radius"])
+                return Circle(Node(*obj["center"]),obj["radius"])
             case "polyline":
                 nodes=[Node(*point) for point in obj["points"]]
                 bulges=obj["bulges"]

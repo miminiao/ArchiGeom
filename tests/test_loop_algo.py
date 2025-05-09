@@ -10,7 +10,7 @@ from lib.index import STRTree
 
 ROOT="./tests/loop_polygon_algo/"
 
-COVER_NODE=(ROOT+"loop_covers_node/",7)
+COVER_NODE=(ROOT+"loop_covers_node/",8)
 COVER_EDGE=(ROOT+"loop_covers_edge/",8)
 COVER_LOOP=(ROOT+"loop_covers_loop/",13)
 REBUILD_LOOP=(ROOT+"rebuild_loop/",15)
@@ -192,7 +192,7 @@ def test_find_loop(case):
 # -------------------------------------------------------------------------
 
 if __name__=="__main__":
-    if (i:=0)>0: test_loop_covers_node({"in":f"case_{i}","out":f"out_{i}"})
+    if (i:=8)>0: test_loop_covers_node({"in":f"case_{i}","out":f"out_{i}"})
     if (i:=0)>0: test_loop_covers_edge({"in":f"case_{i}","out":f"out_{i}"})
     if (i:=0)>0: test_loop_covers_loop({"in":f"case_{i}","out":f"out_{i}"})
     if (i:=0)>0: test_rebuild_loop({"in":f"case_{i}","out":f"out_{i}"})

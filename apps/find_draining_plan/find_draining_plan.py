@@ -91,7 +91,7 @@ class FindDrainingPlan(BizAlgo):
 
         # 单元格中心点作为代表
         center_points=[loop.get_centroid() for loop in cell_loops]
-        cells={c:DrainingRegion(Polygon(loop)) for c,loop in zip(center_points,cell_loops)}
+        cells={c:DrainingRegion(Polygon(loop)) for c,loop in zip(center_points,cell_loops) if Polygon(loop).area>10000}  # XXX area}
 
         # 构建可见性图
         vis_graph=self._build_vis_graph(roof,center_points,drains)
@@ -246,7 +246,7 @@ class FindDrainingPlan(BizAlgo):
         sub_roofs=[]
         for new_roof,new_drains in new_roof_drain.items():
             new_candidate_edges=sum([new_roof.clips_edge(edge) for edge in candidate_edges],[])
-            new_cells={center:region for center,region in cells.items() if new_roof.contains(center)}
+            new_cells={center:region for center,region in cells.items() if new_roof.contains(center) and region.poly.area>10000}  # XXX area
             sub_roofs+=self._find_sub_roofs(
                 roof=new_roof, 
                 drains=new_drains,  
@@ -328,7 +328,7 @@ class FindDrainingPlan(BizAlgo):
 if __name__=="__main__":
     import json
     from tool.converter.json_converter import JsonLoader
-    with open("apps/find_draining_plan/case_5.json",'r') as f:
+    with open("apps/find_draining_plan/case_6.json",'r') as f:
         geoms=json.load(f,object_hook=JsonLoader.from_cad_obj)
     roof_boundaries=[geom for geom in geoms if isinstance(geom,Loop)]
     drain_points=[geom for geom in geoms if isinstance(geom,Node)]

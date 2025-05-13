@@ -319,6 +319,35 @@ class MaxRectAlgo(GeomAlgo):  # FIXME
         return u0, l0, d0, r0
     def _postprocess(self) -> None: ...
 
+class EdgeIntersectionAlgo(GeomAlgo):
+    """计算一组线段的交点"""
+    def __init__(self, edges: list[Edge]) -> None:
+        self.edges=edges[:]
+        self.res:list[Node]=[]
+    def _preprocess(self): 
+        super()._preprocess()
+    def _postprocess(self):
+        super()._postprocess()
+        return self.res
+    def get_result(self):
+        all_endpoints=sum([[edge.s,edge.e] for edge in self.edges],[])
+        kdtree=KDTree(all_endpoints)
+        for edge in self.edges:
+            s=kdtree.find_point(edge.s)
+            e=kdtree.find_point(edge.e)
+            if s.y>e.y or s.y==e.y and s.x<e.x: 
+                s.edge_out.append(edge)
+                e.edge_in.append(edge)
+            else:
+                e.edge_out.append(edge)
+                s.edge_out.append(edge)
+        all_nodes:list[Node]=[]
+        kdtree._root.traverse(callback=lambda treenode:all_nodes.append(treenode.obj))
+        all_nodes.sort(key=lambda node:(-node.y,node.x))        
+        event_q=deque([event])
+        bst:AVLTree[Edge]=AVLTree()
+
+    
 class BreakEdgeAlgo[T:list[Edge]|list[list[Edge]]](GeomAlgo):  # ✅
     """线段打断. 重叠部分会在端点处打断. 保持原线段的方向. 
 
@@ -386,10 +415,11 @@ class BreakEdgeAlgo[T:list[Edge]|list[list[Edge]]](GeomAlgo):  # ✅
                     break_points[edge].extend(intersection)
                     break_points[other].extend(intersection)
         return break_points
-        
-    def _get_break_points_by_scanning(self)->dict[Edge,list[Node]]:  # TODO
+
+    def _get_break_points_by_sweepline(self)->dict[Edge,list[Node]]:  # TODO
         """获取线段上的断点，没有排序，也没有去重"""
-        break_points:dict[Edge,list[Node]]={}
+        break_points_on:dict[Edge,list[Node]]={}
+        break_points={}
         all_edges=sum(self.edge_groups,[])
         all_endpoints=sum([[edge.s,edge.e] for edge in all_edges],[])
         aabb=Box.from_geoms(all_edges)
@@ -407,20 +437,33 @@ class BreakEdgeAlgo[T:list[Edge]|list[list[Edge]]](GeomAlgo):  # ✅
         kdtree._root.traverse(callback=lambda treenode:all_nodes.append(treenode.obj))
         all_nodes.sort(key=lambda node:(-node.y,node.x))
         event=all_nodes[0]
-        scan_line=Line(event,Vec3d.X_axis())
+        sweep_line=Line(event,Vec3d.X_axis())
         event_q=deque([event])
-        bst=AVLTree()
+        bst:AVLTree[Edge]=AVLTree()
         for edge in event.edge_out:
             bst.insert(edge)
-        if len(event.edge_out)+len(event.edge_in)>1:
-            for edge in event.edge_out+event.edge_in:
-                break_points[edge].append(event)
         while len(event_q)>0:
             event=event_q.popleft()
-            scan_line=LineSeg(Node(aabb.minx,event.y),Node(aabb.maxx,event.y))
+            sweep_line=LineSeg(Node(aabb.minx,event.y),Node(aabb.maxx,event.y))
             for edge in event.edge_out:
                 bst.insert(edge)
-                new_edge=bst.find(edge)
+                treenode=bst.find(edge)
+                succ=treenode.get_succ()
+                prev=treenode.get_pred()
+                succ_inter=treenode.obj.intersection(succ)
+                prev_inter=treenode.obj.intersection(prev)
+                for pt in succ_inter+prev_inter: 
+                    if pt.y<event.y:
+                        event_q.append(succ_inter)
+            for edge in event.edge_in:
+                treenode=bst.find(edge)
+                succ=treenode.get_succ()
+                prev=treenode.get_pred()
+                inter=succ.obj.intersection(prev.obj)
+                for pt in inter: 
+                    if pt.y<event.y: 
+                        event_q.append(inter)
+            
         
         
         break_points=...

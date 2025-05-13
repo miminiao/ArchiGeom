@@ -76,8 +76,9 @@ class Node(Geom):
     
 class Box(Geom):
     """描述AABB包围盒.
+
     Args:
-        no-args: Defaults to (-INF,INF).
+        no-args (): Defaults to (-INF,INF).
         minx,miny,maxx,maxy (float): 2D构造.
         minx,miny,minz,maxx,maxy,maxz (float): 3D构造.
     """

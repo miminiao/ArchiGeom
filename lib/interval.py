@@ -128,7 +128,7 @@ class MultiInterval1d[T:SupportsCompareOps](Interval[T]):
         for a,b in zip(self._items,other._items):
             if a!=b: return False
         return True
-    def _scan(self,other:Self,get_next_value:Callable[[T,T],T])->Self:
+    def _sweep(self,other:Self,get_next_value:Callable[[T,T],T])->Self:
         """扫描线处理区间交并差"""
         endpoints=[]
         for intv in self._items+other._items: endpoints.extend([intv.l,intv.r])
@@ -174,7 +174,7 @@ class MultiInterval1d[T:SupportsCompareOps](Interval[T]):
         if isinstance(other,Interval1d):
             if other.is_empty():return self
             other=MultiInterval1d([other])
-        res=self._scan(other,self._value_for_add)
+        res=self._sweep(other,self._value_for_add)
         if len(res)>1: return MultiInterval1d(res)
         else: return res[0]
     def __sub__(self,other:Interval1d|Self)->Interval1d|Self:
@@ -182,7 +182,7 @@ class MultiInterval1d[T:SupportsCompareOps](Interval[T]):
         if isinstance(other,Interval1d):
             if other.is_empty():return self
             other=MultiInterval1d([other])
-        res=self._scan(other,self._value_for_sub)
+        res=self._sweep(other,self._value_for_sub)
         if len(res)>1: return MultiInterval1d(res)
         elif len(res)==1: return res[0]
         else: return Interval1d(1,0,0) #EMPTY
@@ -191,7 +191,7 @@ class MultiInterval1d[T:SupportsCompareOps](Interval[T]):
         if isinstance(other,Interval1d):
             if other.is_empty():return self
             other=MultiInterval1d([other])
-        res=self._scan(other,self._value_for_mul)
+        res=self._sweep(other,self._value_for_mul)
         if len(res)>1: return MultiInterval1d(res)
         elif len(res)==1: return res[0]
         else: return Interval1d(1,0,0) #EMPTY
